@@ -14,9 +14,15 @@ class EntryDao {
 
   Future<void> insert(Entry entry) async {
     final db = await DatabaseHelper.instance.database;
+    final map = entry.toMap();
+    // DB column is blocks_json
+    if (entry.blocksJson != null) {
+      map['blocks_json'] = entry.blocksJson;
+    }
+    map.remove('blocksJson');
     await db.insert(
       'entries',
-      entry.toMap(),
+      map,
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
@@ -30,7 +36,7 @@ class EntryDao {
       whereArgs: [storyId, 0],
       orderBy: 'createdAt DESC',
     );
-    return maps.map(Entry.fromMap).toList();
+    return maps.map(_rowToEntry).toList();
   }
 
   Future<Entry?> getById(String id) async {
@@ -42,17 +48,33 @@ class EntryDao {
       limit: 1,
     );
     if (maps.isEmpty) return null;
-    return Entry.fromMap(maps.first);
+    return _rowToEntry(maps.first);
   }
 
   Future<void> update(Entry entry) async {
     final db = await DatabaseHelper.instance.database;
+    final map = entry.toMap();
+    if (entry.blocksJson != null) {
+      map['blocks_json'] = entry.blocksJson;
+    }
+    map.remove('blocksJson');
     await db.update(
       'entries',
-      entry.toMap(),
+      map,
       where: 'id = ?',
       whereArgs: [entry.id],
     );
+  }
+
+// Map DB row to Entry — handles blocks_json column name
+  static Entry _rowToEntry(Map<String, dynamic> row) {
+    final map = Map<String, dynamic>.from(row);
+    // Rename DB column to model field
+    if (map.containsKey('blocks_json')) {
+      map['blocksJson'] = map['blocks_json'];
+      map.remove('blocks_json');
+    }
+    return Entry.fromMap(map);
   }
 
   /// Updates only the time spent — called on editor close.
@@ -101,7 +123,7 @@ class EntryDao {
       whereArgs: [1],
       orderBy: 'updatedAt DESC',
     );
-    return maps.map(Entry.fromMap).toList();
+    return maps.map(_rowToEntry).toList();
   }
 
   Future<void> hardDelete(String id) async {
@@ -124,7 +146,7 @@ class EntryDao {
          ORDER BY createdAt DESC''',
       [monthDay, date.year.toString()],
     );
-    return maps.map(Entry.fromMap).toList();
+    return maps.map(_rowToEntry).toList();
   }
 
   /// Count of non-deleted entries in a story.
@@ -146,6 +168,6 @@ class EntryDao {
       whereArgs: [0],
       orderBy: 'updatedAt DESC',
     );
-    return maps.map(Entry.fromMap).toList();
+    return maps.map(_rowToEntry).toList();
   }
 }

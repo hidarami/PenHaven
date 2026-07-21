@@ -2,13 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../data/backup_service.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/app_colors.dart';
 import 'settings_section.dart';
 import 'settings_tile.dart';
 import 'about_section.dart';
+
 
 /// Settings screen — full-screen push, no back button (swipe left-to-right).
 /// Covers: Appearance, Privacy, Tracking, About.
@@ -137,7 +138,7 @@ class SettingsScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-              // ── DATA ─────────────────────────────────────────────────
+              // ── DATA ─────────────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: SettingsSection(
                   label: 'DATA',
@@ -145,13 +146,24 @@ class SettingsScreen extends StatelessWidget {
                   bg: bg,
                   children: [
                     SettingsNavTile(
-                      icon: Icons.download_outlined,
-                      label: 'Export All Entries',
+                      icon: Icons.backup_outlined,
+                      label: 'Full Backup (JSON)',
                       description:
-                          'Download your journal as a ZIP of text files.',
+                          'Export all data as a restorable JSON file.',
                       isDark: isDark,
                       bg: bg,
-                      onTap: () => _exportAll(context, appState),
+                      onTap: () =>
+                          BackupService.instance.exportBackup(context),
+                    ),
+                    SettingsNavTile(
+                      icon: Icons.download_outlined,
+                      label: 'Export Entries as JSON',
+                      description:
+                          'Export all journal entries as a readable JSON file.',
+                      isDark: isDark,
+                      bg: bg,
+                      onTap: () =>
+                          BackupService.instance.exportEntriesAsJson(context),
                     ),
                     SettingsNavTile(
                       icon: Icons.delete_sweep_outlined,
@@ -183,16 +195,6 @@ class SettingsScreen extends StatelessWidget {
   }
 
   // ── Handlers ─────────────────────────────────────────────────────────────
-
-  void _exportAll(BuildContext context, AppState appState) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Export in progress…'),
-        duration: Duration(seconds: 2),
-      ),
-    );
-    appState.exportAllEntries();
-  }
 
   void _confirmClearBin(
     BuildContext context,

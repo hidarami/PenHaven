@@ -12,7 +12,7 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static Database? _db;
-  static const int _version = 1;
+  static const int _version = 2;
   static const String _dbName = 'flow.db';
 
   Future<Database> get database async {
@@ -44,6 +44,7 @@ class DatabaseHelper {
     await _createTimeCapsules(db);
     await _createPeriodLogs(db);
     await _createAppLog(db);
+    await _createEntryVersions(db);
   }
 
   // ── Table creation ────────────────────────────────────────────────────────
@@ -76,6 +77,7 @@ class DatabaseHelper {
         headerImage TEXT,
         images TEXT NOT NULL DEFAULT '[]',
         isDeleted INTEGER NOT NULL DEFAULT 0,
+        blocks_json TEXT,
         FOREIGN KEY (storyId) REFERENCES stories (id) ON DELETE CASCADE
       )
     ''');
@@ -138,10 +140,11 @@ class DatabaseHelper {
   // Add ALTER TABLE statements here as version increments.
 
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
-    // v1 → v2 example (not yet needed):
-    // if (oldVersion < 2) {
-    //   await db.execute('ALTER TABLE entries ADD COLUMN newField TEXT');
-    // }
+    if (oldVersion < 2) {
+      await db.execute(
+          'ALTER TABLE entries ADD COLUMN blocks_json TEXT');
+      await _createEntryVersions(db);
+    }
   }
 
   // ── Utility ───────────────────────────────────────────────────────────────
@@ -159,12 +162,31 @@ class DatabaseHelper {
   /// Hard-deletes all data. Used in Settings → "Erase Everything".
   Future<void> nukeAll() async {
     final db = await database;
+    await db.delete('entry_versions');
     await db.delete('entries');
     await db.delete('stories');
     await db.delete('todos');
     await db.delete('time_capsules');
     await db.delete('period_logs');
     await db.delete('app_log');
+  }
+
+  Future<void> _createEntryVersions(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS entry_versions (
+        id TEXT PRIMARY KEY,
+        entryId TEXT NOT NULL,
+        title TEXT NOT NULL,
+        blocksJson TEXT NOT NULL,
+        timeSpentSeconds INTEGER NOT NULL DEFAULT 0,
+        savedAt TEXT NOT NULL,
+        label TEXT,
+        FOREIGN KEY (entryId) REFERENCES entries (id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_versions_entryId ON entry_versions (entryId)',
+    );
   }
 
   /// Returns the total size of the DB file in bytes (for Settings info).

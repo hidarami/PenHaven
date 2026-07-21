@@ -30,8 +30,9 @@ class Entry {
   int timeSpentSeconds; // Proof of Work — cumulative seconds in editor
   String moodColor;
   String? headerImage; // Optional full-width banner (path)
-  List<EntryImage> images; // Inline images, tracked by position
+  List<EntryImage> images; // Legacy — kept for migration only
   bool isDeleted;
+  String? blocksJson; // Block-based content (new format)
 
   Entry({
     String? id,
@@ -45,6 +46,7 @@ class Entry {
     this.headerImage,
     List<EntryImage>? images,
     this.isDeleted = false,
+    this.blocksJson,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now(),
@@ -63,6 +65,7 @@ class Entry {
       'headerImage': headerImage,
       'images': jsonEncode(images.map((e) => e.toMap()).toList()),
       'isDeleted': isDeleted ? 1 : 0,
+      'blocksJson': blocksJson,
     };
   }
 
@@ -88,6 +91,7 @@ class Entry {
       headerImage: map['headerImage'] as String?,
       images: parsedImages,
       isDeleted: (map['isDeleted'] as int) == 1,
+      blocksJson: map['blocksJson'] as String?,
     );
   }
 
@@ -101,6 +105,8 @@ class Entry {
     List<EntryImage>? images,
     bool? isDeleted,
     bool clearHeaderImage = false,
+    String? blocksJson,
+    bool clearBlocksJson = false,
   }) {
     return Entry(
       id: id,
@@ -114,6 +120,7 @@ class Entry {
       headerImage: clearHeaderImage ? null : (headerImage ?? this.headerImage),
       images: images ?? this.images,
       isDeleted: isDeleted ?? this.isDeleted,
+      blocksJson: clearBlocksJson ? null : (blocksJson ?? this.blocksJson),
     );
   }
 

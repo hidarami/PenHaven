@@ -1,0 +1,561 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../models/editor_block.dart';
+import '../../providers/app_state.dart';
+import '../../theme/app_colors.dart';
+import 'editor_canvas.dart';
+import 'rich_editor_controller.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WYSIWYG TOOLBAR
+// Persistent bottom toolbar for the block editor.
+// Row 1: Text formatting (B, I, U, S, highlight, link)
+// Row 2: Block type toggles + block insertion (image, YouTube, etc.)
+// Active state reflects the focused text block's current format.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class WysiwygToolbar extends StatefulWidget {
+  final EditorCanvasState canvas;
+  final VoidCallback? onImageInsert;
+  final VoidCallback? onImageGridInsert;
+
+  const WysiwygToolbar({
+    super.key,
+    required this.canvas,
+    this.onImageInsert,
+    this.onImageGridInsert,
+  });
+
+  @override
+  State<WysiwygToolbar> createState() => _WysiwygToolbarState();
+}
+
+class _WysiwygToolbarState extends State<WysiwygToolbar> {
+  @override
+  Widget build(BuildContext context) {
+    final dark = context.watch<AppState>().isDarkMode;
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final divider = dark ? AppColors.dividerDark : AppColors.dividerLight;
+    final muted = dark ? AppColors.mutedDark : AppColors.mutedLight;
+    final bottomPadding = MediaQuery.of(context).padding.bottom;
+
+    final ctrl = widget.canvas.focusedController;
+
+    return Container(
+      color: bg,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Divider(color: divider, thickness: 0.5, height: 0),
+          SizedBox(
+            height: 44 + bottomPadding,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.fromLTRB(8, 4, 8, bottomPadding),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // ── Text formatting ──────────────────────────────────────
+                  _FormatButton(
+                    label: 'B',
+                    bold: true,
+                    color: muted,
+                    isActive: ctrl?.selectionHas(bold: true) ?? false,
+                    onTap: () {
+                      ctrl?.toggleBold();
+                      setState(() {});
+                    },
+                  ),
+                  _FormatButton(
+                    label: 'I',
+                    italic: true,
+                    color: muted,
+                    isActive: ctrl?.selectionHas(italic: true) ?? false,
+                    onTap: () {
+                      ctrl?.toggleItalic();
+                      setState(() {});
+                    },
+                  ),
+                  _FormatButton(
+                    label: 'U',
+                    underlineLabel: true,
+                    color: muted,
+                    isActive: ctrl?.selectionHas(underline: true) ?? false,
+                    onTap: () {
+                      ctrl?.toggleUnderline();
+                      setState(() {});
+                    },
+                  ),
+                  _FormatButton(
+                    label: 'S',
+                    strikeLabel: true,
+                    color: muted,
+                    isActive:
+                        ctrl?.selectionHas(strikethrough: true) ?? false,
+                    onTap: () {
+                      ctrl?.toggleStrikethrough();
+                      setState(() {});
+                    },
+                  ),
+                  _HighlightButton(
+                    muted: muted,
+                    dark: dark,
+                    onColor: (c) {
+                      widget.canvas.applyHighlight(c);
+                      setState(() {});
+                    },
+                    onClear: () {
+                      widget.canvas.clearHighlight();
+                      setState(() {});
+                    },
+                  ),
+                  _LinkButton(
+                    muted: muted,
+                    onApply: (url) {
+                      widget.canvas.applyLink(url);
+                      setState(() {});
+                    },
+                    onClear: () {
+                      widget.canvas.clearLink();
+                      setState(() {});
+                    },
+                  ),
+
+                  _ToolbarDivider(color: divider),
+
+                  // ── Block type ───────────────────────────────────────────
+                  _BlockTypeButton(
+                    label: 'H1',
+                    color: muted,
+                    isActive: _isFocusedType(BlockType.heading1),
+                    onTap: () => _toggleBlockType(BlockType.heading1),
+                  ),
+                  _BlockTypeButton(
+                    label: 'H2',
+                    color: muted,
+                    isActive: _isFocusedType(BlockType.heading2),
+                    onTap: () => _toggleBlockType(BlockType.heading2),
+                  ),
+                  _BlockTypeButton(
+                    label: 'H3',
+                    color: muted,
+                    isActive: _isFocusedType(BlockType.heading3),
+                    onTap: () => _toggleBlockType(BlockType.heading3),
+                  ),
+                  _BlockTypeButton(
+                    icon: Icons.format_quote_rounded,
+                    color: muted,
+                    isActive: _isFocusedType(BlockType.quote),
+                    onTap: () => _toggleBlockType(BlockType.quote),
+                  ),
+
+                  _ToolbarDivider(color: divider),
+
+                  // ── Block insertion ──────────────────────────────────────
+                  _ToolbarIconButton(
+                    icon: Icons.image_outlined,
+                    color: muted,
+                    onTap: widget.onImageInsert,
+                  ),
+                  _ToolbarIconButton(
+                    icon: Icons.grid_on_rounded,
+                    color: muted,
+                    onTap: widget.onImageGridInsert,
+                  ),
+                  _ToolbarIconButton(
+                    icon: Icons.play_circle_outline_rounded,
+                    color: muted,
+                    onTap: () => _showUrlDialog(context, 'YouTube URL',
+                        'https://youtube.com/watch?v=', (url) {
+                      if (widget.canvas.focusedBlockId != null) {
+                        widget.canvas.insertYoutubeBlock(
+                            widget.canvas.focusedBlockId!, url);
+                      }
+                    }),
+                  ),
+                  _ToolbarIconButton(
+                    icon: Icons.link_rounded,
+                    color: muted,
+                    onTap: () => _showUrlDialog(context, 'X / Twitter URL',
+                        'https://x.com/', (url) {
+                      if (widget.canvas.focusedBlockId != null) {
+                        widget.canvas.insertTweetBlock(
+                            widget.canvas.focusedBlockId!, url);
+                      }
+                    }),
+                  ),
+                  _ToolbarIconButton(
+                    icon: Icons.code_rounded,
+                    color: muted,
+                    onTap: () {
+                      if (widget.canvas.focusedBlockId != null) {
+                        widget.canvas
+                            .insertCodeBlock(widget.canvas.focusedBlockId!);
+                      }
+                    },
+                  ),
+                  _ToolbarIconButton(
+                    icon: Icons.remove_rounded,
+                    color: muted,
+                    onTap: () {
+                      if (widget.canvas.focusedBlockId != null) {
+                        widget.canvas
+                            .insertDivider(widget.canvas.focusedBlockId!);
+                      }
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  bool _isFocusedType(BlockType type) {
+    final id = widget.canvas.focusedBlockId;
+    if (id == null) return false;
+    final blocks = widget.canvas.blocks;
+    final block = blocks.firstWhere((b) => b.id == id,
+        orElse: () => TextBlock.empty());
+    return block is TextBlock && block.type == type;
+  }
+
+  void _toggleBlockType(BlockType type) {
+    final id = widget.canvas.focusedBlockId;
+    if (id == null) return;
+    final current = _isFocusedType(type) ? BlockType.text : type;
+    widget.canvas.changeBlockType(id, current);
+    setState(() {});
+  }
+
+  void _showUrlDialog(
+    BuildContext context,
+    String title,
+    String hint,
+    void Function(String) onSubmit,
+  ) {
+    final ctrl = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration: InputDecoration(hintText: hint),
+          keyboardType: TextInputType.url,
+        ),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () {
+              final url = ctrl.text.trim();
+              if (url.isNotEmpty) {
+                onSubmit(url);
+              }
+              Navigator.pop(ctx);
+            },
+            child: const Text('Insert'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Toolbar components ────────────────────────────────────────────────────────
+
+class _FormatButton extends StatelessWidget {
+  final String label;
+  final bool bold;
+  final bool italic;
+  final bool underlineLabel;
+  final bool strikeLabel;
+  final Color color;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  const _FormatButton({
+    required this.label,
+    this.bold = false,
+    this.italic = false,
+    this.underlineLabel = false,
+    this.strikeLabel = false,
+    required this.color,
+    required this.isActive,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: isActive
+            ? BoxDecoration(
+                color: AppColors.teal.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              )
+            : null,
+        alignment: Alignment.center,
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 13,
+            fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
+            fontStyle: italic ? FontStyle.italic : FontStyle.normal,
+            color: isActive ? AppColors.teal : color,
+            decoration: underlineLabel
+                ? TextDecoration.underline
+                : strikeLabel
+                    ? TextDecoration.lineThrough
+                    : null,
+            decorationColor: isActive ? AppColors.teal : color,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BlockTypeButton extends StatelessWidget {
+  final String? label;
+  final IconData? icon;
+  final Color color;
+  final bool isActive;
+  final VoidCallback? onTap;
+
+  const _BlockTypeButton({
+    this.label,
+    this.icon,
+    required this.color,
+    required this.isActive,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: isActive
+            ? BoxDecoration(
+                color: AppColors.teal.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(6),
+              )
+            : null,
+        alignment: Alignment.center,
+        child: icon != null
+            ? Icon(icon, size: 18, color: isActive ? AppColors.teal : color)
+            : Text(
+                label!,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: isActive ? AppColors.teal : color,
+                ),
+              ),
+      ),
+    );
+  }
+}
+
+class _HighlightButton extends StatelessWidget {
+  final Color muted;
+  final bool dark;
+  final ValueChanged<Color> onColor;
+  final VoidCallback onClear;
+
+  const _HighlightButton({
+    required this.muted,
+    required this.dark,
+    required this.onColor,
+    required this.onClear,
+  });
+
+  static const _colors = [
+    Color(0xFFFFFF00), // Yellow
+    Color(0xFFFF9800), // Orange
+    Color(0xFF4CAF50), // Green
+    Color(0xFF2196F3), // Blue
+    Color(0xFFE91E63), // Pink
+    Color(0xFF9C27B0), // Purple
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showColorPicker(context),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        child: Icon(Icons.highlight_rounded, size: 18, color: muted),
+      ),
+    );
+  }
+
+  void _showColorPicker(BuildContext context) {
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Highlight Color',
+                style: GoogleFonts.inter(
+                    fontSize: 16, fontWeight: FontWeight.w600)),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                ..._colors.map((c) => Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: GestureDetector(
+                        onTap: () {
+                          onColor(c);
+                          Navigator.pop(ctx);
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: c,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                      ),
+                    )),
+                GestureDetector(
+                  onTap: () {
+                    onClear();
+                    Navigator.pop(ctx);
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: muted),
+                    ),
+                    child: Icon(Icons.clear, size: 18, color: muted),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LinkButton extends StatelessWidget {
+  final Color muted;
+  final ValueChanged<String> onApply;
+  final VoidCallback onClear;
+
+  const _LinkButton({
+    required this.muted,
+    required this.onApply,
+    required this.onClear,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showLinkDialog(context),
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        child: Icon(Icons.add_link_rounded, size: 18, color: muted),
+      ),
+    );
+  }
+
+  void _showLinkDialog(BuildContext context) {
+    final ctrl = TextEditingController();
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Insert Link'),
+        content: TextField(
+          controller: ctrl,
+          autofocus: true,
+          decoration:
+              const InputDecoration(hintText: 'https://...'),
+          keyboardType: TextInputType.url,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              onClear();
+              Navigator.pop(ctx);
+            },
+            child: const Text('Remove link'),
+          ),
+          TextButton(
+            onPressed: () {
+              final url = ctrl.text.trim();
+              if (url.isNotEmpty) onApply(url);
+              Navigator.pop(ctx);
+            },
+            child: const Text('Apply'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ToolbarIconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _ToolbarIconButton({
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        child: Icon(icon, size: 18, color: color),
+      ),
+    );
+  }
+}
+
+class _ToolbarDivider extends StatelessWidget {
+  final Color color;
+  const _ToolbarDivider({required this.color});
+
+  @override
+  Widget build(BuildContext context) => Container(
+        width: 1,
+        height: 20,
+        margin: const EdgeInsets.symmetric(horizontal: 4),
+        color: color.withOpacity(0.3),
+      );
+}

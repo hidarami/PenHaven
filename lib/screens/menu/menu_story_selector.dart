@@ -5,7 +5,6 @@ import 'package:intl/intl.dart';
 
 import '../../models/story.dart';
 import '../../providers/app_state.dart';
-import '../../theme/app_theme.dart';
 import '../../theme/app_colors.dart';
 
 /// Scrollable list of all stories inside the menu.

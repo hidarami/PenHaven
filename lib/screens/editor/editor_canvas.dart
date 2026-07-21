@@ -1,0 +1,1272 @@
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:uuid/uuid.dart';
+
+import '../../models/editor_block.dart';
+import '../../models/entry.dart';
+import '../../providers/app_state.dart';
+import '../../services/image_service.dart';
+import '../../services/permission_service.dart';
+import '../../theme/app_colors.dart';
+import 'rich_editor_controller.dart';
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EDITOR CANVAS
+// Block-based WYSIWYG editor. Each block is a separate widget.
+// Images are standalone blocks — no U+FFFC hacks, no position tracking bugs.
+// Focused text block drives the WYSIWYG toolbar at the bottom.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class EditorCanvas extends StatefulWidget {
+  final List<EditorBlock> initialBlocks;
+  final bool isDark;
+  final void Function(List<EditorBlock>) onBlocksChanged;
+  final ScrollController? scrollController;
+
+  const EditorCanvas({
+    super.key,
+    required this.initialBlocks,
+    required this.isDark,
+    required this.onBlocksChanged,
+    this.scrollController,
+  });
+
+  @override
+  State<EditorCanvas> createState() => EditorCanvasState();
+}
+
+class EditorCanvasState extends State<EditorCanvas> {
+  late List<EditorBlock> _blocks;
+
+  // Exposed for toolbar use
+  List<EditorBlock> get blocks => _blocks;
+  final Map<String, RichEditorController> _controllers = {};
+  final Map<String, FocusNode> _focusNodes = {};
+  String? _focusedBlockId;
+  final _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _blocks = List.from(widget.initialBlocks);
+    if (_blocks.isEmpty) {
+      _blocks.add(TextBlock.empty());
+    }
+    _initControllers();
+  }
+
+  void _initControllers() {
+    for (final block in _blocks) {
+      if (block is TextBlock) {
+        _ensureController(block);
+      }
+    }
+  }
+
+  void _ensureController(TextBlock block) {
+    if (!_controllers.containsKey(block.id)) {
+      final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
+      final ctrl = RichEditorController(
+        text: block.text,
+        initialFormats: block.formats,
+        baseTextColor: textColor,
+        baseFontSize: _fontSizeForType(block.type),
+      );
+      ctrl.addListener(() => _onControllerChanged(block.id, ctrl));
+      _controllers[block.id] = ctrl;
+    }
+    if (!_focusNodes.containsKey(block.id)) {
+      final node = FocusNode();
+      node.addListener(() {
+        if (node.hasFocus) {
+          setState(() => _focusedBlockId = block.id);
+        }
+      });
+      _focusNodes[block.id] = node;
+    }
+  }
+
+  void _onControllerChanged(String blockId, RichEditorController ctrl) {
+    final idx = _blocks.indexWhere((b) => b.id == blockId);
+    if (idx == -1) return;
+    final block = _blocks[idx] as TextBlock;
+    _blocks[idx] = block.copyWith(
+      text: ctrl.text,
+      formats: List.from(ctrl.formats),
+    );
+    widget.onBlocksChanged(_blocks);
+  }
+
+  double _fontSizeForType(BlockType type) {
+    switch (type) {
+      case BlockType.heading1:
+        return 32;
+      case BlockType.heading2:
+        return 26;
+      case BlockType.heading3:
+        return 22;
+      default:
+        return 18;
+    }
+  }
+
+  // ── Block operations ───────────────────────────────────────────────────────
+
+  void insertBlockAfter(String afterId, EditorBlock newBlock) {
+    setState(() {
+      final idx = _blocks.indexWhere((b) => b.id == afterId);
+      final insertAt = idx == -1 ? _blocks.length : idx + 1;
+      _blocks.insert(insertAt, newBlock);
+      if (newBlock is TextBlock) _ensureController(newBlock);
+    });
+    widget.onBlocksChanged(_blocks);
+    // Focus the new block after next frame
+    if (newBlock is TextBlock) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _focusNodes[newBlock.id]?.requestFocus();
+      });
+    }
+  }
+
+  void removeBlock(String blockId) {
+    setState(() {
+      _blocks.removeWhere((b) => b.id == blockId);
+      _controllers.remove(blockId)?.dispose();
+      _focusNodes.remove(blockId)?.dispose();
+      if (_focusedBlockId == blockId) _focusedBlockId = null;
+    });
+    widget.onBlocksChanged(_blocks);
+  }
+
+  void updateBlock(EditorBlock updated) {
+    setState(() {
+      final idx = _blocks.indexWhere((b) => b.id == updated.id);
+      if (idx != -1) _blocks[idx] = updated;
+    });
+    widget.onBlocksChanged(_blocks);
+  }
+
+  void insertImageBlock(String afterId, String imagePath) {
+    final block = ImageBlock(
+      id: const Uuid().v4(),
+      path: imagePath,
+    );
+    insertBlockAfter(afterId, block);
+    // Insert a new empty text block after the image
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final emptyText = TextBlock.empty();
+      insertBlockAfter(block.id, emptyText);
+    });
+  }
+
+  void insertYoutubeBlock(String afterId, String url) {
+    final videoId = YoutubeBlock.extractVideoId(url);
+    if (videoId == null) return;
+    final block = YoutubeBlock(
+      id: const Uuid().v4(),
+      url: url,
+      videoId: videoId,
+    );
+    insertBlockAfter(afterId, block);
+    final emptyText = TextBlock.empty();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      insertBlockAfter(block.id, emptyText);
+    });
+  }
+
+  void insertTweetBlock(String afterId, String url) {
+    final tweetId = TweetBlock.extractTweetId(url);
+    final block = TweetBlock(
+      id: const Uuid().v4(),
+      url: url,
+      tweetId: tweetId,
+      displayText: url,
+    );
+    insertBlockAfter(afterId, block);
+    final emptyText = TextBlock.empty();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      insertBlockAfter(block.id, emptyText);
+    });
+  }
+
+  void insertDivider(String afterId) {
+    insertBlockAfter(afterId, DividerBlock(id: const Uuid().v4()));
+  }
+
+  void insertCodeBlock(String afterId) {
+    insertBlockAfter(
+        afterId, CodeBlock(id: const Uuid().v4(), code: ''));
+  }
+
+  void changeBlockType(String blockId, BlockType newType) {
+    final idx = _blocks.indexWhere((b) => b.id == blockId);
+    if (idx == -1) return;
+    final block = _blocks[idx];
+    if (block is TextBlock) {
+      final updated = block.copyWith(type: newType);
+      setState(() => _blocks[idx] = updated);
+      widget.onBlocksChanged(_blocks);
+    }
+  }
+
+  // ── Toolbar callbacks ──────────────────────────────────────────────────────
+
+  RichEditorController? get focusedController =>
+      _focusedBlockId != null ? _controllers[_focusedBlockId] : null;
+
+  String? get focusedBlockId => _focusedBlockId;
+
+  void applyHighlight(Color color) => focusedController?.applyHighlight(color);
+  void clearHighlight() => focusedController?.clearHighlight();
+  void applyLink(String url) => focusedController?.applyLink(url);
+  void clearLink() => focusedController?.clearLink();
+
+  // ── Image insertion ────────────────────────────────────────────────────────
+
+  Future<void> pickAndInsertImage(BuildContext context) async {
+    final hasPermission =
+        await PermissionService.instance.ensurePhotos(context);
+    if (!hasPermission || !context.mounted) return;
+
+    final path = await ImageService.instance.pickInlineImage(context);
+    if (path == null) return;
+
+    final insertAfterId = _focusedBlockId ?? _blocks.last.id;
+    insertImageBlock(insertAfterId, path);
+  }
+
+  Future<void> pickAndInsertImageGrid(BuildContext context) async {
+    final hasPermission =
+        await PermissionService.instance.ensurePhotos(context);
+    if (!hasPermission || !context.mounted) return;
+
+    // Pick multiple images (pick one at a time for now)
+    final paths = <String>[];
+    for (int i = 0; i < 4; i++) {
+      if (!context.mounted) break;
+      final path = await ImageService.instance.pickInlineImage(context);
+      if (path == null) break;
+      paths.add(path);
+      if (i < 3 && context.mounted) {
+        final cont = await showDialog<bool>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Add another image?'),
+            content: Text('${paths.length} image(s) selected'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Done'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Add more'),
+              ),
+            ],
+          ),
+        );
+        if (cont != true) break;
+      }
+    }
+
+    if (paths.isEmpty) return;
+    if (paths.length == 1) {
+      final insertAfterId = _focusedBlockId ?? _blocks.last.id;
+      insertImageBlock(insertAfterId, paths.first);
+      return;
+    }
+
+    final block = ImageGridBlock(id: const Uuid().v4(), paths: paths);
+    final insertAfterId = _focusedBlockId ?? _blocks.last.id;
+    insertBlockAfter(insertAfterId, block);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      insertBlockAfter(block.id, TextBlock.empty());
+    });
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor =
+        widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    return GestureDetector(
+      // Tapping below last block creates new block
+      onTap: () {
+        if (_focusedBlockId == null && _blocks.isNotEmpty) {
+          final lastBlock = _blocks.last;
+          if (lastBlock is! TextBlock) {
+            insertBlockAfter(lastBlock.id, TextBlock.empty());
+          } else {
+            _focusNodes[lastBlock.id]?.requestFocus();
+          }
+        }
+      },
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ..._blocks.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final block = entry.value;
+            return _buildBlock(block, idx, textColor, mutedColor);
+          }),
+          const SizedBox(height: 120),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBlock(
+      EditorBlock block, int idx, Color textColor, Color mutedColor) {
+    if (block is TextBlock) {
+      return _TextBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        controller: _controllers[block.id]!,
+        focusNode: _focusNodes[block.id]!,
+        isDark: widget.isDark,
+        textColor: textColor,
+        mutedColor: mutedColor,
+        isFirst: idx == 0,
+        onEnterAtEnd: () {
+          // Create new text block after this one
+          insertBlockAfter(block.id, TextBlock.empty());
+        },
+        onBackspaceAtStart: () {
+          // Merge with previous block if it's text
+          if (idx > 0 && _blocks[idx - 1] is TextBlock) {
+            final prev = _blocks[idx - 1] as TextBlock;
+            final prevCtrl = _controllers[prev.id]!;
+            final mergedText = prevCtrl.text + block.text;
+            final prevLen = prevCtrl.text.length;
+            // Shift current block formats by prev length
+            final shiftedFormats = block.formats
+                .map((f) => FormatRange(
+                      start: f.start + prevLen,
+                      end: f.end + prevLen,
+                      attrs: f.attrs,
+                    ))
+                .toList();
+
+            prevCtrl.setFormatsAndText(mergedText, shiftedFormats);
+
+            // Move cursor to merge point
+            prevCtrl.selection = TextSelection.collapsed(offset: prevLen);
+
+            removeBlock(block.id);
+
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              _focusNodes[prev.id]?.requestFocus();
+            });
+          } else if (_blocks.length > 1 && block.text.isEmpty) {
+            removeBlock(block.id);
+            // Focus previous block
+            if (idx > 0) {
+              final prevId = _blocks[idx > 0 ? idx - 1 : 0].id;
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _focusNodes[prevId]?.requestFocus();
+              });
+            }
+          }
+        },
+      );
+    } else if (block is ImageBlock) {
+      return _ImageBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        isDark: widget.isDark,
+        isEditing: true,
+        onRemove: () => removeBlock(block.id),
+        onCaptionChanged: (caption) {
+          updateBlock(block.copyWith(caption: caption));
+        },
+      );
+    } else if (block is ImageGridBlock) {
+      return _ImageGridBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        isDark: widget.isDark,
+        isEditing: true,
+        onRemove: () => removeBlock(block.id),
+      );
+    } else if (block is YoutubeBlock) {
+      return _YoutubeBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        isDark: widget.isDark,
+        isEditing: true,
+        onRemove: () => removeBlock(block.id),
+      );
+    } else if (block is TweetBlock) {
+      return _TweetBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        isDark: widget.isDark,
+        isEditing: true,
+        onRemove: () => removeBlock(block.id),
+      );
+    } else if (block is CodeBlock) {
+      return _CodeBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        isDark: widget.isDark,
+        isEditing: true,
+        onChanged: (code) => updateBlock(block.copyWith(code: code)),
+        onRemove: () => removeBlock(block.id),
+      );
+    } else if (block is DividerBlock) {
+      return _DividerBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        isDark: widget.isDark,
+        isEditing: true,
+        onRemove: () => removeBlock(block.id),
+      );
+    }
+    return const SizedBox.shrink();
+  }
+
+  @override
+  void dispose() {
+    for (final ctrl in _controllers.values) {
+      ctrl.dispose();
+    }
+    for (final node in _focusNodes.values) {
+      node.dispose();
+    }
+    _scrollController.dispose();
+    super.dispose();
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BLOCK WIDGETS (Read + Edit modes)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Text block ────────────────────────────────────────────────────────────────
+
+class _TextBlockWidget extends StatelessWidget {
+  final TextBlock block;
+  final RichEditorController controller;
+  final FocusNode focusNode;
+  final bool isDark;
+  final Color textColor;
+  final Color mutedColor;
+  final bool isFirst;
+  final VoidCallback onEnterAtEnd;
+  final VoidCallback onBackspaceAtStart;
+
+  const _TextBlockWidget({
+    super.key,
+    required this.block,
+    required this.controller,
+    required this.focusNode,
+    required this.isDark,
+    required this.textColor,
+    required this.mutedColor,
+    required this.isFirst,
+    required this.onEnterAtEnd,
+    required this.onBackspaceAtStart,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isHeading = block.type == BlockType.heading1 ||
+        block.type == BlockType.heading2 ||
+        block.type == BlockType.heading3;
+    final isQuote = block.type == BlockType.quote;
+
+    Widget field = TextField(
+      controller: controller,
+      focusNode: focusNode,
+      maxLines: null,
+      keyboardType: TextInputType.multiline,
+      textInputAction: TextInputAction.newline,
+      style: _styleForType(block.type, textColor),
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
+        hintText: _hintForType(block.type),
+        hintStyle: _styleForType(block.type, mutedColor.withOpacity(0.5))
+            .copyWith(fontStyle: FontStyle.italic),
+        isDense: true,
+      ),
+      onChanged: (val) {
+        // Backspace at start check
+        if (val.isEmpty && controller.selection.baseOffset == 0) {
+          onBackspaceAtStart();
+        }
+      },
+    );
+
+    if (isQuote) {
+      field = Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.blockquoteBg,
+          border: Border(
+            left: BorderSide(
+              color: AppColors.blockquoteBorder,
+              width: 4,
+            ),
+          ),
+        ),
+        child: field,
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: isHeading ? 4 : 2,
+        top: isHeading ? 12 : 2,
+      ),
+      child: field,
+    );
+  }
+
+  TextStyle _styleForType(BlockType type, Color color) {
+    switch (type) {
+      case BlockType.heading1:
+        return GoogleFonts.crimsonPro(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: color,
+            height: 1.2);
+      case BlockType.heading2:
+        return GoogleFonts.crimsonPro(
+            fontSize: 26,
+            fontWeight: FontWeight.w600,
+            color: color,
+            height: 1.25);
+      case BlockType.heading3:
+        return GoogleFonts.crimsonPro(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: color,
+            height: 1.3);
+      case BlockType.quote:
+        return GoogleFonts.crimsonPro(
+            fontSize: 18,
+            fontStyle: FontStyle.italic,
+            color: color,
+            height: 1.8);
+      default:
+        return GoogleFonts.crimsonPro(
+            fontSize: 18, color: color, height: 1.8);
+    }
+  }
+
+  String _hintForType(BlockType type) {
+    switch (type) {
+      case BlockType.heading1:
+        return 'Heading 1';
+      case BlockType.heading2:
+        return 'Heading 2';
+      case BlockType.heading3:
+        return 'Heading 3';
+      case BlockType.quote:
+        return 'Quote...';
+      default:
+        return 'Write here...';
+    }
+  }
+}
+
+// ── Image block ───────────────────────────────────────────────────────────────
+
+class _ImageBlockWidget extends StatelessWidget {
+  final ImageBlock block;
+  final bool isDark;
+  final bool isEditing;
+  final VoidCallback? onRemove;
+  final ValueChanged<String>? onCaptionChanged;
+
+  const _ImageBlockWidget({
+    super.key,
+    required this.block,
+    required this.isDark,
+    required this.isEditing,
+    this.onRemove,
+    this.onCaptionChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final file = File(block.path);
+    final mutedColor =
+        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Stack(
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: file.existsSync()
+                    ? Image.file(
+                        file,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            _placeholder(),
+                      )
+                    : _placeholder(),
+              ),
+              if (isEditing && onRemove != null)
+                Positioned(
+                  top: 10,
+                  right: 10,
+                  child: GestureDetector(
+                    onTap: onRemove,
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.6),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.close,
+                          size: 18, color: Colors.white),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          if (block.caption != null && block.caption!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(
+              block.caption!,
+              style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: mutedColor,
+                  fontStyle: FontStyle.italic),
+            ),
+          ],
+          if (block.unsplashCredit != null) ...[
+            const SizedBox(height: 4),
+            Text(
+              'Photo: ${block.unsplashCredit}',
+              style: GoogleFonts.inter(
+                  fontSize: 10, color: mutedColor.withOpacity(0.6)),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _placeholder() => Container(
+        width: double.infinity,
+        height: 200,
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF2A2218) : const Color(0xFFECE9E3),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: const Icon(Icons.broken_image_outlined, size: 48),
+      );
+}
+
+// ── Image grid block ──────────────────────────────────────────────────────────
+
+class _ImageGridBlockWidget extends StatelessWidget {
+  final ImageGridBlock block;
+  final bool isDark;
+  final bool isEditing;
+  final VoidCallback? onRemove;
+
+  const _ImageGridBlockWidget({
+    super.key,
+    required this.block,
+    required this.isDark,
+    required this.isEditing,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Stack(
+        children: [
+          GridView.count(
+            crossAxisCount: block.columns,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 4,
+            crossAxisSpacing: 4,
+            children: block.paths.map((path) {
+              final file = File(path);
+              return ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: file.existsSync()
+                    ? Image.file(file,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                              color: isDark
+                                  ? const Color(0xFF2A2218)
+                                  : const Color(0xFFECE9E3),
+                            ))
+                    : Container(
+                        color: isDark
+                            ? const Color(0xFF2A2218)
+                            : const Color(0xFFECE9E3),
+                      ),
+              );
+            }).toList(),
+          ),
+          if (isEditing && onRemove != null)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close,
+                      size: 18, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── YouTube block ─────────────────────────────────────────────────────────────
+
+class _YoutubeBlockWidget extends StatelessWidget {
+  final YoutubeBlock block;
+  final bool isDark;
+  final bool isEditing;
+  final VoidCallback? onRemove;
+
+  const _YoutubeBlockWidget({
+    super.key,
+    required this.block,
+    required this.isDark,
+    required this.isEditing,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final mutedColor =
+        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Stack(
+        children: [
+          GestureDetector(
+            onTap: () async {
+              final uri = Uri.parse(block.url);
+              if (await canLaunchUrl(uri)) await launchUrl(uri);
+            },
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Image.network(
+                    block.thumbnailUrl,
+                    width: double.infinity,
+                    height: 200,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      width: double.infinity,
+                      height: 200,
+                      color: const Color(0xFF1A1A1A),
+                      child: const Icon(Icons.play_circle_outline,
+                          size: 64, color: Colors.white54),
+                    ),
+                  ),
+                  Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      color: Colors.red.withOpacity(0.9),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: const Icon(Icons.play_arrow_rounded,
+                        size: 40, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (isEditing && onRemove != null)
+            Positioned(
+              top: 8,
+              right: 8,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close,
+                      size: 18, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Tweet block ───────────────────────────────────────────────────────────────
+
+class _TweetBlockWidget extends StatelessWidget {
+  final TweetBlock block;
+  final bool isDark;
+  final bool isEditing;
+  final VoidCallback? onRemove;
+
+  const _TweetBlockWidget({
+    super.key,
+    required this.block,
+    required this.isDark,
+    required this.isEditing,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = isDark ? const Color(0xFF15202B) : const Color(0xFFF7F9F9);
+    final textColor =
+        isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor =
+        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: Stack(
+        children: [
+          GestureDetector(
+            onTap: () async {
+              final uri = Uri.parse(block.url);
+              if (await canLaunchUrl(uri)) await launchUrl(uri);
+            },
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: bg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withOpacity(0.1)
+                      : Colors.black.withOpacity(0.1),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.link, color: const Color(0xFF1DA1F2), size: 20),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Post on X (Twitter)',
+                            style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: textColor)),
+                        const SizedBox(height: 2),
+                        Text(block.url,
+                            style: GoogleFonts.inter(
+                                fontSize: 11, color: mutedColor),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ],
+                    ),
+                  ),
+                  Icon(Icons.open_in_new,
+                      size: 16, color: mutedColor),
+                ],
+              ),
+            ),
+          ),
+          if (isEditing && onRemove != null)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.6),
+                    shape: BoxShape.circle,
+                  ),
+                  child:
+                      const Icon(Icons.close, size: 14, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Code block ────────────────────────────────────────────────────────────────
+
+class _CodeBlockWidget extends StatefulWidget {
+  final CodeBlock block;
+  final bool isDark;
+  final bool isEditing;
+  final ValueChanged<String>? onChanged;
+  final VoidCallback? onRemove;
+
+  const _CodeBlockWidget({
+    super.key,
+    required this.block,
+    required this.isDark,
+    required this.isEditing,
+    this.onChanged,
+    this.onRemove,
+  });
+
+  @override
+  State<_CodeBlockWidget> createState() => _CodeBlockWidgetState();
+}
+
+class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
+  late TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.block.code);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final codeBg = widget.isDark
+        ? AppColors.codeBgDark
+        : AppColors.codeBgLight;
+    final textColor =
+        widget.isDark ? AppColors.textDark : AppColors.textLight;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Stack(
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: codeBg,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: widget.isEditing
+                ? TextField(
+                    controller: _ctrl,
+                    maxLines: null,
+                    style: GoogleFonts.jetBrainsMono(
+                        fontSize: 13, color: textColor, height: 1.6),
+                    decoration: const InputDecoration(
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      hintText: '// code here...',
+                      isDense: true,
+                    ),
+                    onChanged: widget.onChanged,
+                  )
+                : Text(
+                    widget.block.code,
+                    style: GoogleFonts.jetBrainsMono(
+                        fontSize: 13, color: textColor, height: 1.6),
+                  ),
+          ),
+          if (widget.isEditing && widget.onRemove != null)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: GestureDetector(
+                onTap: widget.onRemove,
+                child: Container(
+                  width: 24,
+                  height: 24,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.5),
+                    shape: BoxShape.circle,
+                  ),
+                  child:
+                      const Icon(Icons.close, size: 14, color: Colors.white),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Divider block ─────────────────────────────────────────────────────────────
+
+class _DividerBlockWidget extends StatelessWidget {
+  final bool isDark;
+  final bool isEditing;
+  final VoidCallback? onRemove;
+
+  const _DividerBlockWidget({
+    super.key,
+    required this.isDark,
+    required this.isEditing,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Divider(
+            color: isDark ? AppColors.dividerDark : AppColors.dividerLight,
+            thickness: 1,
+          ),
+          if (isEditing && onRemove != null)
+            Positioned(
+              right: 0,
+              child: GestureDetector(
+                onTap: onRemove,
+                child: Container(
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? AppColors.warmDark
+                        : AppColors.warmWhite,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isDark
+                          ? AppColors.dividerDark
+                          : AppColors.dividerLight,
+                    ),
+                  ),
+                  child: Icon(
+                    Icons.close,
+                    size: 12,
+                    color:
+                        isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// READ-ONLY BLOCK RENDERER
+// Used by EntryContent to render blocks without editing controls.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class BlocksReadView extends StatelessWidget {
+  final List<EditorBlock> blocks;
+  final bool isDark;
+
+  const BlocksReadView({
+    super.key,
+    required this.blocks,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: blocks.map((b) => _buildBlock(b)).toList(),
+    );
+  }
+
+  Widget _buildBlock(EditorBlock block) {
+    if (block is TextBlock) {
+      return _TextBlockReadView(block: block, isDark: isDark);
+    } else if (block is ImageBlock) {
+      return _ImageBlockWidget(
+          block: block, isDark: isDark, isEditing: false);
+    } else if (block is ImageGridBlock) {
+      return _ImageGridBlockWidget(
+          block: block, isDark: isDark, isEditing: false);
+    } else if (block is YoutubeBlock) {
+      return _YoutubeBlockWidget(
+          block: block, isDark: isDark, isEditing: false);
+    } else if (block is TweetBlock) {
+      return _TweetBlockWidget(
+          block: block, isDark: isDark, isEditing: false);
+    } else if (block is CodeBlock) {
+      return _CodeBlockWidget(
+          block: block, isDark: isDark, isEditing: false);
+    } else if (block is DividerBlock) {
+      return _DividerBlockWidget(isDark: isDark, isEditing: false);
+    }
+    return const SizedBox.shrink();
+  }
+}
+
+class _TextBlockReadView extends StatelessWidget {
+  final TextBlock block;
+  final bool isDark;
+
+  const _TextBlockReadView({required this.block, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    final span = _buildSpan(textColor);
+    Widget text = Text.rich(span);
+
+    if (block.type == BlockType.quote) {
+      text = Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.blockquoteBg,
+          border: Border(
+            left: BorderSide(color: AppColors.blockquoteBorder, width: 4),
+          ),
+        ),
+        child: text,
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: _isHeading ? 4 : 2,
+        top: _isHeading ? 12 : 2,
+      ),
+      child: text,
+    );
+  }
+
+  bool get _isHeading =>
+      block.type == BlockType.heading1 ||
+      block.type == BlockType.heading2 ||
+      block.type == BlockType.heading3;
+
+  TextSpan _buildSpan(Color textColor) {
+    final baseStyle = _styleForType(block.type, textColor);
+    final t = block.text;
+    if (block.formats.isEmpty) return TextSpan(text: t, style: baseStyle);
+
+    final breakpoints = <int>{0, t.length};
+    for (final fmt in block.formats) {
+      breakpoints.add(fmt.start.clamp(0, t.length));
+      breakpoints.add(fmt.end.clamp(0, t.length));
+    }
+    final sorted = breakpoints.toList()..sort();
+    final spans = <InlineSpan>[];
+
+    for (int i = 0; i < sorted.length - 1; i++) {
+      final start = sorted[i];
+      final end = sorted[i + 1];
+      if (start >= end) continue;
+
+      bool bold = false,
+          italic = false,
+          underline = false,
+          strike = false;
+      Color? highlight;
+      String? link;
+
+      for (final fmt in block.formats) {
+        if (fmt.start <= start && start < fmt.end) {
+          if (fmt.attrs.bold) bold = true;
+          if (fmt.attrs.italic) italic = true;
+          if (fmt.attrs.underline) underline = true;
+          if (fmt.attrs.strikethrough) strike = true;
+          highlight ??= fmt.attrs.highlight;
+          link ??= fmt.attrs.link;
+        }
+      }
+
+      var style = baseStyle;
+      if (bold) style = style.copyWith(fontWeight: FontWeight.w700);
+      if (italic) style = style.copyWith(fontStyle: FontStyle.italic);
+      final decos = <TextDecoration>[];
+      if (underline) decos.add(TextDecoration.underline);
+      if (strike) decos.add(TextDecoration.lineThrough);
+      if (decos.isNotEmpty) {
+        style = style.copyWith(decoration: TextDecoration.combine(decos));
+      }
+      if (highlight != null) {
+        style =
+            style.copyWith(backgroundColor: highlight.withOpacity(0.35));
+      }
+      if (link != null) {
+        style = style.copyWith(
+            color: AppColors.teal,
+            decoration: TextDecoration.underline,
+            decorationColor: AppColors.teal);
+      }
+
+      spans.add(TextSpan(text: t.substring(start, end), style: style));
+    }
+
+    return TextSpan(children: spans, style: baseStyle);
+  }
+
+  TextStyle _styleForType(BlockType type, Color color) {
+    switch (type) {
+      case BlockType.heading1:
+        return GoogleFonts.crimsonPro(
+            fontSize: 32,
+            fontWeight: FontWeight.w700,
+            color: color,
+            height: 1.2);
+      case BlockType.heading2:
+        return GoogleFonts.crimsonPro(
+            fontSize: 26,
+            fontWeight: FontWeight.w600,
+            color: color,
+            height: 1.25);
+      case BlockType.heading3:
+        return GoogleFonts.crimsonPro(
+            fontSize: 22,
+            fontWeight: FontWeight.w600,
+            color: color,
+            height: 1.3);
+      case BlockType.quote:
+        return GoogleFonts.crimsonPro(
+            fontSize: 18,
+            fontStyle: FontStyle.italic,
+            color: color,
+            height: 1.8);
+      default:
+        return GoogleFonts.crimsonPro(
+            fontSize: 18, color: color, height: 1.8);
+    }
+  }
+}

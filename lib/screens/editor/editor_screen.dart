@@ -1,28 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:uuid/uuid.dart';
 
+import '../../models/editor_block.dart';
 import '../../models/entry.dart';
+import '../../models/entry_version.dart';
 import '../../providers/app_state.dart';
 import '../../providers/editor_state.dart';
 import '../../providers/atmosphere_state.dart';
+import '../../data/version_dao.dart';
 import '../../theme/app_colors.dart';
 import '../../atmosphere/comfort_engine.dart';
 import 'editor_app_bar.dart';
 import 'editor_header_image.dart';
 import 'editor_title_field.dart';
-import 'editor_body_field.dart';
-import 'editor_toolbar.dart';
+import 'editor_canvas.dart';
+import 'wysiwyg_toolbar.dart';
+import 'version_history_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// EDITOR SCREEN
-// Full editing environment. Accessed only via double-tap in Read-Only mode.
-//
-// CRITICAL rules (Master Specification §4):
-//   - Back chevron returns to Read-Only — NOT to Story Panel
-//   - Auto-save: debounced 1200ms after last keystroke
-//   - Session timer starts on mount, stops on pop, adds to entry.timeSpentSeconds
-//   - Comfort engine is active — trigger words shift background over 50s
-//   - Returns updated Entry to Read-Only via Navigator.pop(updatedEntry)
+// EDITOR SCREEN — Block-based WYSIWYG
+// Images are standalone blocks — no U+FFFC bugs possible.
+// All formatting is WYSIWYG via RichEditorController per text block.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class EditorScreen extends StatefulWidget {
@@ -37,34 +36,33 @@ class EditorScreen extends StatefulWidget {
 class _EditorScreenState extends State<EditorScreen> {
   late Entry _entry;
   late TextEditingController _titleController;
-  late TextEditingController _bodyController;
-  final FocusNode _bodyFocus = FocusNode();
+  late List<EditorBlock> _blocks;
+  final GlobalKey<EditorCanvasState> _canvasKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     _entry = widget.entry;
     _titleController = TextEditingController(text: _entry.title);
-    _bodyController = TextEditingController(text: _entry.content);
+
+    // Initialise blocks from blocksJson or migrate from legacy content
+    if (_entry.blocksJson != null && _entry.blocksJson!.isNotEmpty) {
+      _blocks = deserializeBlocks(_entry.blocksJson!);
+    } else {
+      _blocks = blocksFromLegacy(_entry.content, _entry.images);
+    }
+    if (_blocks.isEmpty) _blocks = [TextBlock.empty()];
 
     final editorState = context.read<EditorState>();
     final atmoState = context.read<AtmosphereState>();
-
-    // Wire comfort mode upstream
     editorState.bindAtmosphere(atmoState);
-
-    // Wire auto-save
     editorState.onAutoSave = _performSave;
-
-    // Start session timer (Proof of Work)
     editorState.startSession();
   }
 
   @override
   void dispose() {
     _titleController.dispose();
-    _bodyController.dispose();
-    _bodyFocus.dispose();
     super.dispose();
   }
 
@@ -73,41 +71,52 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> _performSave() async {
     if (!mounted) return;
     final appState = context.read<AppState>();
+    final blocksJson = serializeBlocks(_blocks);
+    final plainText = plainTextFromBlocks(_blocks);
+
     _entry = _entry.copyWith(
       title: _titleController.text.trim(),
-      content: _bodyController.text,
+      content: plainText,
+      blocksJson: blocksJson,
       updatedAt: DateTime.now(),
     );
     await appState.saveEntry(_entry);
   }
 
-  // ── Back (to Read-Only, NOT to Story Panel) ────────────────────────────────
+  // ── Auto-save with version snapshot ───────────────────────────────────────
+
+  Future<void> _saveWithVersion() async {
+    await _performSave();
+    // Save a version snapshot
+    final version = EntryVersion(
+      entryId: _entry.id,
+      title: _entry.title,
+      blocksJson: serializeBlocks(_blocks),
+      timeSpentSeconds: _entry.timeSpentSeconds,
+    );
+    await VersionDao.instance.saveVersion(version);
+  }
+
+  // ── Back ───────────────────────────────────────────────────────────────────
 
   Future<void> _handleBack() async {
     final editorState = context.read<EditorState>();
-
-    // Flush any pending auto-save
     editorState.flushSave();
-    await _performSave();
+    await _saveWithVersion();
 
-    // Add session time to DB
     final seconds = editorState.stopSession();
     if (seconds > 0) {
       await context.read<AppState>().addEntryTimeSpent(_entry.id, seconds);
       _entry = _entry.copyWith(
-        timeSpentSeconds: _entry.timeSpentSeconds + seconds,
-      );
+          timeSpentSeconds: _entry.timeSpentSeconds + seconds);
     }
 
     editorState.reset();
 
-    if (mounted) {
-      // Return updated entry to Read-Only screen
-      Navigator.of(context).pop(_entry);
-    }
+    if (mounted) Navigator.of(context).pop(_entry);
   }
 
-  // ── Image handling ─────────────────────────────────────────────────────────
+  // ── Header image ───────────────────────────────────────────────────────────
 
   void _onHeaderImageChanged(String? path) {
     if (!mounted) return;
@@ -119,39 +128,36 @@ class _EditorScreenState extends State<EditorScreen> {
     _performSave();
   }
 
-  void _onInlineImageInserted(String path, int cursorPosition) {
-    if (!mounted) return;
-    // Insert the image marker into the body text at cursor position
-    final marker = '\uFFFC';
-    final currentText = _bodyController.text;
-    final newText = currentText.substring(0, cursorPosition) +
-        marker +
-        currentText.substring(cursorPosition);
-    _bodyController.text = newText;
+  // ── Block changes ──────────────────────────────────────────────────────────
 
-    // Add the image entry record
-    final images = List.of(_entry.images);
-    images.add(EntryImage(path: path, position: cursorPosition));
-    images.sort((a, b) => a.position.compareTo(b.position));
-    setState(() => _entry = _entry.copyWith(images: images));
-    _performSave();
+  void _onBlocksChanged(List<EditorBlock> blocks) {
+    _blocks = blocks;
+    // Trigger EditorState auto-save debounce
+    context.read<EditorState>().onContentChanged(
+        plainTextFromBlocks(blocks));
   }
 
-  void _onInlineImageRemoved(String path) {
-    if (!mounted) return;
-    final images = _entry.images.where((img) => img.path != path).toList();
+  // ── Version history ────────────────────────────────────────────────────────
 
-    // Remove the marker from body text
-    final marker = '\uFFFC';
-    final currentText = _bodyController.text;
-    final markerPos = currentText.indexOf(marker);
-    if (markerPos != -1) {
-      _bodyController.text =
-          currentText.substring(0, markerPos) + currentText.substring(markerPos + 1);
-    }
-
-    setState(() => _entry = _entry.copyWith(images: images));
-    _performSave();
+  void _openVersionHistory() {
+    final dark = context.read<AppState>().isDarkMode;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => VersionHistoryScreen(
+          entryId: _entry.id,
+          isDark: dark,
+          onRestore: (version) {
+            setState(() {
+              _blocks = deserializeBlocks(version.blocksJson);
+              _titleController.text = version.title;
+            });
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Version restored.')),
+            );
+          },
+        ),
+      ),
+    );
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -160,6 +166,8 @@ class _EditorScreenState extends State<EditorScreen> {
   Widget build(BuildContext context) {
     final dark = context.watch<AppState>().isDarkMode;
     final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = dark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
 
     return PopScope(
       canPop: false,
@@ -170,73 +178,206 @@ class _EditorScreenState extends State<EditorScreen> {
         backgroundColor: bg,
         body: Stack(
           children: [
-            // ── Main editor column ────────────────────────────────────────
             Column(
               children: [
-                // App bar: back chevron, "Read" preview, "..." menu
-                EditorAppBar(
+                // App bar
+                _EditorBar(
                   entry: _entry,
+                  isDark: dark,
                   onBack: _handleBack,
+                  onHistory: _openVersionHistory,
                   onEntryChanged: (e) => setState(() => _entry = e),
                 ),
 
-                // Scrollable content area
+                // Scrollable content
                 Expanded(
-                  child: CustomScrollView(
+                  child: SingleChildScrollView(
                     physics: const BouncingScrollPhysics(),
-                    slivers: [
-                      // Header image area
-                      SliverToBoxAdapter(
-                        child: EditorHeaderImage(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Header image
+                        EditorHeaderImage(
                           currentPath: _entry.headerImage,
                           onImageChanged: _onHeaderImageChanged,
                         ),
-                      ),
 
-                      // Title field
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                        // Title + date
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(24, 20, 24, 0),
                           child: EditorTitleField(
                             controller: _titleController,
                             entry: _entry,
-                            onDateChanged: (date) {
-                              // Date customisation handled inside EditorTitleField
-                            },
+                            onDateChanged: (_) {},
                           ),
                         ),
-                      ),
 
-                      // Body field with inline images
-                      SliverToBoxAdapter(
-                        child: Padding(
-                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 120),
-                          child: EditorBodyField(
-                            controller: _bodyController,
-                            focusNode: _bodyFocus,
-                            entry: _entry,
-                            onImageRemoved: _onInlineImageRemoved,
+                        // Block canvas
+                        Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                          child: EditorCanvas(
+                            key: _canvasKey,
+                            initialBlocks: _blocks,
+                            isDark: dark,
+                            onBlocksChanged: _onBlocksChanged,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
 
-                // Markdown toolbar pinned to bottom
-                EditorToolbar(
-                  bodyController: _bodyController,
-                  bodyFocus: _bodyFocus,
-                  onImageInserted: _onInlineImageInserted,
-                ),
+                // WYSIWYG toolbar — always shown, canvas state resolves after first frame
+                Builder(builder: (context) {
+                  final canvasState = _canvasKey.currentState;
+                  if (canvasState == null) {
+                    return const SizedBox(height: 44);
+                  }
+                  return WysiwygToolbar(
+                    canvas: canvasState,
+                    onImageInsert: () async {
+                      if (_canvasKey.currentState != null && mounted) {
+                        await _canvasKey.currentState!
+                            .pickAndInsertImage(context);
+                      }
+                    },
+                    onImageGridInsert: () async {
+                      if (_canvasKey.currentState != null && mounted) {
+                        await _canvasKey.currentState!
+                            .pickAndInsertImageGrid(context);
+                      }
+                    },
+                  );
+                }),
               ],
             ),
 
-            // ── Comfort engine overlays ───────────────────────────────────
+            // Comfort engine
             const ComfortWhisperOverlay(),
             const ComfortTintOverlay(),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EDITOR BAR
+// Simpler top bar — keeps the existing EditorAppBar design but adds
+// history button and removes word count (EditorState handles that).
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EditorBar extends StatelessWidget {
+  final Entry entry;
+  final bool isDark;
+  final VoidCallback onBack;
+  final VoidCallback onHistory;
+  final ValueChanged<Entry> onEntryChanged;
+
+  const _EditorBar({
+    required this.entry,
+    required this.isDark,
+    required this.onBack,
+    required this.onHistory,
+    required this.onEntryChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final mutedColor =
+        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final topPadding = MediaQuery.of(context).padding.top;
+
+    return Container(
+      padding: EdgeInsets.fromLTRB(8, topPadding + 4, 8, 4),
+      child: Row(
+        children: [
+          IconButton(
+            icon: Icon(Icons.chevron_left_rounded,
+                size: 28, color: mutedColor),
+            onPressed: onBack,
+          ),
+          const Spacer(),
+          // Version history
+          IconButton(
+            icon: Icon(Icons.history_rounded, size: 20, color: mutedColor),
+            onPressed: onHistory,
+            tooltip: 'Version history',
+          ),
+          // Overflow menu (reuse existing EditorAppBar logic)
+          IconButton(
+            icon:
+                Icon(Icons.more_horiz, size: 22, color: mutedColor),
+            onPressed: () => _showMenu(context),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMenu(BuildContext context) {
+    final appState = context.read<AppState>();
+    showModalBottomSheet<void>(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            if (entry.hasHeaderImage)
+              ListTile(
+                leading:
+                    const Icon(Icons.image_not_supported_outlined),
+                title: const Text('Remove header image'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onEntryChanged(entry.copyWith(clearHeaderImage: true));
+                },
+              ),
+            ListTile(
+              leading: const Icon(Icons.delete_outline,
+                  color: AppColors.danger),
+              title: const Text('Delete entry',
+                  style: TextStyle(color: AppColors.danger)),
+              onTap: () {
+                Navigator.pop(ctx);
+                _confirmDelete(context, appState);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _confirmDelete(BuildContext context, AppState appState) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete entry?'),
+        content: const Text('This entry will be moved to the Bin.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await appState.deleteEntry(entry.id);
+              if (context.mounted) {
+                Navigator.of(context)
+                  ..pop()
+                  ..pop();
+              }
+            },
+            child: const Text('Delete',
+                style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
       ),
     );
   }

@@ -5,13 +5,15 @@ import '../../models/entry.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/shared_widgets.dart';
+import '../editor/editor_canvas.dart';
+import '../../models/editor_block.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTRY CONTENT
 // Renders the reading body of an entry:
 //   - Title (Crimson Pro 36pt bold, justified)
 //   - Date (Inter 14pt medium, formatted)
-//   - Body: MarkdownBody with inline images interleaved at their positions
+//   - Body: blocks (new) or markdown with interleaved images (legacy)
 //
 // CRITICAL per Master Specification §4:
 //   - NO raw markdown visible — everything must be rendered
@@ -40,11 +42,7 @@ class EntryContent extends StatelessWidget {
           // ── Title ──────────────────────────────────────────────────────
           Text(
             entry.title.isEmpty ? 'Untitled' : entry.title,
-            style: AppTypography.entryTitle(textColor).copyWith(
-              // Justified text alignment
-              // Note: TextAlign.justify is set via TextStyle;
-              // set on the Text widget below
-            ),
+            style: AppTypography.entryTitle(textColor),
             textAlign: TextAlign.justify,
           ),
 
@@ -58,8 +56,14 @@ class EntryContent extends StatelessWidget {
 
           const SizedBox(height: 28),
 
-          // ── Body: markdown + inline images interleaved ──────────────────
-          _InterleavedBody(entry: entry, isDark: isDark),
+          // ── Body: blocks (new) or markdown (legacy) ────────────────────
+          if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty)
+            BlocksReadView(
+              blocks: deserializeBlocks(entry.blocksJson!),
+              isDark: isDark,
+            )
+          else
+            _InterleavedBody(entry: entry, isDark: isDark),
 
           const SizedBox(height: 16),
         ],
