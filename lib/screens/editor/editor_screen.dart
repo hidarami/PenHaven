@@ -121,9 +121,35 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _onInlineImageInserted(String path, int cursorPosition) {
     if (!mounted) return;
+    // Insert the image marker into the body text at cursor position
+    final marker = '\uFFFC';
+    final currentText = _bodyController.text;
+    final newText = currentText.substring(0, cursorPosition) +
+        marker +
+        currentText.substring(cursorPosition);
+    _bodyController.text = newText;
+
+    // Add the image entry record
     final images = List.of(_entry.images);
     images.add(EntryImage(path: path, position: cursorPosition));
     images.sort((a, b) => a.position.compareTo(b.position));
+    setState(() => _entry = _entry.copyWith(images: images));
+    _performSave();
+  }
+
+  void _onInlineImageRemoved(String path) {
+    if (!mounted) return;
+    final images = _entry.images.where((img) => img.path != path).toList();
+
+    // Remove the marker from body text
+    final marker = '\uFFFC';
+    final currentText = _bodyController.text;
+    final markerPos = currentText.indexOf(marker);
+    if (markerPos != -1) {
+      _bodyController.text =
+          currentText.substring(0, markerPos) + currentText.substring(markerPos + 1);
+    }
+
     setState(() => _entry = _entry.copyWith(images: images));
     _performSave();
   }
@@ -189,6 +215,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             controller: _bodyController,
                             focusNode: _bodyFocus,
                             entry: _entry,
+                            onImageRemoved: _onInlineImageRemoved,
                           ),
                         ),
                       ),

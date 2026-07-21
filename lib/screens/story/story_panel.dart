@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
+import '../../models/entry.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/neumorphic_widgets.dart';
+import '../editor/editor_screen.dart';
 import '../entry_read/entry_read_screen.dart';
 import 'story_header.dart';
 import 'story_first_time.dart';
@@ -18,6 +20,12 @@ import 'entry_list.dart';
 //   - No active story: StoryFirstTime (inline story creation)
 //   - Active story, no entries: Header + empty state + Add Entry button
 //   - Active story, has entries: Header + EntryList + Add Entry button
+//
+// Adding an entry:
+//   - Click the "Add Entry" button below the list
+//   - OR scroll down past the last item — a fresh blank page slides in
+//     with a blinking cursor, ready to type (like Pencake).
+//   - Double-tap / long-press on the story panel no longer creates entries.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class StoryPanel extends StatelessWidget {
@@ -38,16 +46,34 @@ class StoryPanel extends StatelessWidget {
   }
 }
 
-class _StoryPanelContent extends StatelessWidget {
+class _StoryPanelContent extends StatefulWidget {
   final AppState appState;
 
   const _StoryPanelContent({required this.appState});
 
   @override
+  State<_StoryPanelContent> createState() => _StoryPanelContentState();
+}
+
+class _StoryPanelContentState extends State<_StoryPanelContent> {
+  final _scrollController = ScrollController();
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  /// Pull-to-refresh handler — creates a new entry instead of refreshing.
+  Future<void> _onRefresh() async {
+    await _addEntry(context);
+  }
+
+  @override
   Widget build(BuildContext context) {
     final topPadding = MediaQuery.of(context).padding.top;
-    final dark = appState.isDarkMode;
-    final entries = appState.currentEntries;
+    final dark = widget.appState.isDarkMode;
+    final entries = widget.appState.currentEntries;
 
     return SafeArea(
       child: Column(
@@ -58,7 +84,7 @@ class _StoryPanelContent extends StatelessWidget {
           // ── Story header: title, description, entry count ────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: StoryHeader(story: appState.activeStory!),
+            child: StoryHeader(story: widget.appState.activeStory!),
           ),
 
           const SizedBox(height: 24),
@@ -71,24 +97,28 @@ class _StoryPanelContent extends StatelessWidget {
           ),
 
           // ── Entry list or empty state ─────────────────────────────────────
+          // NOTE: No GestureDetector wrapper — double-tap/long-press removed.
+          // Use the "Add Entry" button or pull down to create.
           Expanded(
-            child: GestureDetector(
-              onDoubleTap: () => _addEntry(context),
-              onLongPress: () => _addEntry(context),
-              child: entries.isEmpty
-                  ? _EmptyEntryState(onAddEntry: () => _addEntry(context))
-                  : EntryList(
+            child: entries.isEmpty
+                ? _EmptyEntryState(onAddEntry: () => _addEntry(context))
+                : RefreshIndicator(
+                    onRefresh: _onRefresh,
+                    child: EntryList(
                       entries: entries,
+                      scrollController: _scrollController,
                       onTapEntry: (entry) => _openEntry(context, entry),
                       onAddEntry: () => _addEntry(context),
                     ),
-            ),
+                  ),
           ),
         ],
       ),
     );
   }
 
+  /// Creates a new entry and opens the Editor directly (not EntryReadScreen).
+  /// A fresh blank page slides in with a blinking cursor, ready to type.
   Future<void> _addEntry(BuildContext context) async {
     print('Story: _addEntry called');
     final appState = context.read<AppState>();
@@ -96,14 +126,18 @@ class _StoryPanelContent extends StatelessWidget {
       final entry = await appState.createEntry();
       print('Story: Entry created: ${entry.id}');
       if (!context.mounted) return;
-      Navigator.of(context).push(
+
+      // Push EditorScreen directly — fresh blank page with blinking cursor
+      final result = await Navigator.of(context).push<Entry>(
         MaterialPageRoute(
-          builder: (_) => EntryReadScreen(
-            entry: entry,
-            openEditorImmediately: true,
-          ),
+          builder: (_) => EditorScreen(entry: entry),
         ),
       );
+
+      // If the editor returned an updated entry, refresh the list
+      if (result != null && context.mounted) {
+        appState.refreshEntries();
+      }
     } catch (e) {
       print('Story: Error adding entry: $e');
       if (!context.mounted) return;

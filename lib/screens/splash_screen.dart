@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../providers/app_state.dart';
-import '../../providers/atmosphere_state.dart';
-import '../../services/auth_service.dart';
-import '../../theme/app_colors.dart';
+import '../providers/app_state.dart';
+import '../providers/atmosphere_state.dart';
+import '../services/auth_service.dart';
+import '../theme/app_colors.dart';
 import 'home_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -39,7 +39,9 @@ class _SplashScreenState extends State<SplashScreen>
     _opacity = CurvedAnimation(parent: _fade, curve: Curves.easeIn);
     _fade.forward();
 
-    _init();
+    // Defer _init to after the first frame to prevent
+    // "setState()/markNeedsBuild() called during build" from AppState.init() notifyListeners().
+    WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
   Future<void> _init() async {

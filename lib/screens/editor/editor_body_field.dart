@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -13,19 +14,27 @@ import '../../theme/app_typography.dart';
 // The main writing area of the editor.
 // - Multiline TextField in Crimson Pro 18pt, line-height 1.8
 // - Notifies EditorState on every change (word count + comfort engine)
-// - Inline images are interleaved at their cursor positions within the text
+// - Inline images are embedded at cursor position using WidgetSpan
+//   so they appear exactly where the user inserted them
+// - Each inline image has an '×' remove button (editor only — not viewer)
 // ─────────────────────────────────────────────────────────────────────────────
+
+// Unicode marker for inline image positions in the text.
+// Using Object Replacement Character (U+FFFC) — a standard placeholder.
+const String _imageMarker = '\uFFFC';
 
 class EditorBodyField extends StatelessWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final Entry entry;
+  final ValueChanged<String>? onImageRemoved;
 
   const EditorBodyField({
     super.key,
     required this.controller,
     required this.focusNode,
     required this.entry,
+    this.onImageRemoved,
   });
 
   @override
@@ -35,11 +44,12 @@ class EditorBodyField extends StatelessWidget {
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
 
-    return _InterleavedEditorBody(
+    return _EditorBodyContent(
       controller: controller,
       focusNode: focusNode,
       entry: entry,
       editorState: editorState,
+      onImageRemoved: onImageRemoved,
       textColor: textColor,
       mutedColor: mutedColor,
     );
@@ -47,130 +57,246 @@ class EditorBodyField extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// INTERLEAVED EDITOR BODY
-// Splits entry content at each inline image position and renders:
-//   [TextField segment] → [image] → [TextField segment] → [image] → ...
-// Since we need a single editable TextField, this is a simplified version
-// that shows images at their approximate positions within the text flow.
+// EDITOR BODY CONTENT
+// Uses a custom TextEditingController that overrides buildTextSpan()
+// to render WidgetSpan placeholders for images at their cursor positions.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _InterleavedEditorBody extends StatelessWidget {
+class _EditorBodyContent extends StatefulWidget {
   final TextEditingController controller;
   final FocusNode focusNode;
   final Entry entry;
   final EditorState editorState;
+  final ValueChanged<String>? onImageRemoved;
   final Color textColor;
   final Color mutedColor;
 
-  const _InterleavedEditorBody({
+  const _EditorBodyContent({
     required this.controller,
     required this.focusNode,
     required this.entry,
     required this.editorState,
+    this.onImageRemoved,
     required this.textColor,
     required this.mutedColor,
   });
 
   @override
+  State<_EditorBodyContent> createState() => _EditorBodyContentState();
+}
+
+class _EditorBodyContentState extends State<_EditorBodyContent> {
+  late _ImageAwareTextController _imageController;
+  final _imageFileCache = <String, ui.Image>{};
+
+  @override
+  void initState() {
+    super.initState();
+    _imageController = _ImageAwareTextController(
+      baseController: widget.controller,
+      entry: widget.entry,
+      textColor: widget.textColor,
+      onImageRemove: widget.onImageRemoved,
+    );
+  }
+
+  @override
+  void didUpdateWidget(_EditorBodyContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _imageController.updateEntry(widget.entry);
+  }
+
+  @override
+  void dispose() {
+    _imageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    // No images — just render the TextField
-    if (entry.images.isEmpty) {
-      return TextField(
-        controller: controller,
-        focusNode: focusNode,
-        style: AppTypography.entryBody(textColor),
-        maxLines: null,
-        keyboardType: TextInputType.multiline,
-        textInputAction: TextInputAction.newline,
-        onChanged: editorState.onContentChanged,
-        decoration: InputDecoration(
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.zero,
-          hintText: 'Begin writing...',
-          hintStyle: AppTypography.entryBody(mutedColor).copyWith(
-            fontStyle: FontStyle.italic,
-          ),
+    return TextField(
+      controller: _imageController,
+      focusNode: widget.focusNode,
+      style: AppTypography.entryBody(widget.textColor),
+      maxLines: null,
+      keyboardType: TextInputType.multiline,
+      textInputAction: TextInputAction.newline,
+      onChanged: (text) {
+        // Sync the text back to the original controller for saving
+        widget.controller.text = text;
+        widget.editorState.onContentChanged(text);
+      },
+      decoration: InputDecoration(
+        border: InputBorder.none,
+        contentPadding: EdgeInsets.zero,
+        hintText: 'Begin writing...',
+        hintStyle: AppTypography.entryBody(widget.mutedColor).copyWith(
+          fontStyle: FontStyle.italic,
         ),
-      );
-    }
+      ),
+    );
+  }
+}
 
-    // Sort images by position ascending
-    final images = List.of(entry.images)
-      ..sort((a, b) => a.position.compareTo(b.position));
+// ─────────────────────────────────────────────────────────────────────────────
+// IMAGE-AWARE TEXT CONTROLLER
+// Custom TextEditingController that overrides buildTextSpan()
+// to render WidgetSpan widgets at positions marked by U+FFFC.
+// ─────────────────────────────────────────────────────────────────────────────
 
-    final segments = <Widget>[];
-    final content = controller.text;
+class _ImageAwareTextController extends TextEditingController {
+  final TextEditingController baseController;
+  Entry _entry;
+  final Color _textColor;
+  final ValueChanged<String>? onImageRemove;
+
+  _ImageAwareTextController({
+    required this.baseController,
+    required Entry entry,
+    required Color textColor,
+    this.onImageRemove,
+  }) : _textColor = textColor,
+       _entry = entry,
+       super(text: baseController.text);
+
+  void updateEntry(Entry entry) {
+    _entry = entry;
+    // Rebuild the visual spans when images change
+    notifyListeners();
+  }
+
+  @override
+  TextSpan buildTextSpan({
+    required BuildContext context,
+    TextStyle? style,
+    required bool withComposing,
+  }) {
+    // Build the base text spans first
+    final base = super.buildTextSpan(
+      context: context,
+      style: style,
+      withComposing: withComposing,
+    );
+
+    // If no images, return plain text
+    if (_entry.images.isEmpty) return base;
+
+    // We need to replace each U+FFFC marker with a WidgetSpan
+    // Flutter doesn't let us modify children after creation,
+    // so we build our own list
+    final textValue = text;
+    final segments = <InlineSpan>[];
     int cursor = 0;
 
-    for (final image in images) {
-      final pos = image.position.clamp(0, content.length);
+    // Sort images by position ascending
+    final images = List.of(_entry.images)
+      ..sort((a, b) => a.position.compareTo(b.position));
 
-      // Text before this image - show as read-only for now
-      // (complex to maintain cursor positions across multiple TextFields)
-      if (pos > cursor) {
-        final segment = content.substring(cursor, pos);
-        if (segment.trim().isNotEmpty) {
-          segments.add(
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: Text(
-                segment,
-                style: AppTypography.entryBody(textColor),
-              ),
-            ),
-          );
-        }
+    for (final image in images) {
+      // Find the marker closest to this image's position
+      final markerPos = textValue.indexOf(_imageMarker, cursor);
+      if (markerPos == -1) break;
+
+      // Text before this marker
+      if (markerPos > cursor) {
+        segments.add(TextSpan(
+          text: textValue.substring(cursor, markerPos),
+          style: style,
+        ));
       }
 
-      // The image itself
+      // Image widget span
       final file = File(image.path);
       if (file.existsSync()) {
         segments.add(
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(12),
-              child: Image.file(
-                file,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-              ),
+          WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: _InlineImageSpan(
+              path: image.path,
+              textColor: _textColor,
+              onRemove: () => onImageRemove?.call(image.path),
             ),
           ),
         );
       }
 
-      cursor = pos;
+      cursor = markerPos + 1; // +1 for the marker character
     }
 
-    // Remaining text - editable TextField
-    if (cursor < content.length) {
-      final remaining = content.substring(cursor);
-      segments.add(
-        TextField(
-          controller: controller,
-          focusNode: focusNode,
-          style: AppTypography.entryBody(textColor),
-          maxLines: null,
-          keyboardType: TextInputType.multiline,
-          textInputAction: TextInputAction.newline,
-          onChanged: editorState.onContentChanged,
-          decoration: InputDecoration(
-            border: InputBorder.none,
-            contentPadding: EdgeInsets.zero,
-            hintText: cursor == 0 ? 'Begin writing...' : '',
-            hintStyle: AppTypography.entryBody(mutedColor).copyWith(
-              fontStyle: FontStyle.italic,
+    // Remaining text after last marker
+    if (cursor < textValue.length) {
+      segments.add(TextSpan(
+        text: textValue.substring(cursor),
+        style: style,
+      ));
+    }
+
+    return TextSpan(style: style, children: segments);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INLINE IMAGE SPAN
+// A small inline widget that displays the image with an '×' remove button.
+// Sized to fit within text line height (about 3 lines tall).
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InlineImageSpan extends StatelessWidget {
+  final String path;
+  final Color textColor;
+  final VoidCallback? onRemove;
+
+  const _InlineImageSpan({
+    required this.path,
+    required this.textColor,
+    this.onRemove,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final file = File(path);
+    if (!file.existsSync()) return const SizedBox(width: 16, height: 16);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: SizedBox(
+        width: 200,
+        height: 100,
+        child: Stack(
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                file,
+                width: double.infinity,
+                height: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
             ),
-          ),
-        ),
-      );
-    }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: segments,
+            // Remove button — top-right
+            if (onRemove != null)
+              Positioned(
+                top: 4,
+                right: 4,
+                child: GestureDetector(
+                  onTap: onRemove,
+                  child: Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.55),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

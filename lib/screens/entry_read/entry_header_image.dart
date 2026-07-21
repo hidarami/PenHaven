@@ -11,7 +11,7 @@ import 'package:flutter/material.dart';
 //   NOT after title. NOT in middle of content.
 //
 // Subtle gradient overlay at bottom to help text legibility if needed.
-// Rounded corners (16px).
+// Sharp edges — no border radius.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class EntryHeaderImage extends StatelessWidget {
@@ -26,43 +26,33 @@ class EntryHeaderImage extends StatelessWidget {
     if (!file.existsSync()) return const SizedBox.shrink();
 
     return Padding(
-      // Slight horizontal inset so rounded corners are visible
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Stack(
         children: [
-          // ── Image ────────────────────────────────────────────────────────
-          ClipRRect(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
-            ),
-            child: Image.file(
-              file,
-              width: double.infinity,
-              height: 240,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => _placeholder(),
-            ),
+          // ── Image — sharp edges, no border radius ─────────────────────────
+          Image.file(
+            file,
+            width: double.infinity,
+            height: 240,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _placeholder(),
           ),
 
-          // ── Gradient overlay (bottom fade) ────────────────────────────────
+          // ── Gradient overlay (bottom fade) — sharp edges ──────────────────
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
             height: 80,
-            child: ClipRRect(
-              borderRadius: BorderRadius.zero,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Colors.black.withOpacity(0.18),
-                    ],
-                  ),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withOpacity(0.18),
+                  ],
                 ),
               ),
             ),

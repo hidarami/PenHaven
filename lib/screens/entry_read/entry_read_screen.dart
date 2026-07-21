@@ -39,9 +39,7 @@ class EntryReadScreen extends StatefulWidget {
 class _EntryReadScreenState extends State<EntryReadScreen> {
   late Entry _entry;
 
-  // Swipe tracking
-  double _dragStartX = 0;
-  bool _isDragging = false;
+  // Swipe exit is velocity-based — no tracking state needed
 
   @override
   void initState() {
@@ -77,12 +75,12 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
     if (details.primaryVelocity != null && details.primaryVelocity! > 300) {
       Navigator.of(context).pop();
     }
-    setState(() => _isDragging = false);
   }
 
-  // ── Double-tap ─────────────────────────────────────────────────────────────
+  // ── Double-tap / Long-press ──────────────────────────────────────────────
 
   void _handleDoubleTap() => _openEditor();
+  void _handleLongPress() => _openEditor();
 
   // ── Build ──────────────────────────────────────────────────────────────────
 
@@ -97,14 +95,11 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
       backgroundColor: bg,
       body: GestureDetector(
         // ── Swipe left-to-right to exit ──────────────────────────────────
-        onHorizontalDragStart: (d) {
-          _dragStartX = d.globalPosition.dx;
-          _isDragging = true;
-        },
         onHorizontalDragEnd: _handleSwipeExit,
 
-        // ── Double-tap anywhere to edit ───────────────────────────────────
+        // ── Double-tap or long-press anywhere to edit ─────────────────────
         onDoubleTap: _handleDoubleTap,
+        onLongPress: _handleLongPress,
 
         behavior: HitTestBehavior.translucent,
         child: _ReadContent(entry: _entry, isDark: dark),

@@ -112,7 +112,6 @@ class MenuActions extends StatelessWidget {
     bool isDark,
     Color bg,
   ) {
-    final deleted = appState.allEntries.where((e) => e.isDeleted).toList();
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
     final sheetBg = isDark ? AppColors.warmDark : AppColors.warmWhite;
@@ -124,105 +123,112 @@ class MenuActions extends StatelessWidget {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (_) {
-        return SafeArea(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.15)
-                        : Colors.black.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-                child: Text(
-                  'Deleted Entries',
-                  style: GoogleFonts.crimsonPro(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
-                  ),
-                ),
-              ),
-              if (deleted.isEmpty)
-                Expanded(
-                  child: Center(
-                    child: Text(
-                      'Nothing deleted.',
-                      style: GoogleFonts.crimsonPro(
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                        color: mutedColor,
+        // Use Consumer so the sheet rebuilds when entries are restored/deleted
+        return Consumer<AppState>(
+          builder: (context, appState, _) {
+            final deleted = appState.allEntries.where((e) => e.isDeleted).toList();
+            return SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 8),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? Colors.white.withOpacity(0.15)
+                            : Colors.black.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(2),
                       ),
                     ),
                   ),
-                )
-              else
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    itemCount: deleted.length,
-                    itemBuilder: (_, i) {
-                      final entry = deleted[i];
-                      return ListTile(
-                        title: Text(
-                          entry.title.isEmpty ? 'Untitled' : entry.title,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                    child: Text(
+                      'Deleted Entries',
+                      style: GoogleFonts.crimsonPro(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                    ),
+                  ),
+                  if (deleted.isEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Text(
+                          'Nothing deleted.',
                           style: GoogleFonts.crimsonPro(
-                            fontSize: 17,
-                            color: textColor,
-                          ),
-                        ),
-                        subtitle: Text(
-                          entry.preview(60),
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
                             color: mutedColor,
                           ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Restore
-                            IconButton(
-                              icon: const Icon(
-                                Icons.restore_rounded,
-                                color: AppColors.teal,
-                                size: 20,
+                      ),
+                    )
+                  else
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        itemCount: deleted.length,
+                        itemBuilder: (_, i) {
+                          final entry = deleted[i];
+                          return ListTile(
+                            title: Text(
+                              entry.title.isEmpty ? 'Untitled' : entry.title,
+                              style: GoogleFonts.crimsonPro(
+                                fontSize: 17,
+                                color: textColor,
                               ),
-                              onPressed: () {
-                                appState.restoreEntry(entry.id);
-                                Navigator.of(context).pop();
-                              },
                             ),
-                            // Permanent delete
-                            IconButton(
-                              icon: Icon(
-                                Icons.delete_forever_rounded,
-                                color: Colors.redAccent.withOpacity(0.75),
-                                size: 20,
+                            subtitle: Text(
+                              entry.preview(60),
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: mutedColor,
                               ),
-                              onPressed: () {
-                                appState.permanentlyDeleteEntry(entry.id);
-                              },
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
-                ),
-            ],
-          ),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Restore
+                                IconButton(
+                                  icon: const Icon(
+                                    Icons.restore_rounded,
+                                    color: AppColors.teal,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    appState.restoreEntry(entry.id);
+                                    // Don't pop — let Consumer rebuild the list
+                                  },
+                                ),
+                                // Permanent delete
+                                IconButton(
+                                  icon: Icon(
+                                    Icons.delete_forever_rounded,
+                                    color: Colors.redAccent.withOpacity(0.75),
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    appState.permanentlyDeleteEntry(entry.id);
+                                    // Don't pop — let Consumer rebuild the list
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            );
+          },
         );
       },
     );

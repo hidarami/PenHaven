@@ -108,11 +108,10 @@ class _InterleavedBody extends StatelessWidget {
         }
       }
 
-      // The image itself — full-width, edge-to-edge
+      // The image itself — full-width within content area
       segments.add(
         Padding(
-          // Negative horizontal margin to break out of parent's 24px padding
-          padding: const EdgeInsets.symmetric(horizontal: -24, vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           child: InlineImageWidget(
             path: image.path,
             borderRadius: BorderRadius.circular(12),

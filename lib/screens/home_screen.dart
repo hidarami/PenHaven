@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
-import '../../atmosphere/atmosphere_overlay.dart';
-import '../../atmosphere/painters/dust_mote_painter.dart';
-import '../../providers/atmosphere_state.dart';
-import '../../providers/app_state.dart';
+import '../atmosphere/atmosphere_overlay.dart';
+import '../atmosphere/painters/dust_mote_painter.dart';
+import '../providers/atmosphere_state.dart';
+import '../providers/app_state.dart';
 import 'library/library_panel.dart';
 import 'story/story_panel.dart';
 import 'work_desk/work_desk_panel.dart';
@@ -68,9 +68,9 @@ class _HomeScreenState extends State<HomeScreen> {
               controller: _pageController,
               physics: const BouncingScrollPhysics(),
               children: [
-                LibraryPanel(), // Panel 0 — leftmost
-                StoryPanel(), // Panel 1 — HOME (default)
-                WorkDeskPanel(), // Panel 2 — rightmost
+                const LibraryPanel(), // Panel 0 — leftmost
+                const StoryPanel(), // Panel 1 — HOME (default)
+                const WorkDeskPanel(), // Panel 2 — rightmost
               ],
             ),
 

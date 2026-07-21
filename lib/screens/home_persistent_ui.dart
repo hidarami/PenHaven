@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../widgets/sun_moon_indicator.dart';
-import '../../widgets/neumorphic_widgets.dart';
+import '../widgets/sun_moon_indicator.dart';
+import '../widgets/neumorphic_widgets.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOME PERSISTENT UI

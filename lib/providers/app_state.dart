@@ -44,9 +44,11 @@ class AppState extends ChangeNotifier {
 
   // ── Entries ───────────────────────────────────────────────────────────────
   List<Entry> _currentEntries = [];
+  List<Entry> _deletedEntries = []; // Soft-deleted entries for the bin
 
   List<Entry> get currentEntries => _currentEntries;
   int get entryCount => _currentEntries.length;
+  List<Entry> get deletedEntries => _deletedEntries;
 
   // ── Todos ─────────────────────────────────────────────────────────────────
   List<Todo> _activeTodos = [];
@@ -81,6 +83,7 @@ class AppState extends ChangeNotifier {
 
     await _loadSettings();
     await _loadStories();
+    await _loadDeletedEntries();
     await _loadTodos();
     await _loadTimeCapsules();
     await _loadTimeCapsuleEntries();
@@ -214,6 +217,11 @@ class AppState extends ChangeNotifier {
     _currentEntries = await EntryDao.instance.getByStory(_activeStory!.id);
   }
 
+  Future<void> _loadDeletedEntries() async {
+    // Load all soft-deleted entries for the bin screen
+    _deletedEntries = await EntryDao.instance.getDeleted();
+  }
+
   Future<Entry> createEntry() async {
     if (_activeStory == null) {
       throw StateError('No active story selected');
@@ -249,7 +257,13 @@ class AppState extends ChangeNotifier {
 
   Future<void> deleteEntry(String id) async {
     await EntryDao.instance.softDelete(id);
-    _currentEntries.removeWhere((e) => e.id == id);
+    // Move entry to deleted list in memory — avoids a DB round-trip
+    final idx = _currentEntries.indexWhere((e) => e.id == id);
+    if (idx != -1) {
+      final deleted = _currentEntries[idx].copyWith(isDeleted: true);
+      _currentEntries.removeAt(idx);
+      _deletedEntries.insert(0, deleted);
+    }
     notifyListeners();
   }
 
@@ -259,11 +273,8 @@ class AppState extends ChangeNotifier {
   }
 
   /// Gets all entries including deleted ones for the bin/restore functionality.
-  List<Entry> get allEntries {
-    // For now, return current entries. In a full implementation,
-    // this would include soft-deleted entries from the database.
-    return _currentEntries;
-  }
+  /// Returns all entries including soft-deleted ones (for the bin screen).
+  List<Entry> get allEntries => [..._currentEntries, ..._deletedEntries];
 
   /// Locks the app and requires biometric authentication to unlock.
   Future<void> lockApp() async {
@@ -275,14 +286,22 @@ class AppState extends ChangeNotifier {
   /// Restores a soft-deleted entry.
   Future<void> restoreEntry(String id) async {
     await EntryDao.instance.restore(id);
-    await _loadEntriesForActiveStory();
+    // Move from deleted list back to current list (if it belongs to active story)
+    final idx = _deletedEntries.indexWhere((e) => e.id == id);
+    if (idx != -1) {
+      final restored = _deletedEntries[idx].copyWith(isDeleted: false);
+      _deletedEntries.removeAt(idx);
+      if (_activeStory?.id == restored.storyId) {
+        _currentEntries.insert(0, restored);
+      }
+    }
     notifyListeners();
   }
 
   /// Permanently deletes a soft-deleted entry.
   Future<void> permanentlyDeleteEntry(String id) async {
     await EntryDao.instance.hardDelete(id);
-    await _loadEntriesForActiveStory();
+    _deletedEntries.removeWhere((e) => e.id == id);
     notifyListeners();
   }
 
@@ -295,9 +314,11 @@ class AppState extends ChangeNotifier {
 
   /// Clears all soft-deleted entries from the database.
   Future<void> clearDeletedEntries() async {
-    // Implementation would depend on database cleanup
-    // For now, this is a placeholder
-    await _loadEntriesForActiveStory();
+    // Hard-delete every soft-deleted entry from the database
+    for (final entry in _deletedEntries) {
+      await EntryDao.instance.hardDelete(entry.id);
+    }
+    _deletedEntries.clear();
     notifyListeners();
   }
 

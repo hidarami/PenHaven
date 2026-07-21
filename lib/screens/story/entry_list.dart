@@ -15,12 +15,14 @@ import 'entry_card.dart';
 
 class EntryList extends StatelessWidget {
   final List<Entry> entries;
+  final ScrollController? scrollController;
   final ValueChanged<Entry> onTapEntry;
   final VoidCallback onAddEntry;
 
   const EntryList({
     super.key,
     required this.entries,
+    this.scrollController,
     required this.onTapEntry,
     required this.onAddEntry,
   });
@@ -30,6 +32,7 @@ class EntryList extends StatelessWidget {
     final dark = context.watch<AppState>().isDarkMode;
 
     return ListView.builder(
+      controller: scrollController,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(bottom: 100),
       // +1 for the Add Entry button at the end
