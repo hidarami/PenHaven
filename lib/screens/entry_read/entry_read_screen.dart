@@ -106,7 +106,7 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
         // ── Double-tap anywhere to edit ───────────────────────────────────
         onDoubleTap: _handleDoubleTap,
 
-        behavior: HitTestBehavior.opaque,
+        behavior: HitTestBehavior.translucent,
         child: _ReadContent(entry: _entry, isDark: dark),
       ),
     );

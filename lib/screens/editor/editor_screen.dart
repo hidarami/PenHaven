@@ -71,6 +71,7 @@ class _EditorScreenState extends State<EditorScreen> {
   // ── Save ───────────────────────────────────────────────────────────────────
 
   Future<void> _performSave() async {
+    if (!mounted) return;
     final appState = context.read<AppState>();
     _entry = _entry.copyWith(
       title: _titleController.text.trim(),
@@ -109,6 +110,7 @@ class _EditorScreenState extends State<EditorScreen> {
   // ── Image handling ─────────────────────────────────────────────────────────
 
   void _onHeaderImageChanged(String? path) {
+    if (!mounted) return;
     setState(() {
       _entry = path == null
           ? _entry.copyWith(clearHeaderImage: true)
@@ -118,6 +120,7 @@ class _EditorScreenState extends State<EditorScreen> {
   }
 
   void _onInlineImageInserted(String path, int cursorPosition) {
+    if (!mounted) return;
     final images = List.of(_entry.images);
     images.add(EntryImage(path: path, position: cursorPosition));
     images.sort((a, b) => a.position.compareTo(b.position));

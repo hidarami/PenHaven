@@ -52,10 +52,7 @@ class EntryHeaderImage extends StatelessWidget {
             right: 0,
             height: 80,
             child: ClipRRect(
-              borderRadius: const BorderRadius.only(
-                bottomLeft: Radius.circular(16),
-                bottomRight: Radius.circular(16),
-              ),
+              borderRadius: BorderRadius.zero,
               child: DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(

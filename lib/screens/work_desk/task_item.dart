@@ -86,6 +86,7 @@ class _TaskItemState extends State<TaskItem> {
   }
 
   void _saveEdit() {
+    if (!mounted) return;
     final newTitle = _editController.text.trim();
     if (newTitle.isNotEmpty && newTitle != widget.todo.title) {
       context.read<AppState>().updateTodoTitle(widget.todo.id, newTitle);
@@ -125,9 +126,8 @@ class _TaskItemState extends State<TaskItem> {
                         ? AppColors.teal
                         : Colors.transparent,
                     border: Border.all(
-                      color: widget.todo.isCompleted
-                          ? AppColors.teal
-                          : mutedColor,
+                      color:
+                          widget.todo.isCompleted ? AppColors.teal : mutedColor,
                       width: 1.5,
                     ),
                   ),

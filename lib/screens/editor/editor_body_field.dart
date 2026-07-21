@@ -13,9 +13,7 @@ import '../../theme/app_typography.dart';
 // The main writing area of the editor.
 // - Multiline TextField in Crimson Pro 18pt, line-height 1.8
 // - Notifies EditorState on every change (word count + comfort engine)
-// - Inline images are displayed above the text field at their positions
-//   (simplified: shown as a scrollable row above the text until proper
-//   cursor-position insertion is implemented in the toolbar)
+// - Inline images are interleaved at their cursor positions within the text
 // ─────────────────────────────────────────────────────────────────────────────
 
 class EditorBodyField extends StatelessWidget {
@@ -37,14 +35,119 @@ class EditorBodyField extends StatelessWidget {
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // ── Inline images (sorted by position) ───────────────────────────
-        if (entry.images.isNotEmpty)
-          _InlineImagesPreview(entry: entry),
+    return _InterleavedEditorBody(
+      controller: controller,
+      focusNode: focusNode,
+      entry: entry,
+      editorState: editorState,
+      textColor: textColor,
+      mutedColor: mutedColor,
+    );
+  }
+}
 
-        // ── Main body TextField ───────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// INTERLEAVED EDITOR BODY
+// Splits entry content at each inline image position and renders:
+//   [TextField segment] → [image] → [TextField segment] → [image] → ...
+// Since we need a single editable TextField, this is a simplified version
+// that shows images at their approximate positions within the text flow.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InterleavedEditorBody extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final Entry entry;
+  final EditorState editorState;
+  final Color textColor;
+  final Color mutedColor;
+
+  const _InterleavedEditorBody({
+    required this.controller,
+    required this.focusNode,
+    required this.entry,
+    required this.editorState,
+    required this.textColor,
+    required this.mutedColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    // No images — just render the TextField
+    if (entry.images.isEmpty) {
+      return TextField(
+        controller: controller,
+        focusNode: focusNode,
+        style: AppTypography.entryBody(textColor),
+        maxLines: null,
+        keyboardType: TextInputType.multiline,
+        textInputAction: TextInputAction.newline,
+        onChanged: editorState.onContentChanged,
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          contentPadding: EdgeInsets.zero,
+          hintText: 'Begin writing...',
+          hintStyle: AppTypography.entryBody(mutedColor).copyWith(
+            fontStyle: FontStyle.italic,
+          ),
+        ),
+      );
+    }
+
+    // Sort images by position ascending
+    final images = List.of(entry.images)
+      ..sort((a, b) => a.position.compareTo(b.position));
+
+    final segments = <Widget>[];
+    final content = controller.text;
+    int cursor = 0;
+
+    for (final image in images) {
+      final pos = image.position.clamp(0, content.length);
+
+      // Text before this image - show as read-only for now
+      // (complex to maintain cursor positions across multiple TextFields)
+      if (pos > cursor) {
+        final segment = content.substring(cursor, pos);
+        if (segment.trim().isNotEmpty) {
+          segments.add(
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                segment,
+                style: AppTypography.entryBody(textColor),
+              ),
+            ),
+          );
+        }
+      }
+
+      // The image itself
+      final file = File(image.path);
+      if (file.existsSync()) {
+        segments.add(
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: Image.file(
+                file,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+              ),
+            ),
+          ),
+        );
+      }
+
+      cursor = pos;
+    }
+
+    // Remaining text - editable TextField
+    if (cursor < content.length) {
+      final remaining = content.substring(cursor);
+      segments.add(
         TextField(
           controller: controller,
           focusNode: focusNode,
@@ -56,51 +159,18 @@ class EditorBodyField extends StatelessWidget {
           decoration: InputDecoration(
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
-            hintText: 'Begin writing...',
+            hintText: cursor == 0 ? 'Begin writing...' : '',
             hintStyle: AppTypography.entryBody(mutedColor).copyWith(
               fontStyle: FontStyle.italic,
             ),
           ),
         ),
-      ],
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// INLINE IMAGES PREVIEW
-// Shows inline images sorted by their content position.
-// Full-width, rounded corners, 16px vertical margin.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _InlineImagesPreview extends StatelessWidget {
-  final Entry entry;
-
-  const _InlineImagesPreview({required this.entry});
-
-  @override
-  Widget build(BuildContext context) {
-    final images = List.of(entry.images)
-      ..sort((a, b) => a.position.compareTo(b.position));
+      );
+    }
 
     return Column(
-      children: images.map((img) {
-        final file = File(img.path);
-        if (!file.existsSync()) return const SizedBox.shrink();
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Image.file(
-              file,
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-            ),
-          ),
-        );
-      }).toList(),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: segments,
     );
   }
 }

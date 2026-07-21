@@ -47,7 +47,7 @@ class _TaskInputState extends State<TaskInput> {
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
     );
-    if (picked != null) {
+    if (picked != null && mounted) {
       setState(() => _deadline = picked);
     }
   }

@@ -134,10 +134,7 @@ class _ExistingImage extends StatelessWidget {
         GestureDetector(
           onTap: onReplace,
           child: ClipRRect(
-            borderRadius: const BorderRadius.only(
-              bottomLeft: Radius.circular(16),
-              bottomRight: Radius.circular(16),
-            ),
+            borderRadius: BorderRadius.zero,
             child: Image.file(
               File(path),
               width: double.infinity,

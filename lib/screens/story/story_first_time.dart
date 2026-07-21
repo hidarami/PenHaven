@@ -57,7 +57,7 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
   Future<void> _tryCreate() async {
     final title = _controller.text.trim();
     if (title.isEmpty) {
-      setState(() => _editing = false);
+      if (mounted) setState(() => _editing = false);
       return;
     }
     try {
