@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -76,12 +75,6 @@ class EntryCard extends StatelessWidget {
               ),
             ],
 
-            // ── Thumbnail (only if entry has images) ──────────────────────
-            if (entry.hasImages || entry.hasHeaderImage) ...[
-              const SizedBox(height: 10),
-              _EntryThumbnail(entry: entry),
-            ],
-
             // ── Metadata: date + time spent ───────────────────────────────
             const SizedBox(height: 8),
             Row(
@@ -135,37 +128,3 @@ class EntryCard extends StatelessWidget {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ENTRY THUMBNAIL
-// 120px height preview of first available image.
-// Shows header image first, then first inline image.
-// Edge-to-edge (no horizontal padding), rounded corners.
-// ─────────────────────────────────────────────────────────────────────────────
-
-class _EntryThumbnail extends StatelessWidget {
-  final Entry entry;
-
-  const _EntryThumbnail({required this.entry});
-
-  @override
-  Widget build(BuildContext context) {
-    // Prefer header image; fall back to first inline image
-    final imagePath = entry.hasHeaderImage
-        ? entry.headerImage!
-        : entry.images.first.path;
-
-    final file = File(imagePath);
-    if (!file.existsSync()) return const SizedBox.shrink();
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.file(
-        file,
-        width: double.infinity,
-        height: 120,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-      ),
-    );
-  }
-}

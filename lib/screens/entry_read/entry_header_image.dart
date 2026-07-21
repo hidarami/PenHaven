@@ -29,13 +29,18 @@ class EntryHeaderImage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Stack(
         children: [
-          // ── Image — sharp edges, no border radius ─────────────────────────
-          Image.file(
-            file,
-            width: double.infinity,
-            height: 240,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => _placeholder(),
+          // ── Image — 3:1 aspect ratio, sharp edges, no border radius ─────────
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final height = constraints.maxWidth / 3;
+              return Image.file(
+                file,
+                width: double.infinity,
+                height: height,
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _placeholder(height),
+              );
+            },
           ),
 
           // ── Gradient overlay (bottom fade) — sharp edges ──────────────────
@@ -62,10 +67,10 @@ class EntryHeaderImage extends StatelessWidget {
     );
   }
 
-  Widget _placeholder() {
+  Widget _placeholder(double height) {
     return Container(
       width: double.infinity,
-      height: 240,
+      height: height,
       color: const Color(0xFFE0D8CE),
       child: const Icon(
         Icons.image_outlined,

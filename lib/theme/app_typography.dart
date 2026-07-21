@@ -11,18 +11,18 @@ import 'app_colors.dart';
 class AppTypography {
   AppTypography._();
 
-  // ── Crimson Pro (Serif — headings and entry body) ─────────────────────────
+  // ── Instrument Serif (Serif — titles and headings) ─────────────────────────
 
   /// Story / panel title — 36pt bold serif
-  static TextStyle storyTitle(Color color) => GoogleFonts.crimsonPro(
+  static TextStyle storyTitle(Color color) => GoogleFonts.instrumentSerif(
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: color,
         height: 1.15,
       );
 
-  /// Entry title in read-only view — 36pt bold, justified
-  static TextStyle entryTitle(Color color) => GoogleFonts.crimsonPro(
+  /// Entry title in read-only view — 36pt bold, left-aligned
+  static TextStyle entryTitle(Color color) => GoogleFonts.instrumentSerif(
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: color,
@@ -30,7 +30,7 @@ class AppTypography {
       );
 
   /// Entry title in editor — 32pt bold
-  static TextStyle editorTitle(Color color) => GoogleFonts.crimsonPro(
+  static TextStyle editorTitle(Color color) => GoogleFonts.instrumentSerif(
         fontSize: 32,
         fontWeight: FontWeight.w700,
         color: color,
@@ -38,7 +38,7 @@ class AppTypography {
       );
 
   /// Entry title in card preview — 22pt bold italic
-  static TextStyle entryCardTitle(Color color) => GoogleFonts.crimsonPro(
+  static TextStyle entryCardTitle(Color color) => GoogleFonts.instrumentSerif(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         fontStyle: FontStyle.italic,
@@ -46,12 +46,14 @@ class AppTypography {
         height: 1.3,
       );
 
-  /// Entry body in read-only and editor — 18pt regular, generous line height
-  static TextStyle entryBody(Color color) => GoogleFonts.crimsonPro(
+  // ── Source Serif 4 (Serif — body text) ─────────────────────────────────────
+
+  /// Entry body in read-only and editor — 18pt regular, line height 1.65
+  static TextStyle entryBody(Color color) => GoogleFonts.sourceSerif4(
         fontSize: 18,
         fontWeight: FontWeight.w400,
         color: color,
-        height: 1.8,
+        height: 1.65,
       );
 
   /// Comfort mode whisper text — 16pt italic, barely visible
@@ -110,9 +112,9 @@ class AppTypography {
         color: color,
       );
 
-  /// Entry date in read-only — 14pt medium sans
+  /// Entry date in read-only — 13pt medium sans
   static TextStyle entryDate(Color color) => GoogleFonts.inter(
-        fontSize: 14,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
         color: color,
       );
@@ -135,7 +137,7 @@ class AppTypography {
 
   /// Small metadata — time spent, word count, last updated
   static TextStyle metaSmall(Color color) => GoogleFonts.inter(
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: FontWeight.w400,
         color: color.withOpacity(0.5),
       );

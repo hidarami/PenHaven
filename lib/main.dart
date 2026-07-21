@@ -5,6 +5,7 @@ import 'providers/app_state.dart';
 import 'providers/atmosphere_state.dart';
 import 'providers/editor_state.dart';
 import 'screens/splash_screen.dart';
+import 'theme/app_theme.dart';
 
 void main() {
   runApp(const FlowApp());
@@ -26,15 +27,8 @@ class FlowApp extends StatelessWidget {
           return MaterialApp(
             title: 'Flow',
             debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              useMaterial3: true,
-              colorSchemeSeed: Colors.amber,
-            ),
-            darkTheme: ThemeData(
-              useMaterial3: true,
-              colorSchemeSeed: Colors.amber,
-              brightness: Brightness.dark,
-            ),
+            theme: AppTheme.light,
+            darkTheme: AppTheme.dark,
             themeMode: appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
             home: const SplashScreen(),
           );

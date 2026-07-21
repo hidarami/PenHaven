@@ -11,6 +11,7 @@ import '../../providers/atmosphere_state.dart';
 import '../../data/version_dao.dart';
 import '../../theme/app_colors.dart';
 import '../../atmosphere/comfort_engine.dart';
+import '../../services/export_service.dart';
 import 'editor_app_bar.dart';
 import 'editor_header_image.dart';
 import 'editor_title_field.dart';
@@ -38,6 +39,7 @@ class _EditorScreenState extends State<EditorScreen> {
   late TextEditingController _titleController;
   late List<EditorBlock> _blocks;
   final GlobalKey<EditorCanvasState> _canvasKey = GlobalKey();
+  final GlobalKey _socialCardRepaintKey = GlobalKey();
 
   @override
   void initState() {
@@ -58,6 +60,10 @@ class _EditorScreenState extends State<EditorScreen> {
     editorState.bindAtmosphere(atmoState);
     editorState.onAutoSave = _performSave;
     editorState.startSession();
+    // Force rebuild after first frame so _canvasKey.currentState is populated
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -132,6 +138,11 @@ class _EditorScreenState extends State<EditorScreen> {
 
   void _onBlocksChanged(List<EditorBlock> blocks) {
     _blocks = blocks;
+    // Update text alignment from canvas
+    final canvasState = _canvasKey.currentState;
+    if (canvasState != null) {
+      _entry = _entry.copyWith(textAlignment: canvasState.textAlignment);
+    }
     // Trigger EditorState auto-save debounce
     context.read<EditorState>().onContentChanged(
         plainTextFromBlocks(blocks));
@@ -160,6 +171,26 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
+  // ── Image export ────────────────────────────────────────────────────────────
+
+  Future<void> _exportAsImage() async {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preparing image…'),
+          duration: Duration(seconds: 1),
+        ),
+      );
+    }
+    // Give the offscreen RepaintBoundary one frame to paint
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
+    await ExportService.instance.exportAsSocialCard(
+      _entry,
+      _socialCardRepaintKey,
+    );
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -177,6 +208,7 @@ class _EditorScreenState extends State<EditorScreen> {
       child: Scaffold(
         backgroundColor: bg,
         body: Stack(
+          clipBehavior: Clip.none,
           children: [
             Column(
               children: [
@@ -187,6 +219,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   onBack: _handleBack,
                   onHistory: _openVersionHistory,
                   onEntryChanged: (e) => setState(() => _entry = e),
+                  onImageExport: _exportAsImage,
                 ),
 
                 // Scrollable content
@@ -221,6 +254,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             key: _canvasKey,
                             initialBlocks: _blocks,
                             isDark: dark,
+                            textAlignment: _entry.textAlignment,
                             onBlocksChanged: _onBlocksChanged,
                           ),
                         ),
@@ -257,6 +291,17 @@ class _EditorScreenState extends State<EditorScreen> {
             // Comfort engine
             const ComfortWhisperOverlay(),
             const ComfortTintOverlay(),
+
+            // Offscreen social card rendered for image capture (never visible)
+            Positioned(
+              left: -5000,
+              top: 0,
+              child: RepaintBoundary(
+                key: _socialCardRepaintKey,
+                child: ExportService.instance
+                    .buildSocialCardWidget(_entry, isDark: dark),
+              ),
+            ),
           ],
         ),
       ),
@@ -276,6 +321,7 @@ class _EditorBar extends StatelessWidget {
   final VoidCallback onBack;
   final VoidCallback onHistory;
   final ValueChanged<Entry> onEntryChanged;
+  final VoidCallback? onImageExport;
 
   const _EditorBar({
     required this.entry,
@@ -283,6 +329,7 @@ class _EditorBar extends StatelessWidget {
     required this.onBack,
     required this.onHistory,
     required this.onEntryChanged,
+    this.onImageExport,
   });
 
   @override
@@ -327,10 +374,37 @@ class _EditorBar extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
+            // ── Export ────────────────────────────────────────────────────
+            ListTile(
+              leading: const Icon(Icons.image_outlined),
+              title: const Text('Export as Image'),
+              subtitle: const Text('Visual card — great for sharing'),
+              onTap: () {
+                Navigator.pop(ctx);
+                onImageExport?.call();
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.text_snippet_outlined),
+              title: const Text('Export as TXT'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ExportService.instance.exportAsTxt(entry);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.picture_as_pdf_outlined),
+              title: const Text('Export as PDF'),
+              onTap: () {
+                Navigator.pop(ctx);
+                ExportService.instance.exportAsPdf(entry);
+              },
+            ),
+            const Divider(height: 1),
+            // ── Manage ────────────────────────────────────────────────────
             if (entry.hasHeaderImage)
               ListTile(
-                leading:
-                    const Icon(Icons.image_not_supported_outlined),
+                leading: const Icon(Icons.image_not_supported_outlined),
                 title: const Text('Remove header image'),
                 onTap: () {
                   Navigator.pop(ctx);
@@ -346,7 +420,7 @@ class _EditorBar extends StatelessWidget {
                 Navigator.pop(ctx);
                 _confirmDelete(context, appState);
               },
-            ),
+             ),
             const SizedBox(height: 8),
           ],
         ),

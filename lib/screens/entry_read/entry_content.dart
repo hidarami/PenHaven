@@ -43,7 +43,7 @@ class EntryContent extends StatelessWidget {
           Text(
             entry.title.isEmpty ? 'Untitled' : entry.title,
             style: AppTypography.entryTitle(textColor),
-            textAlign: TextAlign.justify,
+            textAlign: TextAlign.left,
           ),
 
           const SizedBox(height: 10),
@@ -61,6 +61,7 @@ class EntryContent extends StatelessWidget {
             BlocksReadView(
               blocks: deserializeBlocks(entry.blocksJson!),
               isDark: isDark,
+              textAlignment: entry.textAlignment,
             )
           else
             _InterleavedBody(entry: entry, isDark: isDark),

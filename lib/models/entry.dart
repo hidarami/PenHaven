@@ -33,6 +33,7 @@ class Entry {
   List<EntryImage> images; // Legacy — kept for migration only
   bool isDeleted;
   String? blocksJson; // Block-based content (new format)
+  String textAlignment; // 'justify', 'left', or 'center'
 
   Entry({
     String? id,
@@ -47,6 +48,7 @@ class Entry {
     List<EntryImage>? images,
     this.isDeleted = false,
     this.blocksJson,
+    this.textAlignment = 'justify',
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now(),
@@ -66,6 +68,7 @@ class Entry {
       'images': jsonEncode(images.map((e) => e.toMap()).toList()),
       'isDeleted': isDeleted ? 1 : 0,
       'blocksJson': blocksJson,
+      'textAlignment': textAlignment,
     };
   }
 
@@ -92,6 +95,7 @@ class Entry {
       images: parsedImages,
       isDeleted: (map['isDeleted'] as int) == 1,
       blocksJson: map['blocksJson'] as String?,
+      textAlignment: map['textAlignment'] as String? ?? 'justify',
     );
   }
 
@@ -107,6 +111,7 @@ class Entry {
     bool clearHeaderImage = false,
     String? blocksJson,
     bool clearBlocksJson = false,
+    String? textAlignment,
   }) {
     return Entry(
       id: id,
@@ -121,6 +126,7 @@ class Entry {
       images: images ?? this.images,
       isDeleted: isDeleted ?? this.isDeleted,
       blocksJson: clearBlocksJson ? null : (blocksJson ?? this.blocksJson),
+      textAlignment: textAlignment ?? this.textAlignment,
     );
   }
 

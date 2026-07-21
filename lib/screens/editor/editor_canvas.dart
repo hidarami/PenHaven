@@ -25,6 +25,7 @@ class EditorCanvas extends StatefulWidget {
   final bool isDark;
   final void Function(List<EditorBlock>) onBlocksChanged;
   final ScrollController? scrollController;
+  final String textAlignment;
 
   const EditorCanvas({
     super.key,
@@ -32,6 +33,7 @@ class EditorCanvas extends StatefulWidget {
     required this.isDark,
     required this.onBlocksChanged,
     this.scrollController,
+    this.textAlignment = 'justify',
   });
 
   @override
@@ -43,6 +45,7 @@ class EditorCanvasState extends State<EditorCanvas> {
 
   // Exposed for toolbar use
   List<EditorBlock> get blocks => _blocks;
+  String textAlignment = 'justify';
   final Map<String, RichEditorController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
   String? _focusedBlockId;
@@ -52,6 +55,7 @@ class EditorCanvasState extends State<EditorCanvas> {
   void initState() {
     super.initState();
     _blocks = List.from(widget.initialBlocks);
+    textAlignment = widget.textAlignment;
     if (_blocks.isEmpty) {
       _blocks.add(TextBlock.empty());
     }
@@ -68,7 +72,8 @@ class EditorCanvasState extends State<EditorCanvas> {
 
   void _ensureController(TextBlock block) {
     if (!_controllers.containsKey(block.id)) {
-      final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
+      final textColor =
+          widget.isDark ? AppColors.textDark : AppColors.textLight;
       final ctrl = RichEditorController(
         text: block.text,
         initialFormats: block.formats,
@@ -197,8 +202,7 @@ class EditorCanvasState extends State<EditorCanvas> {
   }
 
   void insertCodeBlock(String afterId) {
-    insertBlockAfter(
-        afterId, CodeBlock(id: const Uuid().v4(), code: ''));
+    insertBlockAfter(afterId, CodeBlock(id: const Uuid().v4(), code: ''));
   }
 
   void changeBlockType(String blockId, BlockType newType) {
@@ -223,6 +227,11 @@ class EditorCanvasState extends State<EditorCanvas> {
   void clearHighlight() => focusedController?.clearHighlight();
   void applyLink(String url) => focusedController?.applyLink(url);
   void clearLink() => focusedController?.clearLink();
+  void setTextAlignment(String alignment) {
+    setState(() {
+      textAlignment = alignment;
+    });
+  }
 
   // ── Image insertion ────────────────────────────────────────────────────────
 
@@ -333,6 +342,7 @@ class EditorCanvasState extends State<EditorCanvas> {
         textColor: textColor,
         mutedColor: mutedColor,
         isFirst: idx == 0,
+        textAlignment: textAlignment,
         onEnterAtEnd: () {
           // Create new text block after this one
           insertBlockAfter(block.id, TextBlock.empty());
@@ -459,6 +469,7 @@ class _TextBlockWidget extends StatelessWidget {
   final bool isFirst;
   final VoidCallback onEnterAtEnd;
   final VoidCallback onBackspaceAtStart;
+  final String textAlignment;
 
   const _TextBlockWidget({
     super.key,
@@ -471,6 +482,7 @@ class _TextBlockWidget extends StatelessWidget {
     required this.isFirst,
     required this.onEnterAtEnd,
     required this.onBackspaceAtStart,
+    required this.textAlignment,
   });
 
   @override
@@ -486,6 +498,7 @@ class _TextBlockWidget extends StatelessWidget {
       maxLines: null,
       keyboardType: TextInputType.multiline,
       textInputAction: TextInputAction.newline,
+      textAlign: _alignFromString(textAlignment),
       style: _styleForType(block.type, textColor),
       decoration: InputDecoration(
         border: InputBorder.none,
@@ -505,8 +518,7 @@ class _TextBlockWidget extends StatelessWidget {
 
     if (isQuote) {
       field = Container(
-        padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.blockquoteBg,
           border: Border(
@@ -556,8 +568,7 @@ class _TextBlockWidget extends StatelessWidget {
             color: color,
             height: 1.8);
       default:
-        return GoogleFonts.crimsonPro(
-            fontSize: 18, color: color, height: 1.8);
+        return GoogleFonts.crimsonPro(fontSize: 18, color: color, height: 1.8);
     }
   }
 
@@ -573,6 +584,18 @@ class _TextBlockWidget extends StatelessWidget {
         return 'Quote...';
       default:
         return 'Write here...';
+    }
+  }
+
+  TextAlign _alignFromString(String alignment) {
+    switch (alignment) {
+      case 'left':
+        return TextAlign.left;
+      case 'center':
+        return TextAlign.center;
+      case 'justify':
+      default:
+        return TextAlign.justify;
     }
   }
 }
@@ -598,8 +621,7 @@ class _ImageBlockWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final file = File(block.path);
-    final mutedColor =
-        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -615,8 +637,7 @@ class _ImageBlockWidget extends StatelessWidget {
                         file,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            _placeholder(),
+                        errorBuilder: (_, __, ___) => _placeholder(),
                       )
                     : _placeholder(),
               ),
@@ -645,9 +666,7 @@ class _ImageBlockWidget extends StatelessWidget {
             Text(
               block.caption!,
               style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: mutedColor,
-                  fontStyle: FontStyle.italic),
+                  fontSize: 12, color: mutedColor, fontStyle: FontStyle.italic),
             ),
           ],
           if (block.unsplashCredit != null) ...[
@@ -735,8 +754,7 @@ class _ImageGridBlockWidget extends StatelessWidget {
                     color: Colors.black.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close,
-                      size: 18, color: Colors.white),
+                  child: const Icon(Icons.close, size: 18, color: Colors.white),
                 ),
               ),
             ),
@@ -764,8 +782,7 @@ class _YoutubeBlockWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mutedColor =
-        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -821,8 +838,7 @@ class _YoutubeBlockWidget extends StatelessWidget {
                     color: Colors.black.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.close,
-                      size: 18, color: Colors.white),
+                  child: const Icon(Icons.close, size: 18, color: Colors.white),
                 ),
               ),
             ),
@@ -851,10 +867,8 @@ class _TweetBlockWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bg = isDark ? const Color(0xFF15202B) : const Color(0xFFF7F9F9);
-    final textColor =
-        isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor =
-        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12),
@@ -898,8 +912,7 @@ class _TweetBlockWidget extends StatelessWidget {
                       ],
                     ),
                   ),
-                  Icon(Icons.open_in_new,
-                      size: 16, color: mutedColor),
+                  Icon(Icons.open_in_new, size: 16, color: mutedColor),
                 ],
               ),
             ),
@@ -917,8 +930,7 @@ class _TweetBlockWidget extends StatelessWidget {
                     color: Colors.black.withOpacity(0.6),
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.close, size: 14, color: Colors.white),
+                  child: const Icon(Icons.close, size: 14, color: Colors.white),
                 ),
               ),
             ),
@@ -967,11 +979,8 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final codeBg = widget.isDark
-        ? AppColors.codeBgDark
-        : AppColors.codeBgLight;
-    final textColor =
-        widget.isDark ? AppColors.textDark : AppColors.textLight;
+    final codeBg = widget.isDark ? AppColors.codeBgDark : AppColors.codeBgLight;
+    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
@@ -1017,8 +1026,7 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
                     color: Colors.black.withOpacity(0.5),
                     shape: BoxShape.circle,
                   ),
-                  child:
-                      const Icon(Icons.close, size: 14, color: Colors.white),
+                  child: const Icon(Icons.close, size: 14, color: Colors.white),
                 ),
               ),
             ),
@@ -1062,9 +1070,7 @@ class _DividerBlockWidget extends StatelessWidget {
                   width: 22,
                   height: 22,
                   decoration: BoxDecoration(
-                    color: isDark
-                        ? AppColors.warmDark
-                        : AppColors.warmWhite,
+                    color: isDark ? AppColors.warmDark : AppColors.warmWhite,
                     shape: BoxShape.circle,
                     border: Border.all(
                       color: isDark
@@ -1075,8 +1081,7 @@ class _DividerBlockWidget extends StatelessWidget {
                   child: Icon(
                     Icons.close,
                     size: 12,
-                    color:
-                        isDark ? AppColors.mutedDark : AppColors.mutedLight,
+                    color: isDark ? AppColors.mutedDark : AppColors.mutedLight,
                   ),
                 ),
               ),
@@ -1095,11 +1100,13 @@ class _DividerBlockWidget extends StatelessWidget {
 class BlocksReadView extends StatelessWidget {
   final List<EditorBlock> blocks;
   final bool isDark;
+  final String textAlignment;
 
   const BlocksReadView({
     super.key,
     required this.blocks,
     required this.isDark,
+    this.textAlignment = 'justify',
   });
 
   @override
@@ -1112,10 +1119,9 @@ class BlocksReadView extends StatelessWidget {
 
   Widget _buildBlock(EditorBlock block) {
     if (block is TextBlock) {
-      return _TextBlockReadView(block: block, isDark: isDark);
+      return _TextBlockReadView(block: block, isDark: isDark, textAlignment: textAlignment);
     } else if (block is ImageBlock) {
-      return _ImageBlockWidget(
-          block: block, isDark: isDark, isEditing: false);
+      return _ImageBlockWidget(block: block, isDark: isDark, isEditing: false);
     } else if (block is ImageGridBlock) {
       return _ImageGridBlockWidget(
           block: block, isDark: isDark, isEditing: false);
@@ -1123,11 +1129,9 @@ class BlocksReadView extends StatelessWidget {
       return _YoutubeBlockWidget(
           block: block, isDark: isDark, isEditing: false);
     } else if (block is TweetBlock) {
-      return _TweetBlockWidget(
-          block: block, isDark: isDark, isEditing: false);
+      return _TweetBlockWidget(block: block, isDark: isDark, isEditing: false);
     } else if (block is CodeBlock) {
-      return _CodeBlockWidget(
-          block: block, isDark: isDark, isEditing: false);
+      return _CodeBlockWidget(block: block, isDark: isDark, isEditing: false);
     } else if (block is DividerBlock) {
       return _DividerBlockWidget(isDark: isDark, isEditing: false);
     }
@@ -1138,8 +1142,9 @@ class BlocksReadView extends StatelessWidget {
 class _TextBlockReadView extends StatelessWidget {
   final TextBlock block;
   final bool isDark;
+  final String textAlignment;
 
-  const _TextBlockReadView({required this.block, required this.isDark});
+  const _TextBlockReadView({required this.block, required this.isDark, required this.textAlignment});
 
   @override
   Widget build(BuildContext context) {
@@ -1147,7 +1152,10 @@ class _TextBlockReadView extends StatelessWidget {
     final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
     final span = _buildSpan(textColor);
-    Widget text = Text.rich(span);
+    Widget text = Text.rich(
+      span,
+      textAlign: _alignFromString(textAlignment),
+    );
 
     if (block.type == BlockType.quote) {
       text = Container(
@@ -1194,10 +1202,7 @@ class _TextBlockReadView extends StatelessWidget {
       final end = sorted[i + 1];
       if (start >= end) continue;
 
-      bool bold = false,
-          italic = false,
-          underline = false,
-          strike = false;
+      bool bold = false, italic = false, underline = false, strike = false;
       Color? highlight;
       String? link;
 
@@ -1222,8 +1227,7 @@ class _TextBlockReadView extends StatelessWidget {
         style = style.copyWith(decoration: TextDecoration.combine(decos));
       }
       if (highlight != null) {
-        style =
-            style.copyWith(backgroundColor: highlight.withOpacity(0.35));
+        style = style.copyWith(backgroundColor: highlight.withOpacity(0.35));
       }
       if (link != null) {
         style = style.copyWith(
@@ -1265,8 +1269,19 @@ class _TextBlockReadView extends StatelessWidget {
             color: color,
             height: 1.8);
       default:
-        return GoogleFonts.crimsonPro(
-            fontSize: 18, color: color, height: 1.8);
+        return GoogleFonts.crimsonPro(fontSize: 18, color: color, height: 1.8);
+    }
+  }
+
+  TextAlign _alignFromString(String alignment) {
+    switch (alignment) {
+      case 'left':
+        return TextAlign.left;
+      case 'center':
+        return TextAlign.center;
+      case 'justify':
+      default:
+        return TextAlign.justify;
     }
   }
 }

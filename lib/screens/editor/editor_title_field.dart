@@ -90,11 +90,7 @@ class _EditorTitleFieldState extends State<EditorTitleField> {
           onTap: _pickDate,
           child: Text(
             DateFormat('MMMM d, yyyy').format(_displayDate),
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              color: mutedColor,
-              fontWeight: FontWeight.w500,
-            ),
+            style: AppTypography.entryDate(mutedColor),
           ),
         ),
       ],

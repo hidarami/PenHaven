@@ -154,6 +154,15 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
 
                   _ToolbarDivider(color: divider),
 
+                  // ── Text alignment ───────────────────────────────────────
+                  _AlignmentButton(
+                    color: muted,
+                    alignment: widget.canvas.textAlignment,
+                    onTap: () => _cycleAlignment(),
+                  ),
+
+                  _ToolbarDivider(color: divider),
+
                   // ── Block insertion ──────────────────────────────────────
                   _ToolbarIconButton(
                     icon: Icons.image_outlined,
@@ -230,6 +239,20 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
     if (id == null) return;
     final current = _isFocusedType(type) ? BlockType.text : type;
     widget.canvas.changeBlockType(id, current);
+    setState(() {});
+  }
+
+  void _cycleAlignment() {
+    final current = widget.canvas.textAlignment;
+    String next;
+    if (current == 'justify') {
+      next = 'left';
+    } else if (current == 'left') {
+      next = 'center';
+    } else {
+      next = 'justify';
+    }
+    widget.canvas.setTextAlignment(next);
     setState(() {});
   }
 
@@ -535,6 +558,44 @@ class _ToolbarIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        child: Icon(icon, size: 18, color: color),
+      ),
+    );
+  }
+}
+
+class _AlignmentButton extends StatelessWidget {
+  final Color color;
+  final String alignment;
+  final VoidCallback onTap;
+
+  const _AlignmentButton({
+    required this.color,
+    required this.alignment,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    IconData icon;
+    switch (alignment) {
+      case 'left':
+        icon = Icons.format_align_left_rounded;
+        break;
+      case 'center':
+        icon = Icons.format_align_center_rounded;
+        break;
+      case 'justify':
+      default:
+        icon = Icons.format_align_justify_rounded;
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
