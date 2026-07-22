@@ -60,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _fillCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2600),
+      duration: const Duration(milliseconds: 5000),
     );
     _fillAnim = CurvedAnimation(parent: _fillCtrl, curve: Curves.easeInOut);
 
@@ -104,7 +104,7 @@ class _SplashScreenState extends State<SplashScreen>
     _fillCtrl.forward();
 
     // Phase 3: Subtitle appears when fill reaches ~85%
-    await Future.delayed(const Duration(milliseconds: 1900));
+    await Future.delayed(const Duration(milliseconds: 3800));
     if (_disposed || !mounted) return;
     _subCtrl.forward();
 
@@ -242,7 +242,8 @@ class _LiquidFlowText extends StatelessWidget {
             fillProgress: fillProgress,
             wavePhase: wavePhase,
           ),
-          child: Text('Flow', style: _style(AppColors.teal)),
+          // Solid aqua fill — full opacity version of the app's accent blue
+        child: Text('Flow', style: _style(const Color(0xFF207BD5))),
         ),
 
         // Layer 3: Faint water shimmer line at the wave surface
@@ -355,7 +356,7 @@ class _WaveSurfacePainter extends CustomPainter {
 
     // Bright highlight line along the wave surface
     final paint = Paint()
-      ..color = AppColors.aqua.withOpacity(0.72)
+      ..color = const Color(0xFF207BD5).withOpacity(0.88)
       ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke

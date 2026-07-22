@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/app_state.dart';
 import '../theme/app_colors.dart';
@@ -194,6 +195,19 @@ class FlowMarkdownBody extends StatelessWidget {
     this.selectable = true,
   });
 
+  /// Converts bare https?:// URLs in plain text to markdown link syntax
+  /// so flutter_markdown renders them as tappable links.
+  static String _autoLinkify(String raw) {
+    return raw.replaceAllMapped(
+      // Match URLs not already inside markdown link parens [text](URL)
+      RegExp(r'(?<!\()(?<!\[)(https?://[^\s\)\]<>"]+)', caseSensitive: false),
+      (m) {
+        final url = m.group(0)!;
+        return '[$url]($url)';
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = context.watch<AppState>().isDarkMode;
@@ -202,8 +216,13 @@ class FlowMarkdownBody extends StatelessWidget {
     final codeBg = dark ? AppColors.codeBgDark : AppColors.codeBgLight;
 
     return MarkdownBody(
-      data: data,
+      data: _autoLinkify(data),
       selectable: selectable,
+      onTapLink: (text, href, title) {
+        if (href != null) {
+          launchUrl(Uri.parse(href), mode: LaunchMode.externalApplication);
+        }
+      },
       styleSheet: MarkdownStyleSheet(
         // Paragraph
         p: GoogleFonts.crimsonPro(

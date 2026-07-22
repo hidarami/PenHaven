@@ -42,6 +42,9 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
     final muted = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
+    // Build-time snapshot for isActive display only.
+    // All onTap handlers call widget.canvas.focusedController directly
+    // so they read the LIVE controller at tap time, not the stale build-time one.
     final ctrl = widget.canvas.focusedController;
 
     return Container(
@@ -51,7 +54,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
         children: [
           Divider(color: divider, thickness: 0.5, height: 0),
           SizedBox(
-            height: 44 + bottomPadding,
+            height: 50 + bottomPadding, // larger for easier tapping
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               padding: EdgeInsets.fromLTRB(8, 4, 8, bottomPadding),
@@ -65,7 +68,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                     color: muted,
                     isActive: ctrl?.selectionHas(bold: true) ?? false,
                     onTap: () {
-                      ctrl?.toggleBold();
+                      widget.canvas.focusedController?.toggleBold();
                       setState(() {});
                     },
                   ),
@@ -75,7 +78,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                     color: muted,
                     isActive: ctrl?.selectionHas(italic: true) ?? false,
                     onTap: () {
-                      ctrl?.toggleItalic();
+                      widget.canvas.focusedController?.toggleItalic();
                       setState(() {});
                     },
                   ),
@@ -85,7 +88,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                     color: muted,
                     isActive: ctrl?.selectionHas(underline: true) ?? false,
                     onTap: () {
-                      ctrl?.toggleUnderline();
+                      widget.canvas.focusedController?.toggleUnderline();
                       setState(() {});
                     },
                   ),
@@ -96,7 +99,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                     isActive:
                         ctrl?.selectionHas(strikethrough: true) ?? false,
                     onTap: () {
-                      ctrl?.toggleStrikethrough();
+                      widget.canvas.focusedController?.toggleStrikethrough();
                       setState(() {});
                     },
                   ),
@@ -297,32 +300,33 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
 
 class _FormatButton extends StatelessWidget {
   final String label;
+  final Color color;
+  final VoidCallback onTap;
   final bool bold;
   final bool italic;
   final bool underlineLabel;
   final bool strikeLabel;
-  final Color color;
   final bool isActive;
-  final VoidCallback? onTap;
 
   const _FormatButton({
     required this.label,
+    required this.color,
+    required this.onTap,
     this.bold = false,
     this.italic = false,
     this.underlineLabel = false,
     this.strikeLabel = false,
-    required this.color,
-    required this.isActive,
-    this.onTap,
+    this.isActive = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         decoration: isActive
             ? BoxDecoration(
                 color: AppColors.aqua.withOpacity(0.15),
@@ -559,10 +563,11 @@ class _ToolbarIconButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
+      behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        width: 36,
-        height: 36,
+        width: 44,
+        height: 44,
         alignment: Alignment.center,
         child: Icon(icon, size: 18, color: color),
       ),

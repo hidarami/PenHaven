@@ -228,6 +228,8 @@ class EditorCanvasState extends State<EditorCanvas> {
     setState(() {
       textAlignment = alignment;
     });
+    // Notify parent so alignment is persisted to the entry
+    widget.onBlocksChanged(_blocks);
   }
 
   // ── Image insertion ────────────────────────────────────────────────────────
