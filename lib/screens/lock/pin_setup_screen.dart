@@ -147,7 +147,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: i < _input.length
-                        ? AppColors.teal
+                        ? AppColors.aqua
                         : Colors.white.withOpacity(0.18),
                   ),
                 );
@@ -187,9 +187,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       width: 20, height: 20,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(5),
-                        color: _bioEnabled ? AppColors.teal : Colors.transparent,
+                        color: _bioEnabled ? AppColors.aqua : Colors.transparent,
                         border: Border.all(
-                          color: _bioEnabled ? AppColors.teal : AppColors.mutedDark,
+                          color: _bioEnabled ? AppColors.aqua : AppColors.mutedDark,
                           width: 1.5,
                         ),
                       ),
@@ -233,7 +233,7 @@ class _RecoveryCodeDisplay extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Spacer(),
-              const Icon(Icons.key_rounded, color: AppColors.teal, size: 40),
+              const Icon(Icons.key_rounded, color: AppColors.aqua, size: 40),
               const SizedBox(height: 18),
               Text('Save this recovery code',
                   style: GoogleFonts.crimsonPro(
@@ -256,12 +256,12 @@ class _RecoveryCodeDisplay extends StatelessWidget {
                     color: Colors.white.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppColors.teal.withOpacity(0.35), width: 1.5,
+                      color: AppColors.aqua.withOpacity(0.35), width: 1.5,
                     ),
                   ),
                   child: Text(code,
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 30, color: AppColors.teal,
+                        fontSize: 30, color: AppColors.aqua,
                         letterSpacing: 5, fontWeight: FontWeight.w600,
                       )),
                 ),
@@ -272,7 +272,7 @@ class _RecoveryCodeDisplay extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onDone,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.teal,
+                    backgroundColor: AppColors.aqua,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(

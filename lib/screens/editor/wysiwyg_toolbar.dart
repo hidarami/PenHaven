@@ -325,7 +325,7 @@ class _FormatButton extends StatelessWidget {
         height: 36,
         decoration: isActive
             ? BoxDecoration(
-                color: AppColors.teal.withOpacity(0.15),
+                color: AppColors.aqua.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(6),
               )
             : null,
@@ -336,13 +336,13 @@ class _FormatButton extends StatelessWidget {
             fontSize: 13,
             fontWeight: bold ? FontWeight.w700 : FontWeight.w500,
             fontStyle: italic ? FontStyle.italic : FontStyle.normal,
-            color: isActive ? AppColors.teal : color,
+            color: isActive ? AppColors.aqua : color,
             decoration: underlineLabel
                 ? TextDecoration.underline
                 : strikeLabel
                     ? TextDecoration.lineThrough
                     : null,
-            decorationColor: isActive ? AppColors.teal : color,
+            decorationColor: isActive ? AppColors.aqua : color,
           ),
         ),
       ),
@@ -374,19 +374,19 @@ class _BlockTypeButton extends StatelessWidget {
         height: 36,
         decoration: isActive
             ? BoxDecoration(
-                color: AppColors.teal.withOpacity(0.15),
+                color: AppColors.aqua.withOpacity(0.15),
                 borderRadius: BorderRadius.circular(6),
               )
             : null,
         alignment: Alignment.center,
         child: icon != null
-            ? Icon(icon, size: 18, color: isActive ? AppColors.teal : color)
+            ? Icon(icon, size: 18, color: isActive ? AppColors.aqua : color)
             : Text(
                 label!,
                 style: GoogleFonts.inter(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,
-                  color: isActive ? AppColors.teal : color,
+                  color: isActive ? AppColors.aqua : color,
                 ),
               ),
       ),

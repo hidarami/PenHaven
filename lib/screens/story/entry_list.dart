@@ -143,12 +143,12 @@ class _AddEntryButton extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: const [
-              Icon(Icons.add, size: 15, color: AppColors.teal),
+              Icon(Icons.add, size: 15, color: AppColors.aqua),
               SizedBox(width: 6),
               Text(
                 'Add Entry',
                 style: TextStyle(
-                  color: AppColors.teal,
+                  color: AppColors.aqua,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),

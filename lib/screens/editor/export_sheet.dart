@@ -446,8 +446,8 @@ class _ExportSheetState extends State<ExportSheet> {
                                 value: _showHeader,
                                 onChanged: (v) =>
                                     setState(() => _showHeader = v),
-                                activeThumbColor: AppColors.teal,
-                                activeTrackColor: AppColors.teal,
+                                activeThumbColor: AppColors.aqua,
+                                activeTrackColor: AppColors.aqua,
                               ),
                             ],
                           ),
@@ -492,8 +492,8 @@ class _ExportSheetState extends State<ExportSheet> {
                                 value: _showFooter,
                                 onChanged: (v) =>
                                     setState(() => _showFooter = v),
-                                activeThumbColor: AppColors.teal,
-                                activeTrackColor: AppColors.teal,
+                                activeThumbColor: AppColors.aqua,
+                                activeTrackColor: AppColors.aqua,
                               ),
                             ],
                           ),
@@ -579,7 +579,7 @@ class _ExportSheetState extends State<ExportSheet> {
                     sub: _layoutMode == 'pages'
                         ? 'PNG · Split into 9:16 portrait pages'
                         : 'PNG · Full entry height',
-                    color: AppColors.teal,
+                    color: AppColors.aqua,
                     onTap: _exporting ? null : _exportAsImage,
                     loading: _exporting,
                     isDark: widget.isDark,
@@ -666,7 +666,7 @@ class _EntryExportView extends StatelessWidget {
         isDark ? const Color(0xFFEEE8DF) : const Color(0xFF1C1208);
     final mutedColor =
         isDark ? const Color(0xFF7A6E62) : const Color(0xFF9A8D7E);
-    const teal = Color(0xFF7BA591);
+    const aqua = Color(0xFF7BA591);
 
     return Container(
       width: double.infinity,
@@ -688,11 +688,11 @@ class _EntryExportView extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // ── Top teal accent bar ─────────────────────────────────────
+            // ── Top aqua accent bar ─────────────────────────────────────
             Container(
               height: 3.5,
               decoration: const BoxDecoration(
-                color: teal,
+                color: aqua,
                 borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
               ),
             ),
@@ -703,7 +703,7 @@ class _EntryExportView extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(28, 18, 28, 0),
                 child: Row(
                   children: [
-                    Container(width: 20, height: 1.5, color: teal),
+                    Container(width: 20, height: 1.5, color: aqua),
                     const SizedBox(width: 8),
                     Text(
                       headerText.toUpperCase(),
@@ -711,7 +711,7 @@ class _EntryExportView extends StatelessWidget {
                         fontSize: 9,
                         letterSpacing: 2.5,
                         fontWeight: FontWeight.w600,
-                        color: teal,
+                        color: aqua,
                       ),
                     ),
                   ],
@@ -771,13 +771,13 @@ class _EntryExportView extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 16),
-                    Container(height: 0.5, color: teal.withOpacity(0.35)),
+                    Container(height: 0.5, color: aqua.withOpacity(0.35)),
                     const SizedBox(height: 18),
                   ] else ...[
                     // Subsequent pages: just a small continuation indicator
                     Row(children: [
                       Container(
-                          width: 20, height: 1.5, color: teal.withOpacity(0.4)),
+                          width: 20, height: 1.5, color: aqua.withOpacity(0.4)),
                       const SizedBox(width: 8),
                       Text(
                         entry.title.isEmpty ? 'Untitled' : entry.title,
@@ -829,7 +829,7 @@ class _EntryExportView extends StatelessWidget {
                             Container(
                                 width: 12,
                                 height: 1.5,
-                                color: teal.withOpacity(0.7)),
+                                color: aqua.withOpacity(0.7)),
                             const SizedBox(width: 5),
                             Text(
                               'Flow',
@@ -1003,11 +1003,11 @@ class _ModeChip extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.teal.withOpacity(0.15)
+                ? AppColors.aqua.withOpacity(0.15)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isActive ? AppColors.teal : muted.withOpacity(0.3),
+              color: isActive ? AppColors.aqua : muted.withOpacity(0.3),
             ),
           ),
           child: Column(
@@ -1017,7 +1017,7 @@ class _ModeChip extends StatelessWidget {
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isActive ? AppColors.teal : textCol,
+                    color: isActive ? AppColors.aqua : textCol,
                   )),
               const SizedBox(height: 2),
               Text(sub, style: GoogleFonts.inter(fontSize: 10, color: muted)),
@@ -1053,8 +1053,8 @@ class _ToggleRow extends StatelessWidget {
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppColors.teal,
-            activeTrackColor: AppColors.teal,
+            activeThumbColor: AppColors.aqua,
+            activeTrackColor: AppColors.aqua,
           ),
         ],
       ),
@@ -1098,7 +1098,7 @@ class _TextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.aqua, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1171,7 +1171,7 @@ class _ExportBtn extends StatelessWidget {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(
-                      strokeWidth: 1.5, color: AppColors.teal),
+                      strokeWidth: 1.5, color: AppColors.aqua),
                 )
               else
                 Icon(Icons.arrow_forward_ios_rounded,

@@ -318,7 +318,7 @@ void _setupLock(BuildContext context) async {
             onPressed: () => Navigator.pop(context),
             child: Text(
               'Cancel',
-              style: GoogleFonts.inter(color: AppColors.teal),
+              style: GoogleFonts.inter(color: AppColors.aqua),
             ),
           ),
           TextButton(

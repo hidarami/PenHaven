@@ -165,7 +165,7 @@ class _StoryCreateDialogState extends State<StoryCreateDialog> {
                   child: Text(
                     'Create',
                     style: AppTypography.buttonLabel(
-                      _canSubmit ? AppColors.teal : mutedColor,
+                      _canSubmit ? AppColors.aqua : mutedColor,
                     ),
                   ),
                 ),

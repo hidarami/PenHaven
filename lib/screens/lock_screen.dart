@@ -190,7 +190,7 @@ class _BiometricView extends StatelessWidget {
                   child: Icon(
                     Icons.fingerprint_rounded,
                     size: 72,
-                    color: AppColors.teal,
+                    color: AppColors.aqua,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -200,7 +200,7 @@ class _BiometricView extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
-                      color: AppColors.teal.withOpacity(0.7),
+                      color: AppColors.aqua.withOpacity(0.7),
                     ),
                   )
                 else
@@ -234,7 +234,7 @@ class _BiometricView extends StatelessWidget {
                       'Use PIN instead',
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: AppColors.teal,
+                        color: AppColors.aqua,
                       ),
                     ),
                   ),
@@ -314,7 +314,7 @@ class _PinEntryView extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: i < pinInput.length
-                        ? AppColors.teal
+                        ? AppColors.aqua
                         : Colors.white.withOpacity(0.18),
                   ),
                 );

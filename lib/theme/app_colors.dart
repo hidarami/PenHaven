@@ -13,6 +13,7 @@ class AppColors {
   static const Color teal = Color(0xFF7BA591);
   static const Color tealLight = Color(0xFFB2D4C5);
   static const Color tealDark = Color(0xFF4E7A65);
+  static const Color aqua = Color.fromARGB(173, 32, 123, 213);
 
   // ── Base Neutrals ──────────────────────────────────────────────────────────
   static const Color warmWhite = Color(0xFFF7F3EE);

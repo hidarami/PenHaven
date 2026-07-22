@@ -1232,9 +1232,9 @@ class _TextBlockReadView extends StatelessWidget {
       }
       if (link != null) {
         style = style.copyWith(
-            color: AppColors.teal,
+            color: AppColors.aqua,
             decoration: TextDecoration.underline,
-            decorationColor: AppColors.teal);
+            decorationColor: AppColors.aqua);
       }
 
       spans.add(TextSpan(text: t.substring(start, end), style: style));

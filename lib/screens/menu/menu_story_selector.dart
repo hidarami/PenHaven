@@ -101,7 +101,7 @@ class _StoryTile extends StatelessWidget {
         ? Colors.white.withOpacity(isActive ? 0.09 : 0.0)
         : Colors.black.withOpacity(isActive ? 0.05 : 0.0);
 
-    final accentColor = AppColors.teal;
+    final accentColor = AppColors.aqua;
 
     return GestureDetector(
       onTap: onTap,

@@ -77,11 +77,11 @@ class _DustMoteOverlayState extends State<DustMoteOverlay>
 // ── Mote data ─────────────────────────────────────────────────────────────────
 
 class _Mote {
-  final double baseX;     // 0.0–1.0 normalized
-  final double baseY;     // 0.0–1.0 normalized
-  final double size;      // Radius in logical pixels
-  final double driftSpeed;  // Pixels per second
-  final double driftAngle;  // Direction in radians
+  final double baseX; // 0.0–1.0 normalized
+  final double baseY; // 0.0–1.0 normalized
+  final double size; // Radius in logical pixels
+  final double driftSpeed; // Pixels per second
+  final double driftAngle; // Direction in radians
   final double phaseOffset; // Animation phase offset
 
   const _Mote({
@@ -157,6 +157,5 @@ class _DustMotePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(_DustMotePainter old) =>
-      old.time != time;
+  bool shouldRepaint(_DustMotePainter old) => old.time != time;
 }

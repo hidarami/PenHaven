@@ -96,7 +96,7 @@ class _TaskInputState extends State<TaskInput> {
                   child: Icon(
                     Icons.calendar_today_outlined,
                     size: 16,
-                    color: _deadline != null ? AppColors.teal : mutedColor,
+                    color: _deadline != null ? AppColors.aqua : mutedColor,
                   ),
                 ),
               ),
@@ -108,7 +108,7 @@ class _TaskInputState extends State<TaskInput> {
                   child: Icon(
                     Icons.arrow_forward_rounded,
                     size: 18,
-                    color: AppColors.teal,
+                    color: AppColors.aqua,
                   ),
                 ),
               ),
@@ -127,19 +127,19 @@ class _TaskInputState extends State<TaskInput> {
                 const Icon(
                   Icons.calendar_today_outlined,
                   size: 12,
-                  color: AppColors.teal,
+                  color: AppColors.aqua,
                 ),
                 const SizedBox(width: 4),
                 Text(
                   DateFormat('MMM d').format(_deadline!),
                   style: const TextStyle(
                     fontSize: 12,
-                    color: AppColors.teal,
+                    color: AppColors.aqua,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Icon(Icons.close, size: 12, color: AppColors.teal),
+                const Icon(Icons.close, size: 12, color: AppColors.aqua),
               ],
             ),
           ),

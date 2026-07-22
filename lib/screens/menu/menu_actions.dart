@@ -199,7 +199,7 @@ class MenuActions extends StatelessWidget {
                                 IconButton(
                                   icon: const Icon(
                                     Icons.restore_rounded,
-                                    color: AppColors.teal,
+                                    color: AppColors.aqua,
                                     size: 20,
                                   ),
                                   onPressed: () {

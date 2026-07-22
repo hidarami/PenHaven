@@ -28,7 +28,7 @@ class AppTheme {
       scaffoldBackgroundColor: bg,
       colorScheme: ColorScheme(
         brightness: dark ? Brightness.dark : Brightness.light,
-        primary: AppColors.teal,
+        primary: AppColors.aqua,
         onPrimary: Colors.white,
         secondary: AppColors.tealLight,
         onSecondary: AppColors.textLight,
@@ -111,12 +111,12 @@ class AppTheme {
       // ── Switch / Checkbox / Radio ─────────────────────────────────────────
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return AppColors.teal;
+          if (states.contains(WidgetState.selected)) return AppColors.aqua;
           return muted;
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return AppColors.teal.withValues(alpha: 0.4);
+            return AppColors.aqua.withValues(alpha: 0.4);
           }
           return muted.withValues(alpha: 0.3);
         }),
@@ -124,7 +124,7 @@ class AppTheme {
 
       checkboxTheme: CheckboxThemeData(
         fillColor: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected)) return AppColors.teal;
+          if (states.contains(WidgetState.selected)) return AppColors.aqua;
           return Colors.transparent;
         }),
         checkColor: WidgetStateProperty.all(Colors.white),

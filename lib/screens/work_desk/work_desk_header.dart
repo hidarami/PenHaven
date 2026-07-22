@@ -73,7 +73,7 @@ class WorkDeskHeader extends StatelessWidget {
                   width: 8,
                   height: 8,
                   decoration: const BoxDecoration(
-                    color: AppColors.teal,
+                    color: AppColors.aqua,
                     shape: BoxShape.circle,
                   ),
                 ),

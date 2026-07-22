@@ -176,7 +176,7 @@ class _VersionTile extends StatelessWidget {
                     style: GoogleFonts.inter(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.teal),
+                        color: AppColors.aqua),
                   ),
                   const SizedBox(height: 2),
                 ],
@@ -207,7 +207,7 @@ class _VersionTile extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(
                       horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: AppColors.teal.withOpacity(0.15),
+                    color: AppColors.aqua.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -215,7 +215,7 @@ class _VersionTile extends StatelessWidget {
                     style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.teal),
+                        color: AppColors.aqua),
                   ),
                 ),
               ),

@@ -104,8 +104,8 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                 child: ElevatedButton(
                   onPressed: _busy ? null : _verify,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.teal.withOpacity(0.2),
-                    foregroundColor: AppColors.teal,
+                    backgroundColor: AppColors.aqua.withOpacity(0.2),
+                    foregroundColor: AppColors.aqua,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
@@ -114,7 +114,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                   child: _busy
                       ? const SizedBox(width: 20, height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.teal))
+                              strokeWidth: 2, color: AppColors.aqua))
                       : Text('Verify Code', style: GoogleFonts.inter(
                           fontSize: 15, fontWeight: FontWeight.w600)),
                 ),

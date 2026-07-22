@@ -213,7 +213,7 @@ class _RatioPicker extends StatelessWidget {
               width: _previewWidth(),
               height: 22,
               decoration: BoxDecoration(
-                border: Border.all(color: AppColors.teal, width: 1.5),
+                border: Border.all(color: AppColors.aqua, width: 1.5),
                 borderRadius: BorderRadius.circular(3),
               ),
             ),

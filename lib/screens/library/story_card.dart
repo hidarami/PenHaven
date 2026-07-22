@@ -12,7 +12,7 @@ import '../../widgets/neumorphic_widgets.dart';
 // Neumorphic card showing story title + 2-line description.
 // Tapping selects the story as active (switches which entries appear
 // in the Story Panel). Stories are NOT navigated into from here.
-// Active story gets a teal left accent border.
+// Active story gets a aqua left accent border.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class StoryCard extends StatelessWidget {
@@ -43,7 +43,7 @@ class StoryCard extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               width: 4,
               decoration: BoxDecoration(
-                color: isActive ? AppColors.teal : Colors.transparent,
+                color: isActive ? AppColors.aqua : Colors.transparent,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   bottomLeft: Radius.circular(12),

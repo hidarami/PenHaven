@@ -16,7 +16,7 @@ class AboutSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
-    final accentColor = AppColors.teal;
+    final accentColor = AppColors.aqua;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),

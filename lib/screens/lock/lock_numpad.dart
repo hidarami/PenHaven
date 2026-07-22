@@ -35,7 +35,7 @@ class LockNumpad extends StatelessWidget {
                     ? NumpadKey(
                         onTap: onBiometric!,
                         child: const Icon(Icons.fingerprint_rounded,
-                            size: 28, color: AppColors.teal),
+                            size: 28, color: AppColors.aqua),
                       )
                     : const SizedBox(),
               ),

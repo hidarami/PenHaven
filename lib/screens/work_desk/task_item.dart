@@ -123,11 +123,11 @@ class _TaskItemState extends State<TaskItem> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: widget.todo.isCompleted
-                        ? AppColors.teal
+                        ? AppColors.aqua
                         : Colors.transparent,
                     border: Border.all(
                       color:
-                          widget.todo.isCompleted ? AppColors.teal : mutedColor,
+                          widget.todo.isCompleted ? AppColors.aqua : mutedColor,
                       width: 1.5,
                     ),
                   ),

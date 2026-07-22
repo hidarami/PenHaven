@@ -80,7 +80,7 @@ class _LargePlusButtonState extends State<_LargePlusButton> {
       child: const Icon(
         Icons.add,
         size: 32,
-        color: AppColors.teal,
+        color: AppColors.aqua,
       ),
     );
   }

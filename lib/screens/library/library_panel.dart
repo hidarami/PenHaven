@@ -120,14 +120,14 @@ class _PopulatedLibrary extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.add, size: 16, color: AppColors.teal),
+              const Icon(Icons.add, size: 16, color: AppColors.aqua),
               const SizedBox(width: 6),
               Text(
                 'Add New Story',
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  color: AppColors.teal,
+                  color: AppColors.aqua,
                 ),
               ),
             ],

@@ -66,7 +66,7 @@ class TimeCapsuleSheet extends StatelessWidget {
                     const Icon(
                       Icons.hourglass_empty_rounded,
                       size: 18,
-                      color: AppColors.teal,
+                      color: AppColors.aqua,
                     ),
                     const SizedBox(width: 8),
                     Text(
@@ -176,7 +176,7 @@ class _OnThisDayCard extends StatelessWidget {
               yearLabel,
               style: GoogleFonts.inter(
                 fontSize: 11,
-                color: AppColors.teal,
+                color: AppColors.aqua,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.5,
               ),
@@ -276,7 +276,7 @@ class _CapsuleCardState extends State<_CapsuleCard> {
               DateFormat('MMMM d, yyyy').format(widget.capsule.createdAt),
               style: GoogleFonts.inter(
                 fontSize: 11,
-                color: AppColors.teal,
+                color: AppColors.aqua,
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -300,13 +300,13 @@ class _CapsuleCardState extends State<_CapsuleCard> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     const Icon(Icons.lock_open_outlined,
-                        size: 14, color: AppColors.teal),
+                        size: 14, color: AppColors.aqua),
                     const SizedBox(width: 6),
                     Text(
                       'Open capsule',
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: AppColors.teal,
+                        color: AppColors.aqua,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -424,7 +424,7 @@ class _CreateCapsuleSectionState extends State<_CreateCapsuleSection> {
                           Icons.calendar_today_outlined,
                           size: 14,
                           color: _openAt != null
-                              ? AppColors.teal
+                              ? AppColors.aqua
                               : widget.mutedColor,
                         ),
                         const SizedBox(width: 4),
@@ -435,7 +435,7 @@ class _CreateCapsuleSectionState extends State<_CreateCapsuleSection> {
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             color: _openAt != null
-                                ? AppColors.teal
+                                ? AppColors.aqua
                                 : widget.mutedColor,
                             fontWeight: FontWeight.w500,
                           ),
@@ -453,7 +453,7 @@ class _CreateCapsuleSectionState extends State<_CreateCapsuleSection> {
                       'Seal',
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: AppColors.teal,
+                        color: AppColors.aqua,
                         fontWeight: FontWeight.w600,
                       ),
                     ),

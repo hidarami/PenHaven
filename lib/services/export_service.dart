@@ -213,7 +213,7 @@ class ExportService {
             width: 40,
             height: 3,
             decoration: BoxDecoration(
-              color: AppColors.teal,
+              color: AppColors.aqua,
               borderRadius: BorderRadius.circular(2),
             ),
           ),
