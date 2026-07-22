@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/entry.dart';
+import '../../atmosphere/atmosphere_overlay.dart';
 import '../../providers/app_state.dart';
+import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 import '../editor/editor_screen.dart';
 import 'entry_header_image.dart';
@@ -87,22 +89,21 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
   @override
   Widget build(BuildContext context) {
     final dark = context.watch<AppState>().isDarkMode;
-    final bg = context.watch<AppState>().isDarkMode
-        ? AppColors.warmDark
-        : AppColors.warmWhite;
+    final bg = context.watch<AtmosphereState>().backgroundFor(dark);
 
     return Scaffold(
       backgroundColor: bg,
-      body: GestureDetector(
-        // ── Swipe left-to-right to exit ──────────────────────────────────
-        onHorizontalDragEnd: _handleSwipeExit,
-
-        // ── Double-tap or long-press anywhere to edit ─────────────────────
-        onDoubleTap: _handleDoubleTap,
-        onLongPress: _handleLongPress,
-
-        behavior: HitTestBehavior.translucent,
-        child: _ReadContent(entry: _entry, isDark: dark),
+      body: Stack(
+        children: [
+          GestureDetector(
+            onHorizontalDragEnd: _handleSwipeExit,
+            onDoubleTap: _handleDoubleTap,
+            onLongPress: _handleLongPress,
+            behavior: HitTestBehavior.translucent,
+            child: _ReadContent(entry: _entry, isDark: dark),
+          ),
+          const AtmosphereOverlay(),
+        ],
       ),
     );
   }

@@ -26,7 +26,7 @@ class SettingsScreen extends StatelessWidget {
     final bg = atmosphereState.backgroundFor(isDark);
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
-    final surfaceBg = isDark ? AppColors.warmDark : AppColors.warmWhite;
+    final surfaceBg = atmosphereState.backgroundFor(isDark);
 
     return GestureDetector(
       // Swipe left-to-right to go back (no back button — spec rule)

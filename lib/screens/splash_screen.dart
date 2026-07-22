@@ -51,14 +51,8 @@ class _SplashScreenState extends State<SplashScreen>
     // Load all persistent data
     await appState.init();
 
-    
-
-    // Start atmosphere engine with API key from settings
-    atmosphereState.init(
-      apiKey: appState.openWeatherApiKey.isNotEmpty
-          ? appState.openWeatherApiKey
-          : null,
-    );
+    // Start atmosphere engine (no API key needed with Open-Meteo)
+    atmosphereState.init();
 
     // Minimum splash duration so the wordmark is readable
     await Future.delayed(const Duration(milliseconds: 1200));

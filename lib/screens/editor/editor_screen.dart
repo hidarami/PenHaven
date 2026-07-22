@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:uuid/uuid.dart';
 
 import '../../models/editor_block.dart';
 import '../../models/entry.dart';
@@ -11,8 +10,7 @@ import '../../providers/atmosphere_state.dart';
 import '../../data/version_dao.dart';
 import '../../theme/app_colors.dart';
 import '../../atmosphere/comfort_engine.dart';
-import '../../services/export_service.dart';
-import 'editor_app_bar.dart';
+import '../../atmosphere/atmosphere_overlay.dart';
 import 'editor_header_image.dart';
 import 'editor_title_field.dart';
 import 'editor_canvas.dart';
@@ -110,6 +108,24 @@ class _EditorScreenState extends State<EditorScreen> {
     final editorState = context.read<EditorState>();
     editorState.flushSave();
 
+    // Check if entry is empty (no title and no content)
+    final isEmpty = _titleController.text.trim().isEmpty &&
+        (_blocks.isEmpty ||
+            _blocks.every(
+                (b) => b is TextBlock && (b as TextBlock).text.trim().isEmpty));
+
+    if (isEmpty) {
+      // Delete empty entry instead of saving
+      try {
+        await context.read<AppState>().deleteEntry(_entry.id);
+      } catch (e) {
+        debugPrint('[EditorScreen] Delete empty entry failed: $e');
+      }
+      editorState.reset();
+      if (mounted) Navigator.of(context).pop(null);
+      return;
+    }
+
     // Always try to save, but NEVER block navigation on failure
     try {
       await _saveWithVersion();
@@ -156,8 +172,7 @@ class _EditorScreenState extends State<EditorScreen> {
       _entry = _entry.copyWith(textAlignment: canvasState.textAlignment);
     }
     // Trigger EditorState auto-save debounce
-    context.read<EditorState>().onContentChanged(
-        plainTextFromBlocks(blocks));
+    context.read<EditorState>().onContentChanged(plainTextFromBlocks(blocks));
   }
 
   // ── Version history ────────────────────────────────────────────────────────
@@ -196,9 +211,7 @@ class _EditorScreenState extends State<EditorScreen> {
   @override
   Widget build(BuildContext context) {
     final dark = context.watch<AppState>().isDarkMode;
-    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
-    final textColor = dark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+    final bg = context.watch<AtmosphereState>().backgroundFor(dark);
 
     return PopScope(
       canPop: false,
@@ -237,8 +250,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
                         // Title + date
                         Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                          padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
                           child: EditorTitleField(
                             controller: _titleController,
                             entry: _entry,
@@ -248,8 +260,7 @@ class _EditorScreenState extends State<EditorScreen> {
 
                         // Block canvas
                         Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                           child: EditorCanvas(
                             key: _canvasKey,
                             initialBlocks: _blocks,
@@ -288,6 +299,8 @@ class _EditorScreenState extends State<EditorScreen> {
               ],
             ),
 
+            // Atmosphere overlay (light/mood effects)
+            const AtmosphereOverlay(),
             // Comfort engine
             const ComfortWhisperOverlay(),
             const ComfortTintOverlay(),
@@ -325,8 +338,7 @@ class _EditorBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final mutedColor =
-        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final topPadding = MediaQuery.of(context).padding.top;
 
     return Container(
@@ -334,8 +346,7 @@ class _EditorBar extends StatelessWidget {
       child: Row(
         children: [
           IconButton(
-            icon: Icon(Icons.chevron_left_rounded,
-                size: 28, color: mutedColor),
+            icon: Icon(Icons.chevron_left_rounded, size: 28, color: mutedColor),
             onPressed: onBack,
           ),
           const Spacer(),
@@ -347,8 +358,7 @@ class _EditorBar extends StatelessWidget {
           ),
           // Overflow menu (reuse existing EditorAppBar logic)
           IconButton(
-            icon:
-                Icon(Icons.more_horiz, size: 22, color: mutedColor),
+            icon: Icon(Icons.more_horiz, size: 22, color: mutedColor),
             onPressed: () => _showMenu(context),
           ),
         ],
@@ -375,7 +385,7 @@ class _EditorBar extends StatelessWidget {
                 onImageExport?.call();
               },
             ),
-            
+
             const Divider(height: 1),
             // ── Manage ────────────────────────────────────────────────────
             if (entry.hasHeaderImage)
@@ -388,8 +398,8 @@ class _EditorBar extends StatelessWidget {
                 },
               ),
             ListTile(
-              leading: const Icon(Icons.delete_outline,
-                  color: AppColors.danger),
+              leading:
+                  const Icon(Icons.delete_outline, color: AppColors.danger),
               title: const Text('Delete entry',
                   style: TextStyle(color: AppColors.danger)),
               onTap: () {
@@ -412,8 +422,7 @@ class _EditorBar extends StatelessWidget {
         content: const Text('This entry will be moved to the Bin.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -424,8 +433,8 @@ class _EditorBar extends StatelessWidget {
                   ..pop();
               }
             },
-            child: const Text('Delete',
-                style: TextStyle(color: AppColors.danger)),
+            child:
+                const Text('Delete', style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),

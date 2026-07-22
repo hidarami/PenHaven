@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -78,6 +77,8 @@ class _EditorTitleFieldState extends State<EditorTitleField> {
           decoration: InputDecoration(
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
+            fillColor: Colors.transparent,
+            filled: true,
             hintText: 'Entry title...',
             hintStyle: AppTypography.editorTitle(mutedColor),
           ),

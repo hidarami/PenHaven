@@ -3,22 +3,16 @@ import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GOLDEN 3PM PAINTER
-// The star atmosphere. Simulates afternoon window light on a wall.
+// Realistic window light projection — like sunlight through a window with
+// venetian blinds. Neutral white light columns, shadow mullions, blind slats.
+// Reference: cool neutral light through a window on a cream wall.
 //
-// Light Mode:
-//   - Diagonal window light streaks (30-45° angle, grid of parallelograms)
-//   - Warm radial glow from upper-right
-//   - BlendMode.screen for realistic light layering
-//
-// Dark Mode:
-//   - NO streaks (light implies brightness)
-//   - Soft warm amber radial glow from upper corners only
-//   - Like afternoon light seeping around curtains
+// Light Mode: vertical white-light columns with fine horizontal blind lines
+// Dark Mode:  warm amber glow seeping around curtains (no streaks)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class Golden3pmPainter extends CustomPainter {
   final bool isDark;
-
   const Golden3pmPainter({required this.isDark});
 
   @override
@@ -33,146 +27,156 @@ class Golden3pmPainter extends CustomPainter {
   // ── Light Mode ─────────────────────────────────────────────────────────────
 
   void _paintLight(Canvas canvas, Size size) {
-    // 1. Warm radial glow from upper-right corner
-    _paintUpperRightGlow(canvas, size);
+    const double angle = 12.0 * math.pi / 180.0;
+    final double shiftY = size.height * math.tan(angle);
 
-    // 2. Window light streak grid
-    _paintWindowStreaks(canvas, size);
-  }
+    // Window frame layout: 3 vertical light columns + mullion gaps between
+    // Positioned on the left-to-center portion (light source from right/above)
+    final double totalW = size.width * 0.80;
+    final double mullionW = size.width * 0.028;
+    final double colW = (totalW - mullionW * 2) / 3;
+    final double startX = size.width * 0.04;
 
-  void _paintUpperRightGlow(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(0.85, -0.8),
-        radius: 0.9,
-        colors: [
-          const Color(0xFFFFEBB5).withOpacity(0.22), // Warm golden
-          const Color(0xFFFFF3C4).withOpacity(0.10),
-          Colors.transparent,
-        ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(Rect.fromLTWH(0, 0, size.width, size.height))
-      ..blendMode = BlendMode.screen;
+    final columns = [
+      _ColSpec(startX, colW, 0.23),
+      _ColSpec(startX + colW + mullionW, colW, 0.20),
+      _ColSpec(startX + (colW + mullionW) * 2, colW, 0.17),
+    ];
 
-    canvas.drawRect(Rect.fromLTWH(0, 0, size.width, size.height), paint);
-  }
-
-  void _paintWindowStreaks(Canvas canvas, Size size) {
-    // Window light: 2×3 grid of parallelogram patches
-    // Diagonal at ~35 degrees, divided by thin shadow "mullion" lines
-    const double angle = 35.0 * math.pi / 180.0;
-    final double streakWidth = size.width * 0.18;
-    final double gapWidth = size.width * 0.055; // Mullion shadow
-
-    final paint = Paint()..blendMode = BlendMode.screen;
-
-    // Start streaks from left edge, sweep right
-    double x = -size.width * 0.3;
-    int streakIndex = 0;
-    while (x < size.width * 1.4) {
-      if (streakIndex % 3 != 1) {
-        // Skip every 3rd to create mullion gap variation
-        _paintStreak(
-          canvas,
-          size,
-          paint,
-          startX: x,
-          width: streakWidth,
-          angle: angle,
-          opacity: streakIndex.isEven ? 0.18 : 0.13,
-        );
-      }
-      x += streakWidth + gapWidth;
-      streakIndex++;
+    // Draw each light column
+    for (final col in columns) {
+      _drawLightColumn(canvas, size, col.x, col.w, shiftY, col.opacity);
     }
+
+    // Draw horizontal blind shadow lines across all light columns
+    _paintBlindLines(canvas, size, angle,
+        startX - shiftY - 20, startX + totalW - shiftY + 20);
+
+    // Very subtle warm glow from upper right (light source direction)
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(1.3, -1.1),
+          radius: 1.2,
+          colors: [
+            const Color(0xFFFFF8F2).withOpacity(0.10),
+            Colors.transparent,
+          ],
+        ).createShader(rect),
+    );
   }
 
-  void _paintStreak(
-    Canvas canvas,
-    Size size,
-    Paint basePaint,
-    {
-    required double startX,
-    required double width,
-    required double angle,
-    required double opacity,
-  }) {
-    final shiftY = size.height * math.tan(angle);
-
+  void _drawLightColumn(Canvas canvas, Size size, double x, double colW,
+      double shiftY, double opacity) {
     final path = Path()
-      ..moveTo(startX, 0)
-      ..lineTo(startX + width, 0)
-      ..lineTo(startX + width - shiftY, size.height)
-      ..lineTo(startX - shiftY, size.height)
+      ..moveTo(x, 0)
+      ..lineTo(x + colW, 0)
+      ..lineTo(x + colW - shiftY, size.height)
+      ..lineTo(x - shiftY, size.height)
       ..close();
 
-    final rect = path.getBounds();
-    final paint = basePaint
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          const Color(0xFFFFF0D2).withOpacity(opacity),
-          const Color(0xFFFFEBB5).withOpacity(opacity * 0.6),
-          const Color(0xFFFFF0D2).withOpacity(opacity * 0.3),
-        ],
-        stops: const [0.0, 0.5, 1.0],
-      ).createShader(rect);
-
-    // Feathered edges via MaskFilter
     canvas.saveLayer(
       Rect.fromLTWH(0, 0, size.width, size.height),
       Paint(),
     );
+
+    // Light fill — pure neutral white (no yellow tint)
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withOpacity(opacity),
+          Colors.white.withOpacity(opacity * 0.80),
+          Colors.white.withOpacity(opacity * 0.55),
+        ],
+        stops: const [0.0, 0.50, 1.0],
+      ).createShader(path.getBounds())
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+
     canvas.drawPath(path, paint);
-
-    // Soften edges
-    final featherPaint = Paint()
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 18)
-      ..color = Colors.transparent;
-    canvas.drawPath(path, featherPaint);
-
     canvas.restore();
+  }
+
+  void _paintBlindLines(Canvas canvas, Size size, double angle,
+      double xStart, double xEnd) {
+    // Fine horizontal shadow bands — venetian blind slat effect
+    const int numLines = 14;
+    final double spacing = size.height / numLines;
+
+    // Thicker slat shadow
+    final slatPaint = Paint()
+      ..color = const Color(0xFF6A5E52).withOpacity(0.058)
+      ..strokeWidth = spacing * 0.30
+      ..strokeCap = StrokeCap.square;
+
+    // Thin bright highlight between slats
+    final highlightPaint = Paint()
+      ..color = Colors.white.withOpacity(0.06)
+      ..strokeWidth = 1.0
+      ..strokeCap = StrokeCap.square;
+
+    for (int i = 0; i <= numLines; i++) {
+      final double y = i * spacing;
+      final double xOff = -y * math.tan(angle);
+      canvas.drawLine(
+        Offset(xStart + xOff, y),
+        Offset(xEnd + xOff, y),
+        slatPaint,
+      );
+      if (i < numLines) {
+        final double yH = y + spacing * 0.15;
+        final double xOffH = -yH * math.tan(angle);
+        canvas.drawLine(
+          Offset(xStart + xOffH, yH),
+          Offset(xEnd + xOffH, yH),
+          highlightPaint,
+        );
+      }
+    }
   }
 
   // ── Dark Mode ──────────────────────────────────────────────────────────────
 
   void _paintDark(Canvas canvas, Size size) {
-    // Soft warm amber glow seeping from upper-left and upper-right corners
-    // Like afternoon light around dark curtains — max 14% opacity
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
-    // Upper-right amber
-    final rightPaint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(1.0, -1.0),
-        radius: 1.2,
-        colors: [
-          const Color(0xFFFFB347).withOpacity(0.13),
-          const Color(0xFFFF8C00).withOpacity(0.06),
-          Colors.transparent,
-        ],
-        stops: const [0.0, 0.4, 1.0],
-      ).createShader(rect);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(1.0, -1.0),
+          radius: 1.2,
+          colors: [
+            const Color(0xFFFFB347).withOpacity(0.13),
+            const Color(0xFFFF8C00).withOpacity(0.06),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.4, 1.0],
+        ).createShader(rect),
+    );
 
-    canvas.drawRect(rect, rightPaint);
-
-    // Upper-left warm echo
-    final leftPaint = Paint()
-      ..shader = RadialGradient(
-        center: const Alignment(-1.0, -1.0),
-        radius: 0.9,
-        colors: [
-          const Color(0xFFFFB347).withOpacity(0.08),
-          Colors.transparent,
-        ],
-        stops: const [0.0, 1.0],
-      ).createShader(rect);
-
-    canvas.drawRect(rect, leftPaint);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(-1.0, -1.0),
+          radius: 0.9,
+          colors: [
+            const Color(0xFFFFB347).withOpacity(0.08),
+            Colors.transparent,
+          ],
+        ).createShader(rect),
+    );
   }
 
   @override
-  bool shouldRepaint(Golden3pmPainter oldDelegate) =>
-      oldDelegate.isDark != isDark;
+  bool shouldRepaint(Golden3pmPainter old) => old.isDark != isDark;
+}
+
+class _ColSpec {
+  final double x, w, opacity;
+  const _ColSpec(this.x, this.w, this.opacity);
 }

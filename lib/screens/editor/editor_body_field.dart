@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -87,7 +86,6 @@ class _EditorBodyContent extends StatefulWidget {
 
 class _EditorBodyContentState extends State<_EditorBodyContent> {
   late _ImageAwareTextController _imageController;
-  final _imageFileCache = <String, ui.Image>{};
 
   @override
   void initState() {
@@ -155,9 +153,9 @@ class _ImageAwareTextController extends TextEditingController {
     required Entry entry,
     required Color textColor,
     this.onImageRemove,
-  }) : _textColor = textColor,
-       _entry = entry,
-       super(text: baseController.text);
+  })  : _textColor = textColor,
+        _entry = entry,
+        super(text: baseController.text);
 
   void updateEntry(Entry entry) {
     _entry = entry;
@@ -290,7 +288,8 @@ class _InlineImageSpan extends StatelessWidget {
                       color: Colors.black.withOpacity(0.55),
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.close, size: 14, color: Colors.white),
+                    child:
+                        const Icon(Icons.close, size: 14, color: Colors.white),
                   ),
                 ),
               ),

@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'dart:math' as math;
-import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
@@ -55,6 +53,10 @@ class _ExportSheetState extends State<ExportSheet> {
   bool _showOptions = true;
   bool _exporting = false;
 
+  // Pages mode state
+  List<String> _pageTexts = [];
+  int _currentPreviewPage = 0;
+
   final GlobalKey _exportKey = GlobalKey();
   late final TextEditingController _headerCtrl;
   late final TextEditingController _footerCtrl;
@@ -83,54 +85,10 @@ class _ExportSheetState extends State<ExportSheet> {
     setState(() => _exporting = true);
 
     try {
-      // Give the widget one frame to paint
-      await Future.delayed(const Duration(milliseconds: 300));
-      if (!mounted) return;
-
-      final boundary = _exportKey.currentContext
-          ?.findRenderObject() as RenderRepaintBoundary?;
-      if (boundary == null) {
-        if (mounted) setState(() => _exporting = false);
-        return;
-      }
-
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
-      image.dispose();
-
-      if (byteData == null || !mounted) return;
-      final bytes = byteData.buffer.asUint8List();
-
       if (_layoutMode == 'pages') {
-        final files = await _createPages(bytes);
-        if (files.isEmpty || !mounted) {
-          setState(() => _exporting = false);
-          return;
-        }
-        Navigator.pop(context);
-        await Share.shareXFiles(
-          files.map((f) => XFile(f.path, mimeType: 'image/png')).toList(),
-          subject: widget.entry.title.isNotEmpty
-              ? widget.entry.title
-              : 'Flow Entry',
-          text: files.length > 1
-              ? '${files.length} pages · exported from Flow'
-              : null,
-        );
+        await _exportAsPages();
       } else {
-        final dir = await getTemporaryDirectory();
-        final ts = DateTime.now().millisecondsSinceEpoch;
-        final file = File(p.join(dir.path, 'flow_$ts.png'));
-        await file.writeAsBytes(bytes);
-        if (!mounted) return;
-        Navigator.pop(context);
-        await Share.shareXFiles(
-          [XFile(file.path, mimeType: 'image/png')],
-          subject: widget.entry.title.isNotEmpty
-              ? widget.entry.title
-              : 'Flow Entry',
-        );
+        await _exportAsSingle();
       }
     } catch (e) {
       debugPrint('[ExportSheet] failed: $e');
@@ -144,161 +102,127 @@ class _ExportSheetState extends State<ExportSheet> {
     if (mounted) setState(() => _exporting = false);
   }
 
-  // ── Split full image into portrait pages ──────────────────────────────────
+  Future<void> _exportAsSingle() async {
+    await Future.delayed(const Duration(milliseconds: 300));
+    if (!mounted) return;
 
-  Future<List<File>> _createPages(Uint8List contentBytes) async {
-    final ui.Codec codec =
-        await ui.instantiateImageCodec(contentBytes);
-    final ui.FrameInfo frame = await codec.getNextFrame();
-    final ui.Image srcImage = frame.image;
+    final boundary =
+        _exportKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+    if (boundary == null) return;
 
-    final int w = srcImage.width;
-    // 9:16 portrait page height
-    final int pageH = (w * 16.0 / 9.0).round();
-    final int totalH = srcImage.height;
+    final image = await boundary.toImage(pixelRatio: 3.0);
+    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    if (byteData == null || !mounted) return;
 
-    final headerText =
-        _showHeader ? _headerCtrl.text.trim() : '';
-    final footerText =
-        _showFooter ? _footerCtrl.text.trim() : '';
-
-    // Reserve space for header and footer bands
-    final int headerBand = headerText.isNotEmpty ? 96 : 0;
-    final bool hasFooter =
-        footerText.isNotEmpty; // page numbers added regardless
-    final int footerBand = 80;
-    final int contentAreaH = pageH - headerBand - footerBand;
-    if (contentAreaH <= 0) return [];
-
-    final int totalPages = (totalH / contentAreaH).ceil();
-
-    final bgColor =
-        _exportDark ? const Color(0xFF1A1410) : const Color(0xFFF7F3EE);
-    final textCol =
-        _exportDark ? const Color(0xFFF0EBE3) : const Color(0xFF1A1410);
-    final mutedCol =
-        _exportDark ? const Color(0xFF6B6058) : const Color(0xFF8A8178);
-    const tealCol = Color(0xFF7BA591);
-
-    final List<File> files = [];
     final dir = await getTemporaryDirectory();
     final ts = DateTime.now().millisecondsSinceEpoch;
+    final file = File(p.join(dir.path, 'flow_$ts.png'));
+    await file.writeAsBytes(byteData.buffer.asUint8List());
 
-    for (int page = 0; page < totalPages; page++) {
-      final int srcY = page * contentAreaH;
-      if (srcY >= totalH) break;
-      final int sliceH =
-          math.min(contentAreaH, totalH - srcY);
+    if (!mounted) return;
+    Navigator.pop(context);
+    await Share.shareXFiles(
+      [XFile(file.path, mimeType: 'image/png')],
+      subject:
+          widget.entry.title.isNotEmpty ? widget.entry.title : 'Flow Entry',
+    );
+  }
 
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
+  Future<void> _exportAsPages() async {
+    // Text-based pagination — no image slicing, no mid-word cuts
+    final texts = _paginateContent();
+    if (texts.isEmpty) return;
 
-      // Background
-      canvas.drawRect(
-        Rect.fromLTWH(0, 0, w.toDouble(), pageH.toDouble()),
-        Paint()..color = bgColor,
-      );
+    final dir = await getTemporaryDirectory();
+    final ts = DateTime.now().millisecondsSinceEpoch;
+    final files = <File>[];
 
-      // ── Header band ──────────────────────────────────────────────────────
-      if (headerText.isNotEmpty) {
-        // Teal accent line
-        canvas.drawRect(
-          Rect.fromLTWH(36, 24, 40, 3),
-          Paint()..color = tealCol,
-        );
-        // Header text
-        final tp = TextPainter(
-          text: TextSpan(
-            text: headerText,
-            style: TextStyle(
-              fontSize: 34,
-              fontWeight: FontWeight.bold,
-              color: textCol,
-              height: 1.15,
-            ),
-          ),
-          textDirection: ui.TextDirection.ltr,
-        );
-        tp.layout(maxWidth: w - 72.0);
-        tp.paint(canvas, const Offset(36, 38));
-      }
+    for (int i = 0; i < texts.length; i++) {
+      if (!mounted) break;
 
-      // ── Content slice ─────────────────────────────────────────────────────
-      canvas.drawImageRect(
-        srcImage,
-        Rect.fromLTWH(
-            0, srcY.toDouble(), w.toDouble(), sliceH.toDouble()),
-        Rect.fromLTWH(0, headerBand.toDouble(), w.toDouble(),
-            sliceH.toDouble()),
-        Paint(),
-      );
+      // Update preview to show this page's content
+      setState(() {
+        _pageTexts = texts;
+        _currentPreviewPage = i;
+      });
 
-      // ── Footer band ───────────────────────────────────────────────────────
-      final double footerY = pageH - footerBand.toDouble();
+      // Wait for widget to render this page
+      await Future.delayed(const Duration(milliseconds: 200));
+      if (!mounted) break;
 
-      // Separator line
-      canvas.drawLine(
-        Offset(36, footerY + 10),
-        Offset(w - 36.0, footerY + 10),
-        Paint()
-          ..color = mutedCol.withOpacity(0.25)
-          ..strokeWidth = 0.8,
-      );
+      final boundary = _exportKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) continue;
 
-      // Footer left text
-      final leftLabel = hasFooter ? footerText : '';
-      if (leftLabel.isNotEmpty) {
-        final tp = TextPainter(
-          text: TextSpan(
-            text: leftLabel,
-            style: TextStyle(fontSize: 26, color: mutedCol),
-          ),
-          textDirection: ui.TextDirection.ltr,
-        );
-        tp.layout(maxWidth: w * 0.65);
-        tp.paint(canvas, Offset(36, footerY + 28));
-      }
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
 
-      // Page number (right-aligned)
-      final pageLabel = '${ page + 1 } / $totalPages';
-      final numTp = TextPainter(
-        text: TextSpan(
-          text: pageLabel,
-          style: TextStyle(fontSize: 26, color: mutedCol.withOpacity(0.7)),
-        ),
-        textDirection: ui.TextDirection.ltr,
-      );
-      numTp.layout(maxWidth: w * 0.35);
-      numTp.paint(
-          canvas, Offset(w - 36.0 - numTp.width, footerY + 28));
-
-      // Capture page
-      final picture = recorder.endRecording();
-      final pageImg = await picture.toImage(w, pageH);
-      final bd =
-          await pageImg.toByteData(format: ui.ImageByteFormat.png);
-      pageImg.dispose();
-
-      if (bd != null) {
-        final file = File(
-            '${dir.path}/flow_p${page + 1}_$ts.png');
-        await file.writeAsBytes(bd.buffer.asUint8List());
+      if (byteData != null) {
+        final file = File(p.join(dir.path, 'flow_p${i + 1}_$ts.png'));
+        await file.writeAsBytes(byteData.buffer.asUint8List());
         files.add(file);
       }
     }
 
-    srcImage.dispose();
-    return files;
+    // Reset pagination state
+    setState(() {
+      _pageTexts = [];
+      _currentPreviewPage = 0;
+    });
+
+    if (files.isEmpty || !mounted) return;
+    Navigator.pop(context);
+    await Share.shareXFiles(
+      files.map((f) => XFile(f.path, mimeType: 'image/png')).toList(),
+      subject:
+          widget.entry.title.isNotEmpty ? widget.entry.title : 'Flow Entry',
+      text: files.length > 1 ? '${files.length} pages · written in Flow' : null,
+    );
+  }
+
+  /// Splits entry content into pages at paragraph boundaries.
+  List<String> _paginateContent() {
+    final content =
+        widget.entry.blocksJson != null && widget.entry.blocksJson!.isNotEmpty
+            ? plainTextFromBlocks(deserializeBlocks(widget.entry.blocksJson!))
+            : widget.entry.content;
+
+    if (content.trim().isEmpty) return [];
+
+    // Split at paragraph breaks
+    final paras = content
+        .split(RegExp(r'\n\n+'))
+        .where((p) => p.trim().isNotEmpty)
+        .toList();
+
+    if (paras.isEmpty) return [content];
+
+    // ~480 chars per page for comfortable reading at font size 17
+    const targetChars = 480;
+    final pages = <String>[];
+    var current = '';
+
+    for (final para in paras) {
+      final candidate = current.isEmpty ? para : '$current\n\n$para';
+      if (candidate.length > targetChars && current.isNotEmpty) {
+        pages.add(current.trim());
+        current = para;
+      } else {
+        current = candidate;
+      }
+    }
+    if (current.trim().isNotEmpty) pages.add(current.trim());
+    return pages;
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final bg =
-        widget.isDark ? AppColors.warmDark : AppColors.warmWhite;
-    final textColor =
-        widget.isDark ? AppColors.textDark : AppColors.textLight;
+    final bg = widget.isDark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
     final mutedColor =
         widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final divColor =
@@ -312,8 +236,7 @@ class _ExportSheetState extends State<ExportSheet> {
       builder: (context, sc) => Container(
         decoration: BoxDecoration(
           color: bg,
-          borderRadius:
-              const BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
         ),
         child: Column(
           children: [
@@ -344,8 +267,7 @@ class _ExportSheetState extends State<ExportSheet> {
                   const Spacer(),
                   // Dark / light toggle
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => _exportDark = !_exportDark),
+                    onTap: () => setState(() => _exportDark = !_exportDark),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 6),
@@ -401,8 +323,7 @@ class _ExportSheetState extends State<ExportSheet> {
                 children: [
                   // ── Options header ──────────────────────────────────────
                   GestureDetector(
-                    onTap: () =>
-                        setState(() => _showOptions = !_showOptions),
+                    onTap: () => setState(() => _showOptions = !_showOptions),
                     child: Row(
                       children: [
                         Text('OPTIONS',
@@ -446,8 +367,8 @@ class _ExportSheetState extends State<ExportSheet> {
                                 sub: 'One tall image',
                                 isActive: _layoutMode == 'full',
                                 isDark: widget.isDark,
-                                onTap: () => setState(
-                                    () => _layoutMode = 'full'),
+                                onTap: () =>
+                                    setState(() => _layoutMode = 'full'),
                               ),
                               const SizedBox(width: 8),
                               _ModeChip(
@@ -455,8 +376,8 @@ class _ExportSheetState extends State<ExportSheet> {
                                 sub: '9:16 portrait',
                                 isActive: _layoutMode == 'pages',
                                 isDark: widget.isDark,
-                                onTap: () => setState(
-                                    () => _layoutMode = 'pages'),
+                                onTap: () =>
+                                    setState(() => _layoutMode = 'pages'),
                               ),
                             ],
                           ),
@@ -465,9 +386,7 @@ class _ExportSheetState extends State<ExportSheet> {
                             Text(
                               'Long entries are split into multiple portrait images. Share them as a collection.',
                               style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color: mutedColor,
-                                  height: 1.4),
+                                  fontSize: 11, color: mutedColor, height: 1.4),
                             ),
                           ],
                         ],
@@ -484,8 +403,7 @@ class _ExportSheetState extends State<ExportSheet> {
                           _ToggleRow(
                             label: 'Show Date',
                             value: _showDate,
-                            onChanged: (v) =>
-                                setState(() => _showDate = v),
+                            onChanged: (v) => setState(() => _showDate = v),
                             textColor: textColor,
                           ),
                           _CardDivider(isDark: widget.isDark),
@@ -623,14 +541,19 @@ class _ExportSheetState extends State<ExportSheet> {
                         showDate: _showDate,
                         showWatermark: _showWatermark,
                         includeImages: _includeImages,
-                        // In pages mode the header/footer are drawn per-page
-                        // via canvas, not inside the widget itself
-                        showHeader:
-                            _showHeader && _layoutMode == 'full',
+                        showHeader: _showHeader,
                         headerText: _headerCtrl.text,
-                        showFooter:
-                            _showFooter && _layoutMode == 'full',
+                        showFooter: _showFooter,
                         footerText: _footerCtrl.text,
+                        // Pages mode: override text content + show page numbers
+                        pageOverrideText: _pageTexts.isNotEmpty
+                            ? _pageTexts[_currentPreviewPage]
+                            : null,
+                        pageNum: _pageTexts.isNotEmpty
+                            ? _currentPreviewPage + 1
+                            : null,
+                        totalPages:
+                            _pageTexts.isNotEmpty ? _pageTexts.length : null,
                       ),
                     ),
                   ),
@@ -640,9 +563,7 @@ class _ExportSheetState extends State<ExportSheet> {
                     Text(
                       'Preview shows the full content. In pages mode it will be split into 9:16 portrait images with header/footer on each page.',
                       style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: mutedColor,
-                          height: 1.5),
+                          fontSize: 11, color: mutedColor, height: 1.5),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -688,8 +609,7 @@ class _ExportSheetState extends State<ExportSheet> {
                     isDark: widget.isDark,
                   ),
 
-                  SizedBox(
-                      height: MediaQuery.of(context).padding.bottom + 24),
+                  SizedBox(height: MediaQuery.of(context).padding.bottom + 24),
                 ],
               ),
             ),
@@ -702,7 +622,7 @@ class _ExportSheetState extends State<ExportSheet> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTRY EXPORT VIEW
-// The rendered widget captured by RepaintBoundary.
+// Premium styled card — looks like a designed product, not a screenshot.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _EntryExportView extends StatelessWidget {
@@ -715,6 +635,10 @@ class _EntryExportView extends StatelessWidget {
   final String headerText;
   final bool showFooter;
   final String footerText;
+  // Pages mode: when set, render only this text instead of full content
+  final String? pageOverrideText;
+  final int? pageNum;
+  final int? totalPages;
 
   const _EntryExportView({
     required this.entry,
@@ -726,137 +650,193 @@ class _EntryExportView extends StatelessWidget {
     this.headerText = '',
     this.showFooter = false,
     this.footerText = '',
+    this.pageOverrideText,
+    this.pageNum,
+    this.totalPages,
   });
+
+  bool get _isPagesMode => pageOverrideText != null;
 
   @override
   Widget build(BuildContext context) {
-    final bg = isDark ? AppColors.warmDark : AppColors.warmWhite;
-    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
-    final divColor =
-        isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    // Distinctive export colors — different enough from app to not look like screenshot
+    final bg = isDark ? const Color(0xFF16110C) : const Color(0xFFFBF7F1);
+    final cardBg = isDark ? const Color(0xFF1D1710) : const Color(0xFFFEFAF5);
+    final textColor =
+        isDark ? const Color(0xFFEEE8DF) : const Color(0xFF1C1208);
+    final mutedColor =
+        isDark ? const Color(0xFF7A6E62) : const Color(0xFF9A8D7E);
+    const teal = Color(0xFF7BA591);
 
     return Container(
       width: double.infinity,
       color: bg,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Top teal line
-          Container(height: 3, color: AppColors.teal),
-
-          // Optional header (full-content mode only)
-          if (showHeader && headerText.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 18, 28, 0),
-              child: Text(
-                headerText,
-                style: GoogleFonts.crimsonPro(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: textColor,
-                  height: 1.2,
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 8, 28, 0),
-              child: Divider(color: divColor, thickness: 0.5),
+      padding: const EdgeInsets.all(16),
+      child: Container(
+        decoration: BoxDecoration(
+          color: cardBg,
+          borderRadius: BorderRadius.circular(6),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(isDark ? 0.35 : 0.09),
+              blurRadius: 24,
+              offset: const Offset(0, 6),
             ),
           ],
-
-          // Header image
-          if (entry.hasHeaderImage &&
-              includeImages &&
-              File(entry.headerImage!).existsSync())
-            Image.file(
-              File(entry.headerImage!),
-              width: double.infinity,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // ── Top teal accent bar ─────────────────────────────────────
+            Container(
+              height: 3.5,
+              decoration: const BoxDecoration(
+                color: teal,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+              ),
             ),
 
-          // Main content
-          Padding(
-            padding: const EdgeInsets.fromLTRB(28, 20, 28, 24),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Title
-                Text(
-                  entry.title.isEmpty ? 'Untitled' : entry.title,
-                  style: GoogleFonts.crimsonPro(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
-                    height: 1.2,
+            // ── Header (custom text) ────────────────────────────────────
+            if (showHeader && headerText.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 18, 28, 0),
+                child: Row(
+                  children: [
+                    Container(width: 20, height: 1.5, color: teal),
+                    const SizedBox(width: 8),
+                    Text(
+                      headerText.toUpperCase(),
+                      style: GoogleFonts.inter(
+                        fontSize: 9,
+                        letterSpacing: 2.5,
+                        fontWeight: FontWeight.w600,
+                        color: teal,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // ── Header image ────────────────────────────────────────────
+            if (entry.hasHeaderImage &&
+                includeImages &&
+                File(entry.headerImage!).existsSync() &&
+                !_isPagesMode)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.zero,
+                  child: Image.file(
+                    File(entry.headerImage!),
+                    width: double.infinity,
+                    height: 180,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                   ),
                 ),
+              ),
 
-                if (showDate) ...[
-                  const SizedBox(height: 8),
-                  Text(
-                    DateFormat('MMMM d, yyyy').format(entry.createdAt),
-                    style: GoogleFonts.inter(
-                        fontSize: 12, color: mutedColor),
-                  ),
-                ],
-
-                const SizedBox(height: 16),
-                Divider(color: divColor, thickness: 0.5),
-                const SizedBox(height: 16),
-
-                // Body
-                if (entry.blocksJson != null &&
-                    entry.blocksJson!.isNotEmpty)
-                  BlocksReadView(
-                    blocks: includeImages
-                        ? deserializeBlocks(entry.blocksJson!)
-                        : deserializeBlocks(entry.blocksJson!)
-                            .where((b) =>
-                                b is! ImageBlock && b is! ImageGridBlock)
-                            .toList(),
-                    isDark: isDark,
-                    textAlignment: 'left',
-                  )
-                else
-                  _LegacyBody(
-                      entry: entry,
-                      isDark: isDark,
-                      includeImages: includeImages),
-
-                // Footer / watermark
-                if (showWatermark ||
-                    (showFooter && footerText.isNotEmpty)) ...[
-                  const SizedBox(height: 24),
-                  Divider(color: divColor, thickness: 0.5),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      if (showFooter && footerText.isNotEmpty)
-                        Expanded(
-                          child: Text(footerText,
-                              style: GoogleFonts.inter(
-                                  fontSize: 11, color: mutedColor)),
+            // ── Main content area ───────────────────────────────────────
+            Padding(
+              padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title — only on first page or single mode
+                  if (!_isPagesMode || pageNum == 1) ...[
+                    Text(
+                      entry.title.isEmpty ? 'Untitled' : entry.title,
+                      style: GoogleFonts.crimsonPro(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                        height: 1.1,
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    if (showDate) ...[
+                      const SizedBox(height: 7),
+                      Text(
+                        DateFormat('MMMM d, yyyy')
+                            .format(entry.createdAt)
+                            .toUpperCase(),
+                        style: GoogleFonts.inter(
+                          fontSize: 9.5,
+                          letterSpacing: 2.0,
+                          fontWeight: FontWeight.w500,
+                          color: mutedColor,
                         ),
+                      ),
+                    ],
+                    const SizedBox(height: 16),
+                    Container(height: 0.5, color: teal.withOpacity(0.35)),
+                    const SizedBox(height: 18),
+                  ] else ...[
+                    // Subsequent pages: just a small continuation indicator
+                    Row(children: [
+                      Container(
+                          width: 20, height: 1.5, color: teal.withOpacity(0.4)),
+                      const SizedBox(width: 8),
+                      Text(
+                        entry.title.isEmpty ? 'Untitled' : entry.title,
+                        style: GoogleFonts.inter(
+                          fontSize: 9,
+                          letterSpacing: 1.5,
+                          fontWeight: FontWeight.w500,
+                          color: mutedColor,
+                        ),
+                      ),
+                    ]),
+                    const SizedBox(height: 16),
+                  ],
+
+                  // ── Body Content ──────────────────────────────────────
+                  _buildBody(textColor, mutedColor),
+
+                  // ── Footer ────────────────────────────────────────────
+                  const SizedBox(height: 20),
+                  Container(height: 0.5, color: mutedColor.withOpacity(0.18)),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Left: footer text or page number
+                      if (_isPagesMode && totalPages != null)
+                        Text(
+                          '${pageNum ?? 1} / $totalPages',
+                          style: GoogleFonts.inter(
+                            fontSize: 9,
+                            color: mutedColor.withOpacity(0.7),
+                            letterSpacing: 0.5,
+                          ),
+                        )
+                      else if (showFooter && footerText.isNotEmpty)
+                        Text(
+                          footerText,
+                          style: GoogleFonts.inter(
+                              fontSize: 9.5, color: mutedColor),
+                        )
+                      else
+                        const SizedBox.shrink(),
+
+                      // Right: Flow watermark
                       if (showWatermark)
                         Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                                width: 16,
-                                height: 2,
-                                color: AppColors.teal,
-                                margin:
-                                    const EdgeInsets.only(right: 6)),
+                                width: 12,
+                                height: 1.5,
+                                color: teal.withOpacity(0.7)),
+                            const SizedBox(width: 5),
                             Text(
                               'Flow',
-                              style: GoogleFonts.crimsonPro(
-                                fontSize: 13,
-                                color: mutedColor.withOpacity(0.6),
-                                letterSpacing: 2.0,
+                              style: GoogleFonts.inter(
+                                fontSize: 10,
+                                color: mutedColor,
+                                letterSpacing: 2.5,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -865,12 +845,44 @@ class _EntryExportView extends StatelessWidget {
                     ],
                   ),
                 ],
-              ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  Widget _buildBody(Color textColor, Color mutedColor) {
+    // Pages mode: show only this page's text
+    if (_isPagesMode && pageOverrideText != null) {
+      return Text(
+        pageOverrideText!,
+        style: GoogleFonts.crimsonPro(
+          fontSize: 17,
+          color: textColor,
+          height: 1.85,
+        ),
+      );
+    }
+
+    // Single mode: full content
+    if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty) {
+      final blocks = deserializeBlocks(entry.blocksJson!);
+      final filtered = includeImages
+          ? blocks
+          : blocks
+              .where((b) => b is! ImageBlock && b is! ImageGridBlock)
+              .toList();
+      return BlocksReadView(
+        blocks: filtered,
+        isDark: isDark,
+        textAlignment: 'left',
+      );
+    }
+
+    return _LegacyBody(
+        entry: entry, isDark: isDark, includeImages: includeImages);
   }
 }
 
@@ -882,9 +894,7 @@ class _LegacyBody extends StatelessWidget {
   final bool includeImages;
 
   const _LegacyBody(
-      {required this.entry,
-      required this.isDark,
-      required this.includeImages});
+      {required this.entry, required this.isDark, required this.includeImages});
 
   @override
   Widget build(BuildContext context) {
@@ -982,10 +992,8 @@ class _ModeChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final muted =
-        isDark ? AppColors.mutedDark : AppColors.mutedLight;
-    final textCol =
-        isDark ? AppColors.textDark : AppColors.textLight;
+    final muted = isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final textCol = isDark ? AppColors.textDark : AppColors.textLight;
 
     return Expanded(
       child: GestureDetector(
@@ -999,9 +1007,7 @@ class _ModeChip extends StatelessWidget {
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isActive
-                  ? AppColors.teal
-                  : muted.withOpacity(0.3),
+              color: isActive ? AppColors.teal : muted.withOpacity(0.3),
             ),
           ),
           child: Column(
@@ -1014,9 +1020,7 @@ class _ModeChip extends StatelessWidget {
                     color: isActive ? AppColors.teal : textCol,
                   )),
               const SizedBox(height: 2),
-              Text(sub,
-                  style: GoogleFonts.inter(
-                      fontSize: 10, color: muted)),
+              Text(sub, style: GoogleFonts.inter(fontSize: 10, color: muted)),
             ],
           ),
         ),
@@ -1044,9 +1048,7 @@ class _ToggleRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: Row(
         children: [
-          Text(label,
-              style: GoogleFonts.inter(
-                  fontSize: 13, color: textColor)),
+          Text(label, style: GoogleFonts.inter(fontSize: 13, color: textColor)),
           const Spacer(),
           Switch.adaptive(
             value: value,
@@ -1075,12 +1077,9 @@ class _TextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textColor =
-        isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor =
-        isDark ? AppColors.mutedDark : AppColors.mutedLight;
-    final divColor =
-        isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
 
     return TextField(
       controller: controller,
@@ -1088,8 +1087,7 @@ class _TextField extends StatelessWidget {
       style: GoogleFonts.inter(fontSize: 14, color: textColor),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle:
-            GoogleFonts.inter(fontSize: 14, color: mutedColor),
+        hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
           borderSide: BorderSide(color: divColor),
@@ -1100,8 +1098,7 @@ class _TextField extends StatelessWidget {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide:
-              const BorderSide(color: AppColors.teal, width: 1.5),
+          borderSide: const BorderSide(color: AppColors.teal, width: 1.5),
         ),
         contentPadding:
             const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
@@ -1135,10 +1132,8 @@ class _ExportBtn extends StatelessWidget {
     final bg = isDark
         ? Colors.white.withOpacity(0.05)
         : Colors.black.withOpacity(0.03);
-    final textColor =
-        isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor =
-        isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
     return GestureDetector(
       onTap: onTap,
@@ -1146,8 +1141,7 @@ class _ExportBtn extends StatelessWidget {
         opacity: onTap == null ? 0.5 : 1.0,
         duration: const Duration(milliseconds: 150),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           decoration: BoxDecoration(
             color: bg,
             borderRadius: BorderRadius.circular(12),
@@ -1167,8 +1161,8 @@ class _ExportBtn extends StatelessWidget {
                           color: textColor,
                         )),
                     Text(sub,
-                        style: GoogleFonts.inter(
-                            fontSize: 11, color: mutedColor)),
+                        style:
+                            GoogleFonts.inter(fontSize: 11, color: mutedColor)),
                   ],
                 ),
               ),
@@ -1181,8 +1175,7 @@ class _ExportBtn extends StatelessWidget {
                 )
               else
                 Icon(Icons.arrow_forward_ios_rounded,
-                    size: 14,
-                    color: mutedColor.withOpacity(0.4)),
+                    size: 14, color: mutedColor.withOpacity(0.4)),
             ],
           ),
         ),

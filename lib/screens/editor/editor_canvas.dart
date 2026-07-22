@@ -1,13 +1,10 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
 
 import '../../models/editor_block.dart';
-import '../../models/entry.dart';
-import '../../providers/app_state.dart';
 import '../../services/image_service.dart';
 import '../../services/permission_service.dart';
 import '../../theme/app_colors.dart';
@@ -503,6 +500,8 @@ class _TextBlockWidget extends StatelessWidget {
       decoration: InputDecoration(
         border: InputBorder.none,
         contentPadding: EdgeInsets.zero,
+        fillColor: Colors.transparent,
+        filled: true,
         hintText: _hintForType(block.type),
         hintStyle: _styleForType(block.type, mutedColor.withOpacity(0.5))
             .copyWith(fontStyle: FontStyle.italic),
@@ -1119,7 +1118,8 @@ class BlocksReadView extends StatelessWidget {
 
   Widget _buildBlock(EditorBlock block) {
     if (block is TextBlock) {
-      return _TextBlockReadView(block: block, isDark: isDark, textAlignment: textAlignment);
+      return _TextBlockReadView(
+          block: block, isDark: isDark, textAlignment: textAlignment);
     } else if (block is ImageBlock) {
       return _ImageBlockWidget(block: block, isDark: isDark, isEditing: false);
     } else if (block is ImageGridBlock) {
@@ -1144,7 +1144,8 @@ class _TextBlockReadView extends StatelessWidget {
   final bool isDark;
   final String textAlignment;
 
-  const _TextBlockReadView({required this.block, required this.isDark, required this.textAlignment});
+  const _TextBlockReadView(
+      {required this.block, required this.isDark, required this.textAlignment});
 
   @override
   Widget build(BuildContext context) {

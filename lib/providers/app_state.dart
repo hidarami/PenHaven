@@ -26,14 +26,12 @@ class AppState extends ChangeNotifier {
   bool _isPeriodTrackerEnabled = false;
   bool _hasSeenOnboarding = false;
   bool _isConfettiEnabled = true;
-  String _openWeatherApiKey = '';
 
   bool get isDarkMode => _isDarkMode;
   bool get isBiometricEnabled => _isBiometricEnabled;
   bool get isPeriodTrackerEnabled => _isPeriodTrackerEnabled;
   bool get hasSeenOnboarding => _hasSeenOnboarding;
   bool get isConfettiEnabled => _isConfettiEnabled;
-  String get openWeatherApiKey => _openWeatherApiKey;
 
   // ── Stories ───────────────────────────────────────────────────────────────
   List<Story> _stories = [];
@@ -158,13 +156,6 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isConfettiEnabled', value);
-  }
-
-  Future<void> setOpenWeatherApiKey(String key) async {
-    _openWeatherApiKey = key;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('openWeatherApiKey', key);
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -307,8 +298,7 @@ class AppState extends ChangeNotifier {
     _isLocked = false;
     notifyListeners();
     // Fire-and-forget — no need to await prefs clear
-    SharedPreferences.getInstance()
-        .then((prefs) => prefs.remove('isLocked'));
+    SharedPreferences.getInstance().then((prefs) => prefs.remove('isLocked'));
   }
 
   /// Restores a soft-deleted entry.

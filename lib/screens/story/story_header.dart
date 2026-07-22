@@ -109,6 +109,8 @@ class _StoryHeaderState extends State<StoryHeader> {
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
+                    fillColor: Colors.transparent,
+                    filled: true,
                     hintText: 'Story title',
                     hintStyle: AppTypography.storyTitle(mutedColor),
                   ),

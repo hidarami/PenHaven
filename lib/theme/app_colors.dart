@@ -41,7 +41,7 @@ class AppColors {
   static const Color comfortDark = Color(0xFF2A1E18);
 
   // ── Atmosphere Backgrounds (Light) ─────────────────────────────────────────
-  static const Color golden3pmLight = Color(0xFFFFF3C4);
+  static const Color golden3pmLight = Color(0xFFF1EDE7);
   static const Color midnightInkLight = Color(0xFFE8E3F5);
   static const Color sundayMorningLight = Color(0xFFF5F1E8);
   static const Color goldenHourLight = Color(0xFFFFF0CC);

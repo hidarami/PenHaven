@@ -49,13 +49,6 @@ class EntryCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── "Entry N:" label ──────────────────────────────────────────
-            Text(
-              'Entry ${index + 1}:',
-              style: AppTypography.entryLabel(mutedColor),
-            ),
-            const SizedBox(height: 4),
-
             // ── Entry title ───────────────────────────────────────────────
             Text(
               entry.title.isEmpty ? 'Untitled' : entry.title,
@@ -127,4 +120,3 @@ class EntryCard extends StatelessWidget {
     );
   }
 }
-

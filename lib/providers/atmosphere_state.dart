@@ -54,19 +54,15 @@ class AtmosphereState extends ChangeNotifier {
 
   // ── Internal ──────────────────────────────────────────────────────────────
   Timer? _minuteTimer;
-  String? _apiKey; // Set from AppState.openWeatherApiKey
 
   // ─────────────────────────────────────────────────────────────────────────
   // INIT / DISPOSE
   // ─────────────────────────────────────────────────────────────────────────
 
-  void init({String? apiKey}) {
-    _apiKey = apiKey;
+  void init() {
     _tick(); // Compute immediately
     _minuteTimer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
-    if (apiKey != null && apiKey.isNotEmpty) {
-      _fetchWeather(apiKey);
-    }
+    _fetchWeather();
   }
 
   @override
@@ -136,7 +132,7 @@ class AtmosphereState extends ChangeNotifier {
   // WEATHER
   // ─────────────────────────────────────────────────────────────────────────
 
-  Future<void> _fetchWeather(String apiKey) async {
+  Future<void> _fetchWeather() async {
     _weatherLoading = true;
     notifyListeners();
 
@@ -159,27 +155,25 @@ class AtmosphereState extends ChangeNotifier {
         ),
       );
 
+      // Open-Meteo API (no API key required)
       final url = Uri.parse(
-        'https://api.openweathermap.org/data/2.5/weather'
-        '?lat=${pos.latitude}&lon=${pos.longitude}'
-        '&appid=$apiKey&units=metric',
+        'https://api.open-meteo.com/v1/weather'
+        '?latitude=${pos.latitude}&longitude=${pos.longitude}'
+        '&current_weather=true',
       );
 
       final response = await http.get(url).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final weatherList = data['weather'] as List<dynamic>;
-        final main = (weatherList.first as Map<String, dynamic>)['main']
-            .toString()
-            .toLowerCase();
-        final temp = (data['main'] as Map<String, dynamic>)['temp'] as num;
-        final city = data['name'] as String? ?? '';
+        final current = data['current_weather'] as Map<String, dynamic>;
+        final weatherCode = current['weathercode'] as int;
+        final temp = current['temperature'] as num;
 
         _weather = WeatherData(
-          condition: _parseCondition(main),
+          condition: _parseWeatherCode(weatherCode),
           tempCelsius: temp.toDouble(),
-          cityName: city,
+          cityName: '', // Open-Meteo doesn't provide city name
         );
         _tick(); // Re-evaluate atmosphere with new weather
       }
@@ -191,23 +185,32 @@ class AtmosphereState extends ChangeNotifier {
     notifyListeners();
   }
 
-  String _parseCondition(String owmMain) {
-    if (owmMain.contains('rain') || owmMain.contains('drizzle')) {
+  /// Map Open-Meteo WMO weather codes to app conditions.
+  /// https://open-meteo.com/en/docs
+  String _parseWeatherCode(int code) {
+    // Rain: 51-67, 80-82
+    if ((code >= 51 && code <= 67) || (code >= 80 && code <= 82)) {
       return 'rainy';
     }
-    if (owmMain.contains('snow')) return 'snowy';
-    if (owmMain.contains('fog') ||
-        owmMain.contains('mist') ||
-        owmMain.contains('haze')) {
+    // Snow: 71-77, 85-86
+    if ((code >= 71 && code <= 77) || (code >= 85 && code <= 86)) {
+      return 'snowy';
+    }
+    // Fog: 45-48
+    if (code >= 45 && code <= 48) {
       return 'foggy';
     }
+    // Clear: 0
+    if (code == 0) {
+      return 'clear';
+    }
+    // Default to clear for other codes (clouds, etc.)
     return 'clear';
   }
 
   /// Called externally (e.g. from Settings) to refresh weather.
-  Future<void> refreshWeather(String apiKey) async {
-    _apiKey = apiKey;
-    await _fetchWeather(apiKey);
+  Future<void> refreshWeather() async {
+    await _fetchWeather();
   }
 
   // ─────────────────────────────────────────────────────────────────────────
