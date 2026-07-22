@@ -136,7 +136,10 @@ class _ReadContent extends StatelessWidget {
         // ── Header image FIRST (before title) — CRITICAL ─────────────────
         if (entry.hasHeaderImage)
           SliverToBoxAdapter(
-            child: EntryHeaderImage(path: entry.headerImage!),
+            child: EntryHeaderImage(
+              path: entry.headerImage!,
+              ratio: entry.headerImageRatio,
+            ),
           ),
 
         // ── Title + date + body ───────────────────────────────────────────

@@ -14,7 +14,8 @@ class AppTypography {
   // ── Instrument Serif (Serif — titles and headings) ─────────────────────────
 
   /// Story / panel title — 36pt bold serif
-  static TextStyle storyTitle(Color color) => GoogleFonts.instrumentSerif(
+  // Crimson Pro for all titles — warmer, more personal, editorial
+  static TextStyle storyTitle(Color color) => GoogleFonts.crimsonPro(
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: color,
@@ -22,7 +23,7 @@ class AppTypography {
       );
 
   /// Entry title in read-only view — 36pt bold, left-aligned
-  static TextStyle entryTitle(Color color) => GoogleFonts.instrumentSerif(
+  static TextStyle entryTitle(Color color) => GoogleFonts.crimsonPro(
         fontSize: 36,
         fontWeight: FontWeight.w700,
         color: color,
@@ -30,7 +31,7 @@ class AppTypography {
       );
 
   /// Entry title in editor — 32pt bold
-  static TextStyle editorTitle(Color color) => GoogleFonts.instrumentSerif(
+  static TextStyle editorTitle(Color color) => GoogleFonts.crimsonPro(
         fontSize: 32,
         fontWeight: FontWeight.w700,
         color: color,
@@ -38,7 +39,7 @@ class AppTypography {
       );
 
   /// Entry title in card preview — 22pt bold italic
-  static TextStyle entryCardTitle(Color color) => GoogleFonts.instrumentSerif(
+  static TextStyle entryCardTitle(Color color) => GoogleFonts.crimsonPro(
         fontSize: 22,
         fontWeight: FontWeight.w700,
         fontStyle: FontStyle.italic,

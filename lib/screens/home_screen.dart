@@ -10,6 +10,7 @@ import 'story/story_panel.dart';
 import 'work_desk/work_desk_panel.dart';
 import 'menu/menu_panel.dart';
 import 'home_persistent_ui.dart';
+import 'lock_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOME SCREEN
@@ -55,8 +56,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<AppState>().isDarkMode;
+    final appState = context.watch<AppState>();
+    final dark = appState.isDarkMode;
     final atmo = context.watch<AtmosphereState>();
+
+    // Lock screen overlay — shown when user locks via menu
+    if (appState.isLocked) {
+      return const LockScreen();
+    }
 
     return Scaffold(
       backgroundColor: atmo.backgroundFor(dark),

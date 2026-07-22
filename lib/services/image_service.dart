@@ -152,9 +152,23 @@ class ImageService {
   // CONVENIENCE WRAPPERS
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// For header images — free crop, no forced ratio.
-  Future<String?> pickHeaderImage(BuildContext context) async {
-    return pickAndSave(context: context, allowCrop: true);
+  /// For header images — crop with a fixed aspect ratio.
+  /// [ratioX] and [ratioY] define the locked ratio. If both null, free crop.
+  Future<String?> pickHeaderImage(
+    BuildContext context, {
+    double? ratioX,
+    double? ratioY,
+    bool skipCrop = false,
+  }) async {
+    if (skipCrop) {
+      return pickAndSave(context: context, allowCrop: false);
+    }
+    return pickAndSave(
+      context: context,
+      allowCrop: true,
+      cropAspectRatioX: ratioX,
+      cropAspectRatioY: ratioY,
+    );
   }
 
   /// For inline body images — no forced crop ratio, user crops freely.

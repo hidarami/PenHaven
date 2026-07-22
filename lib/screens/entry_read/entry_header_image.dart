@@ -16,8 +16,9 @@ import 'package:flutter/material.dart';
 
 class EntryHeaderImage extends StatelessWidget {
   final String path;
+  final String? ratio;
 
-  const EntryHeaderImage({super.key, required this.path});
+  const EntryHeaderImage({super.key, required this.path, this.ratio});
 
   @override
   Widget build(BuildContext context) {
@@ -29,10 +30,10 @@ class EntryHeaderImage extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 0),
       child: Stack(
         children: [
-          // ── Image — 3:1 aspect ratio, sharp edges, no border radius ─────────
+          // ── Image — aspect ratio based on stored ratio, sharp edges, no border radius ─────────
           LayoutBuilder(
             builder: (context, constraints) {
-              final height = constraints.maxWidth / 3;
+              final height = _getHeight(constraints.maxWidth);
               return Image.file(
                 file,
                 width: double.infinity,
@@ -65,6 +66,27 @@ class EntryHeaderImage extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  double _getHeight(double width) {
+    // Default to 3:1 if no ratio specified
+    final ratioStr = ratio ?? '3:1';
+    
+    switch (ratioStr) {
+      case '16:9':
+        return width / (16 / 9);
+      case '4:3':
+        return width / (4 / 3);
+      case '3:1':
+        return width / 3;
+      case '1:1':
+        return width;
+      case 'full':
+        // For full size, use a reasonable default height
+        return width / 2;
+      default:
+        return width / 3;
+    }
   }
 
   Widget _placeholder(double height) {

@@ -30,6 +30,7 @@ class Entry {
   int timeSpentSeconds; // Proof of Work — cumulative seconds in editor
   String moodColor;
   String? headerImage; // Optional full-width banner (path)
+  String? headerImageRatio; // Aspect ratio: '16:9', '4:3', '3:1', '1:1', or 'full'
   List<EntryImage> images; // Legacy — kept for migration only
   bool isDeleted;
   String? blocksJson; // Block-based content (new format)
@@ -45,6 +46,7 @@ class Entry {
     this.timeSpentSeconds = 0,
     this.moodColor = 'default',
     this.headerImage,
+    this.headerImageRatio,
     List<EntryImage>? images,
     this.isDeleted = false,
     this.blocksJson,
@@ -65,6 +67,7 @@ class Entry {
       'timeSpentSeconds': timeSpentSeconds,
       'moodColor': moodColor,
       'headerImage': headerImage,
+      'headerImageRatio': headerImageRatio,
       'images': jsonEncode(images.map((e) => e.toMap()).toList()),
       'isDeleted': isDeleted ? 1 : 0,
       'blocksJson': blocksJson,
@@ -92,6 +95,7 @@ class Entry {
       timeSpentSeconds: (map['timeSpentSeconds'] as int?) ?? 0,
       moodColor: map['moodColor'] as String? ?? 'default',
       headerImage: map['headerImage'] as String?,
+      headerImageRatio: map['headerImageRatio'] as String?,
       images: parsedImages,
       isDeleted: (map['isDeleted'] as int) == 1,
       blocksJson: map['blocksJson'] as String?,
@@ -106,6 +110,7 @@ class Entry {
     int? timeSpentSeconds,
     String? moodColor,
     String? headerImage,
+    String? headerImageRatio,
     List<EntryImage>? images,
     bool? isDeleted,
     bool clearHeaderImage = false,
@@ -123,6 +128,7 @@ class Entry {
       timeSpentSeconds: timeSpentSeconds ?? this.timeSpentSeconds,
       moodColor: moodColor ?? this.moodColor,
       headerImage: clearHeaderImage ? null : (headerImage ?? this.headerImage),
+      headerImageRatio: headerImageRatio ?? this.headerImageRatio,
       images: images ?? this.images,
       isDeleted: isDeleted ?? this.isDeleted,
       blocksJson: clearBlocksJson ? null : (blocksJson ?? this.blocksJson),

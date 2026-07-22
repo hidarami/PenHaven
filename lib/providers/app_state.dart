@@ -73,6 +73,10 @@ class AppState extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  // ── Lock state ────────────────────────────────────────────────────────────
+  bool _isLocked = false;
+  bool get isLocked => _isLocked;
+
   // ─────────────────────────────────────────────────────────────────────────
   // INITIALIZATION
   // ─────────────────────────────────────────────────────────────────────────
@@ -276,10 +280,15 @@ class AppState extends ChangeNotifier {
   /// Returns all entries including soft-deleted ones (for the bin screen).
   List<Entry> get allEntries => [..._currentEntries, ..._deletedEntries];
 
-  /// Locks the app and requires biometric authentication to unlock.
+  /// Locks the app — shows lock screen overlay requiring biometric to re-enter.
   Future<void> lockApp() async {
-    // Implementation would depend on biometric authentication
-    // For now, this is a placeholder
+    _isLocked = true;
+    notifyListeners();
+  }
+
+  /// Called by LockScreen after successful biometric auth.
+  void unlockApp() {
+    _isLocked = false;
     notifyListeners();
   }
 

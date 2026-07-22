@@ -18,6 +18,7 @@ import 'editor_title_field.dart';
 import 'editor_canvas.dart';
 import 'wysiwyg_toolbar.dart';
 import 'version_history_screen.dart';
+import 'export_sheet.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EDITOR SCREEN — Block-based WYSIWYG
@@ -39,7 +40,7 @@ class _EditorScreenState extends State<EditorScreen> {
   late TextEditingController _titleController;
   late List<EditorBlock> _blocks;
   final GlobalKey<EditorCanvasState> _canvasKey = GlobalKey();
-  final GlobalKey _socialCardRepaintKey = GlobalKey();
+  // _socialCardRepaintKey removed — export now uses ExportSheet
 
   @override
   void initState() {
@@ -108,28 +109,39 @@ class _EditorScreenState extends State<EditorScreen> {
   Future<void> _handleBack() async {
     final editorState = context.read<EditorState>();
     editorState.flushSave();
-    await _saveWithVersion();
+
+    // Always try to save, but NEVER block navigation on failure
+    try {
+      await _saveWithVersion();
+    } catch (e) {
+      debugPrint('[EditorScreen] Save on back failed: $e');
+    }
 
     final seconds = editorState.stopSession();
-    if (seconds > 0) {
-      await context.read<AppState>().addEntryTimeSpent(_entry.id, seconds);
-      _entry = _entry.copyWith(
-          timeSpentSeconds: _entry.timeSpentSeconds + seconds);
+    try {
+      if (seconds > 0 && mounted) {
+        await context.read<AppState>().addEntryTimeSpent(_entry.id, seconds);
+        _entry = _entry.copyWith(
+            timeSpentSeconds: _entry.timeSpentSeconds + seconds);
+      }
+    } catch (e) {
+      debugPrint('[EditorScreen] Time spent update failed: $e');
     }
 
     editorState.reset();
-
+    // Always pop regardless of save success — user must never be trapped
     if (mounted) Navigator.of(context).pop(_entry);
   }
 
   // ── Header image ───────────────────────────────────────────────────────────
 
-  void _onHeaderImageChanged(String? path) {
+  void _onHeaderImageChanged((String?, String?) result) {
     if (!mounted) return;
+    final (path, ratio) = result;
     setState(() {
       _entry = path == null
           ? _entry.copyWith(clearHeaderImage: true)
-          : _entry.copyWith(headerImage: path);
+          : _entry.copyWith(headerImage: path, headerImageRatio: ratio);
     });
     _performSave();
   }
@@ -171,24 +183,12 @@ class _EditorScreenState extends State<EditorScreen> {
     );
   }
 
-  // ── Image export ────────────────────────────────────────────────────────────
+  // ── Export options sheet ───────────────────────────────────────────────────
 
   Future<void> _exportAsImage() async {
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Preparing image…'),
-          duration: Duration(seconds: 1),
-        ),
-      );
-    }
-    // Give the offscreen RepaintBoundary one frame to paint
-    await Future.delayed(const Duration(milliseconds: 300));
     if (!mounted) return;
-    await ExportService.instance.exportAsSocialCard(
-      _entry,
-      _socialCardRepaintKey,
-    );
+    final dark = context.read<AppState>().isDarkMode;
+    await ExportSheet.show(context, _entry, dark);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -292,16 +292,7 @@ class _EditorScreenState extends State<EditorScreen> {
             const ComfortWhisperOverlay(),
             const ComfortTintOverlay(),
 
-            // Offscreen social card rendered for image capture (never visible)
-            Positioned(
-              left: -5000,
-              top: 0,
-              child: RepaintBoundary(
-                key: _socialCardRepaintKey,
-                child: ExportService.instance
-                    .buildSocialCardWidget(_entry, isDark: dark),
-              ),
-            ),
+            // Export view is rendered inside ExportSheet on demand
           ],
         ),
       ),
@@ -376,9 +367,9 @@ class _EditorBar extends StatelessWidget {
             const SizedBox(height: 8),
             // ── Export ────────────────────────────────────────────────────
             ListTile(
-              leading: const Icon(Icons.image_outlined),
-              title: const Text('Export as Image'),
-              subtitle: const Text('Visual card — great for sharing'),
+              leading: const Icon(Icons.ios_share_outlined),
+              title: const Text('Share / Export'),
+              subtitle: const Text('Image, PDF, or TXT'),
               onTap: () {
                 Navigator.pop(ctx);
                 onImageExport?.call();
@@ -420,7 +411,7 @@ class _EditorBar extends StatelessWidget {
                 Navigator.pop(ctx);
                 _confirmDelete(context, appState);
               },
-             ),
+            ),
             const SizedBox(height: 8),
           ],
         ),

@@ -12,7 +12,7 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static Database? _db;
-  static const int _version = 2;
+  static const int _version = 3;
   static const String _dbName = 'flow.db';
 
   Future<Database> get database async {
@@ -78,6 +78,7 @@ class DatabaseHelper {
         images TEXT NOT NULL DEFAULT '[]',
         isDeleted INTEGER NOT NULL DEFAULT 0,
         blocks_json TEXT,
+        textAlignment TEXT NOT NULL DEFAULT 'justify',
         FOREIGN KEY (storyId) REFERENCES stories (id) ON DELETE CASCADE
       )
     ''');
@@ -144,6 +145,11 @@ class DatabaseHelper {
       await db.execute(
           'ALTER TABLE entries ADD COLUMN blocks_json TEXT');
       await _createEntryVersions(db);
+    }
+    if (oldVersion < 3) {
+      // Add text alignment column — was missing from v2 schema
+      await db.execute(
+          "ALTER TABLE entries ADD COLUMN textAlignment TEXT NOT NULL DEFAULT 'justify'");
     }
   }
 
