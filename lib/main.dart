@@ -5,9 +5,12 @@ import 'providers/app_state.dart';
 import 'providers/atmosphere_state.dart';
 import 'providers/editor_state.dart';
 import 'screens/splash_screen.dart';
+import 'services/supabase_service.dart';
 import 'theme/app_theme.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SupabaseService.initialize();
   runApp(const FlowApp());
 }
 

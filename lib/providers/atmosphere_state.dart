@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../theme/app_colors.dart';
 
@@ -52,6 +53,10 @@ class AtmosphereState extends ChangeNotifier {
   bool _isComfortMode = false;
   bool get isComfortMode => _isComfortMode;
 
+  // ── Dynamic theme ─────────────────────────────────────────────────────────
+  bool _isDynamicTheme = true;
+  bool get isDynamicTheme => _isDynamicTheme;
+
   // ── Internal ──────────────────────────────────────────────────────────────
   Timer? _minuteTimer;
 
@@ -59,10 +64,19 @@ class AtmosphereState extends ChangeNotifier {
   // INIT / DISPOSE
   // ─────────────────────────────────────────────────────────────────────────
 
-  void init() {
+  Future<void> init() async {
+    final prefs = await SharedPreferences.getInstance();
+    _isDynamicTheme = prefs.getBool('isDynamicTheme') ?? true;
     _tick(); // Compute immediately
     _minuteTimer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
     _fetchWeather();
+  }
+
+  Future<void> setDynamicTheme(bool value) async {
+    _isDynamicTheme = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isDynamicTheme', value);
   }
 
   @override
@@ -155,28 +169,55 @@ class AtmosphereState extends ChangeNotifier {
         ),
       );
 
-      // Open-Meteo API (no API key required)
+      // Open-Meteo API (no API key required) — /v1/forecast is the correct endpoint
       final url = Uri.parse(
-        'https://api.open-meteo.com/v1/weather'
-        '?latitude=${pos.latitude}&longitude=${pos.longitude}'
-        '&current_weather=true',
+        'https://api.open-meteo.com/v1/forecast'
+        '?latitude=${pos.latitude}'
+        '&longitude=${pos.longitude}'
+        '&current_weather=true'
+        '&wind_speed_unit=kmh',
       );
 
       final response = await http.get(url).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
-        final data = jsonDecode(response.body) as Map<String, dynamic>;
-        final current = data['current_weather'] as Map<String, dynamic>;
-        final weatherCode = current['weathercode'] as int;
-        final temp = current['temperature'] as num;
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final current = data['current_weather'] as Map<String, dynamic>;
+          final weatherCode = current['weathercode'] as int;
+          final temp = current['temperature'] as num;
 
-        _weather = WeatherData(
-          condition: _parseWeatherCode(weatherCode),
-          tempCelsius: temp.toDouble(),
-          cityName: '', // Open-Meteo doesn't provide city name
-        );
-        _tick(); // Re-evaluate atmosphere with new weather
-      }
+          // Reverse geocode for city name via Nominatim (free, no key)
+          String cityName = '';
+          try {
+            final geoUri = Uri.parse(
+              'https://nominatim.openstreetmap.org/reverse'
+              '?format=json'
+              '&lat=${pos.latitude}'
+              '&lon=${pos.longitude}'
+              '&zoom=10',
+            );
+            final geoResp = await http.get(
+              geoUri,
+              headers: {'User-Agent': 'FlowApp/1.0'},
+            ).timeout(const Duration(seconds: 5));
+            if (geoResp.statusCode == 200) {
+              final geoData = jsonDecode(geoResp.body) as Map<String, dynamic>;
+              final address = geoData['address'] as Map<String, dynamic>?;
+              cityName = (address?['city'] ??
+                      address?['town'] ??
+                      address?['village'] ??
+                      '')
+                  .toString();
+            }
+          } catch (_) {}
+
+          _weather = WeatherData(
+            condition: _parseWeatherCode(weatherCode),
+            tempCelsius: temp.toDouble(),
+            cityName: cityName,
+          );
+          _tick(); // Re-evaluate atmosphere with new weather
+        }
     } catch (_) {
       // Weather fetch failed silently — atmosphere falls back to time-based.
     }
@@ -231,6 +272,9 @@ class AtmosphereState extends ChangeNotifier {
   Color backgroundFor(bool dark) {
     if (_isComfortMode) {
       return dark ? AppColors.comfortDark : AppColors.comfortLight;
+    }
+    if (!_isDynamicTheme) {
+      return dark ? AppColors.normalDark : AppColors.normalLight;
     }
     return AppColors.atmosphereBg(_current, dark);
   }

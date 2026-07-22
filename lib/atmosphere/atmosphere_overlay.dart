@@ -31,8 +31,10 @@ class AtmosphereOverlay extends StatelessWidget {
         final dark = app.isDarkMode;
         final atmosphere = atmo.isComfortMode ? 'Comfort' : atmo.current;
 
-        // No overlay needed for Normal or Comfort (background color handles it)
-        if (atmosphere == Atmosphere.normal || atmosphere == 'Comfort') {
+        // No overlay when dynamic theme is off, or for Normal/Comfort atmospheres
+        if (!atmo.isDynamicTheme ||
+            atmosphere == Atmosphere.normal ||
+            atmosphere == 'Comfort') {
           return const SizedBox.shrink();
         }
 

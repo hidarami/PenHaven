@@ -60,7 +60,7 @@ class _SplashScreenState extends State<SplashScreen>
 
     _fillCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 2600),
     );
     _fillAnim = CurvedAnimation(parent: _fillCtrl, curve: Curves.easeInOut);
 
@@ -282,7 +282,7 @@ class _WaveRiseClipper extends CustomClipper<Path> {
 
     // Y coordinate of wave surface (0=top, size.height=bottom)
     final surfaceY = size.height * (1.0 - fillProgress);
-    const waveAmp = 8.0; // amplitude in logical pixels
+    const waveAmp = 14.0; // amplitude in logical pixels
     const waveCycles = 2.0; // number of complete waves across width
 
     final path = Path();
@@ -350,13 +350,13 @@ class _WaveSurfacePainter extends CustomPainter {
     if (size.isEmpty) return;
 
     final surfaceY = size.height * (1.0 - fillProgress);
-    const waveAmp = 8.0;
+    const waveAmp = 14.0;
     const waveCycles = 2.0;
 
     // Bright highlight line along the wave surface
     final paint = Paint()
-      ..color = AppColors.teal.withOpacity(0.45)
-      ..strokeWidth = 1.5
+      ..color = AppColors.aqua.withOpacity(0.72)
+      ..strokeWidth = 2.0
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 1.5);

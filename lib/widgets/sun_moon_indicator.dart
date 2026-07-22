@@ -144,10 +144,10 @@ class _SunPainter extends CustomPainter {
     // Glow pulse
     canvas.drawCircle(
       center,
-      10,
+      13,
       Paint()
-        ..color = color.withOpacity(0.12 + pulse * 0.08)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+        ..color = color.withOpacity(0.20 + pulse * 0.18)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12),
     );
 
     final paint = Paint()
@@ -195,10 +195,10 @@ class _MoonPainter extends CustomPainter {
     // Glow pulse
     canvas.drawCircle(
       center,
-      11,
+      14,
       Paint()
-        ..color = color.withOpacity(0.10 + pulse * 0.07)
-        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
+        ..color = color.withOpacity(0.18 + pulse * 0.16)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 13),
     );
 
     // Crescent: main circle minus offset mask
@@ -214,7 +214,7 @@ class _MoonPainter extends CustomPainter {
     // Star near moon
     final starPos = Offset(center.dx + 9, center.dy - 8);
     final starPaint = Paint()
-      ..color = color.withOpacity(0.6 + pulse * 0.3)
+      ..color = color.withOpacity(0.65 + pulse * 0.35)
       ..strokeWidth = 1.0
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;

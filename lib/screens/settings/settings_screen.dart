@@ -88,6 +88,16 @@ class SettingsScreen extends StatelessWidget {
                       bg: bg,
                       onChanged: (v) => appState.setDarkMode(v),
                     ),
+                    SettingsToggleTile(
+                      icon: Icons.wb_twilight_rounded,
+                      label: 'Dynamic Atmosphere',
+                      description:
+                          'App breathes with time of day and weather. Turn off for a static look.',
+                      value: atmosphereState.isDynamicTheme,
+                      isDark: isDark,
+                      bg: bg,
+                      onChanged: (v) => atmosphereState.setDynamicTheme(v),
+                    ),
                   ],
                 ),
               ),

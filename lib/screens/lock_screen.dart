@@ -273,14 +273,7 @@ class _PinEntryView extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            Align(
-              alignment: Alignment.centerLeft,
-              child: IconButton(
-                icon: const Icon(Icons.chevron_left_rounded,
-                    size: 30, color: AppColors.mutedDark),
-                onPressed: () => Navigator.of(context).pop(),
-              ),
-            ),
+            const SizedBox(height: 32),
             const Spacer(),
 
             Text(

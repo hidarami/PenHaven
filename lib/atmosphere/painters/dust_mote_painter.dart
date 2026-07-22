@@ -50,7 +50,7 @@ class _DustMoteOverlayState extends State<DustMoteOverlay>
       builder: (context, atmo, app, _) {
         // Only show during active window and when NOT dark mode
         // (Dark mode 3PM has no dust motes — they imply bright light)
-        if (!atmo.isDustMoteActive || app.isDarkMode) {
+        if (!atmo.isDustMoteActive || app.isDarkMode || !atmo.isDynamicTheme) {
           return const SizedBox.shrink();
         }
 
