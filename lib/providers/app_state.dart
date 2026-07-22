@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../services/lock_service.dart';
 import '../models/story.dart';
 import '../models/entry.dart';
 import '../models/todo.dart';
@@ -77,6 +78,15 @@ class AppState extends ChangeNotifier {
   bool _isLocked = false;
   bool get isLocked => _isLocked;
 
+  bool _isLockEnabled = false;
+  bool get isLockEnabled => _isLockEnabled;
+
+  void setLockEnabled(bool v) {
+    _isLockEnabled = v;
+    if (!v) _isLocked = false;
+    notifyListeners();
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // INITIALIZATION
   // ─────────────────────────────────────────────────────────────────────────
@@ -86,6 +96,10 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     await _loadSettings();
+
+    // Check PIN lock — must happen before navigating to HomeScreen
+    _isLockEnabled = await LockService.instance.hasPin();
+    if (_isLockEnabled) _isLocked = true;
     await _loadStories();
     await _loadDeletedEntries();
     await _loadTodos();
@@ -108,7 +122,7 @@ class AppState extends ChangeNotifier {
     _isPeriodTrackerEnabled = prefs.getBool('isPeriodTrackerEnabled') ?? false;
     _hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
     _isConfettiEnabled = prefs.getBool('isConfettiEnabled') ?? true;
-    _openWeatherApiKey = prefs.getString('openWeatherApiKey') ?? '';
+    _isLocked = prefs.getBool('isLocked') ?? false;
   }
 
   Future<void> setDarkMode(bool value) async {
@@ -284,12 +298,17 @@ class AppState extends ChangeNotifier {
   Future<void> lockApp() async {
     _isLocked = true;
     notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLocked', true);
   }
 
   /// Called by LockScreen after successful biometric auth.
   void unlockApp() {
     _isLocked = false;
     notifyListeners();
+    // Fire-and-forget — no need to await prefs clear
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.remove('isLocked'));
   }
 
   /// Restores a soft-deleted entry.

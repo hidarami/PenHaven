@@ -51,18 +51,7 @@ class _SplashScreenState extends State<SplashScreen>
     // Load all persistent data
     await appState.init();
 
-    // Check biometric authentication if enabled
-    if (appState.isBiometricEnabled) {
-      final authService = AuthService.instance;
-      final isAvailable = await authService.isBiometricAvailable();
-      if (isAvailable) {
-        final authenticated = await authService.authenticateAppUnlock();
-        if (!authenticated && mounted) {
-          // If authentication fails, continue without biometrics
-          // User can disable it in settings if needed
-        }
-      }
-    }
+    
 
     // Start atmosphere engine with API key from settings
     atmosphereState.init(

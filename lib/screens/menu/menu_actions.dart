@@ -88,8 +88,8 @@ class MenuActions extends StatelessWidget {
             },
           ),
 
-          // Biometric lock (visible only when enabled)
-          if (appState.isBiometricEnabled)
+          // Lock (visible only when PIN is set)
+          if (appState.isLockEnabled)
             _ActionTile(
               icon: Icons.lock_outline_rounded,
               label: 'Lock Flow',

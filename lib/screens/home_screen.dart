@@ -29,7 +29,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late final PageController _pageController;
 
   @override
@@ -37,6 +37,7 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // CRITICAL: initialPage: 1 — opens to Story Panel, NOT Library
     _pageController = PageController(initialPage: 1);
+    WidgetsBinding.instance.addObserver(this);
 
     // Run mercy archive on app open
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -46,8 +47,21 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _pageController.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+    // Auto-lock when app goes to background (if biometric is enabled)
+    if (state == AppLifecycleState.paused) {
+      final appState = context.read<AppState>();
+      if (appState.isBiometricEnabled && !appState.isLocked) {
+        appState.lockApp();
+      }
+    }
   }
 
   void _openMenu() async {

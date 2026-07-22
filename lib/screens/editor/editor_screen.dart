@@ -375,22 +375,7 @@ class _EditorBar extends StatelessWidget {
                 onImageExport?.call();
               },
             ),
-            ListTile(
-              leading: const Icon(Icons.text_snippet_outlined),
-              title: const Text('Export as TXT'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ExportService.instance.exportAsTxt(entry);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.picture_as_pdf_outlined),
-              title: const Text('Export as PDF'),
-              onTap: () {
-                Navigator.pop(ctx);
-                ExportService.instance.exportAsPdf(entry);
-              },
-            ),
+            
             const Divider(height: 1),
             // ── Manage ────────────────────────────────────────────────────
             if (entry.hasHeaderImage)

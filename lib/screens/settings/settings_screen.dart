@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../services/lock_service.dart';
+import '../lock/pin_setup_screen.dart';
 import '../../data/backup_service.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
@@ -99,15 +101,19 @@ class SettingsScreen extends StatelessWidget {
                   isDark: isDark,
                   bg: bg,
                   children: [
-                    SettingsToggleTile(
-                      icon: Icons.fingerprint_rounded,
-                      label: 'Biometric Lock',
-                      description:
-                          'Require Face ID or fingerprint to open Flow.',
-                      value: appState.isBiometricEnabled,
+                    SettingsNavTile(
+                      icon: Icons.lock_outline_rounded,
+                      label: appState.isLockEnabled
+                          ? 'App Lock · On'
+                          : 'App Lock',
+                      description: appState.isLockEnabled
+                          ? 'PIN lock is active. Tap to change or remove.'
+                          : 'Set a PIN to protect your sanctuary.',
                       isDark: isDark,
                       bg: bg,
-                      onChanged: (v) => appState.setBiometric(v),
+                      onTap: () => appState.isLockEnabled
+                          ? _showLockOptions(context, appState)
+                          : _setupLock(context),
                     ),
                   ],
                 ),
@@ -192,6 +198,91 @@ class SettingsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+void _setupLock(BuildContext context) async {
+    await Future.delayed(const Duration(milliseconds: 150));
+    if (!context.mounted) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const PinSetupScreen()),
+    );
+  }
+
+  void _showLockOptions(BuildContext context, AppState appState) {
+    final isDark = appState.isDarkMode;
+    final bg = isDark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = AppColors.readableText(bg);
+    final mutedColor = AppColors.readableMuted(bg);
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Icon(Icons.edit_outlined, color: mutedColor),
+              title: Text('Change PIN',
+                  style: GoogleFonts.inter(fontSize: 15, color: textColor)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await Future.delayed(const Duration(milliseconds: 150));
+                if (context.mounted) {
+                  await Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          const PinSetupScreen(mode: PinSetupMode.change),
+                    ),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.lock_open_outlined,
+                  color: AppColors.danger),
+              title: Text('Remove App Lock',
+                  style: GoogleFonts.inter(
+                      fontSize: 15, color: AppColors.danger)),
+              onTap: () async {
+                Navigator.pop(ctx);
+                await _confirmRemoveLock(context, appState);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _confirmRemoveLock(
+      BuildContext context, AppState appState) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Remove App Lock?'),
+        content:
+            const Text('Your PIN will be deleted and Flow will open without protection.'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Remove',
+                style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await LockService.instance.removePin();
+      appState.setLockEnabled(false);
+    }
   }
 
   // ── Handlers ─────────────────────────────────────────────────────────────
