@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/entry.dart';
 import '../../atmosphere/atmosphere_overlay.dart';
+import '../../atmosphere/atmosphere_image_layer.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
@@ -103,6 +104,7 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
             child: _ReadContent(entry: _entry, isDark: dark),
           ),
           const AtmosphereOverlay(),
+          const AtmosphereImageLayer(),
         ],
       ),
     );

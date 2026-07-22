@@ -114,14 +114,20 @@ class AtmosphereState extends ChangeNotifier {
       }
     }
 
-    // ── Golden 3PM — The star atmosphere ──────────────────────────────────
-    // Active window: 2:55 PM – 3:10 PM (for dust mote easter egg)
-    if (hour == 15 || (hour == 14 && minute >= 55)) {
-      return Atmosphere.golden3pm;
+    // ── Golden 3PM — ONLY when sky is clear (sunny afternoon) ─────────────────
+    // Extended window: 2:45 PM – 3:59 PM
+    // Rainy/foggy/snowy already returned above; this only runs for clear/cloudy.
+    // We only show golden light when the sky is actually clear.
+    final is3pmWindow = (hour == 14 && minute >= 45) || hour == 15;
+    if (is3pmWindow) {
+      final isGoldenSky = _weather == null || _weather!.condition == 'clear';
+      if (isGoldenSky) return Atmosphere.golden3pm;
+      // Cloudy afternoon: fall through to Normal
     }
 
-    // ── Midnight Ink — late night, intimate and protective ─────────────────
-    if (hour >= 1 && hour <= 4) {
+    // ── Midnight Ink — protective late-night cocoon ────────────────────────
+    // Extended: 11 PM (hour 23) through 4 AM
+    if (hour <= 4 || hour >= 23) {
       return Atmosphere.midnightInk;
     }
 
@@ -298,7 +304,8 @@ class AtmosphereState extends ChangeNotifier {
     final now = DateTime.now();
     final hour = now.hour;
     final minute = now.minute;
-    return (hour == 14 && minute >= 55) || (hour == 15 && minute <= 10);
+    // Dust motes during the heart of golden afternoon (2:55 PM – 3:45 PM)
+    return (hour == 14 && minute >= 55) || (hour == 15 && minute <= 45);
   }
 
   /// Unique key string for AtmosphereOverlay to force rebuild on change.

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../atmosphere/atmosphere_overlay.dart';
+import '../atmosphere/atmosphere_image_layer.dart';
 import '../atmosphere/painters/dust_mote_painter.dart';
 import '../providers/atmosphere_state.dart';
 import '../providers/app_state.dart';
@@ -95,11 +96,14 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ],
             ),
 
-            // ── Atmosphere visual overlay (IgnorePointer) ──────────────────
-            const AtmosphereOverlay(),
+            // ── Atmosphere visual overlay (glow painters) ──────────────────
+        const AtmosphereOverlay(),
 
-            // ── 3PM dust mote easter egg ───────────────────────────────────
-            const DustMoteOverlay(),
+        // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
+        const AtmosphereImageLayer(),
+
+        // ── 3PM dust mote easter egg ───────────────────────────────────
+        const DustMoteOverlay(),
 
             // ── Persistent UI: Sun/Moon + Menu button ──────────────────────
             HomePersistentUI(onMenuTap: _openMenu),

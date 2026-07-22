@@ -11,6 +11,7 @@ import '../../data/version_dao.dart';
 import '../../theme/app_colors.dart';
 import '../../atmosphere/comfort_engine.dart';
 import '../../atmosphere/atmosphere_overlay.dart';
+import '../../atmosphere/atmosphere_image_layer.dart';
 import 'editor_header_image.dart';
 import 'editor_title_field.dart';
 import 'editor_canvas.dart';
@@ -301,6 +302,8 @@ class _EditorScreenState extends State<EditorScreen> {
 
             // Atmosphere overlay (light/mood effects)
             const AtmosphereOverlay(),
+            // Atmosphere image layer (PNG overlays)
+            const AtmosphereImageLayer(),
             // Comfort engine
             const ComfortWhisperOverlay(),
             const ComfortTintOverlay(),
