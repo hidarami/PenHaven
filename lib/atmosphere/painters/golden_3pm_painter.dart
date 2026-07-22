@@ -2,13 +2,18 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// GOLDEN 3PM PAINTER
-// Realistic window light projection — like sunlight through a window with
-// venetian blinds. Neutral white light columns, shadow mullions, blind slats.
-// Reference: cool neutral light through a window on a cream wall.
+// GOLDEN 3PM PAINTER — v2 (Shadow-based approach)
 //
-// Light Mode: vertical white-light columns with fine horizontal blind lines
-// Dark Mode:  warm amber glow seeping around curtains (no streaks)
+// PREVIOUS PROBLEM: Painting semi-transparent white on Color(0xFFF1EDE7)
+// yellow base = result looked yellow/golden, not like real window light.
+//
+// NEW APPROACH: Base is near-white Color(0xFFF8F6F3). We paint SHADOW
+// elements (mullions + venetian blind bands) on it. This matches how
+// real window projections work — it's the shadows that define the pattern,
+// not painted light.
+//
+// Light Mode: shadow mullions + blind shadow bands on near-white wall
+// Dark Mode:  warm amber glow from corners (unchanged — was always correct)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class Golden3pmPainter extends CustomPainter {
@@ -27,122 +32,178 @@ class Golden3pmPainter extends CustomPainter {
   // ── Light Mode ─────────────────────────────────────────────────────────────
 
   void _paintLight(Canvas canvas, Size size) {
-    const double angle = 12.0 * math.pi / 180.0;
-    final double shiftY = size.height * math.tan(angle);
+    // Slight diagonal — window light falls at ~10° from vertical
+    const double angleDeg = 10.0;
+    const double angle = angleDeg * math.pi / 180.0;
+    final double shiftAtBottom = size.height * math.tan(angle);
 
-    // Window frame layout: 3 vertical light columns + mullion gaps between
-    // Positioned on the left-to-center portion (light source from right/above)
-    final double totalW = size.width * 0.80;
-    final double mullionW = size.width * 0.028;
-    final double colW = (totalW - mullionW * 2) / 3;
-    final double startX = size.width * 0.04;
+    // Window layout: 4 panes across nearly full width
+    const double leftFrac = 0.02;
+    const double rightFrac = 0.98;
+    final double mullionW = size.width * 0.022; // narrow shadow strip per divider
+    final double usableW = size.width * (rightFrac - leftFrac);
+    final double paneW = (usableW - mullionW * 3) / 4;
+    final double startX = size.width * leftFrac;
 
-    final columns = [
-      _ColSpec(startX, colW, 0.23),
-      _ColSpec(startX + colW + mullionW, colW, 0.20),
-      _ColSpec(startX + (colW + mullionW) * 2, colW, 0.17),
-    ];
+    // Step 1: Draw 3 shadow mullions between the 4 panes
+    _paintMullions(canvas, size, startX, paneW, mullionW, shiftAtBottom);
 
-    // Draw each light column
-    for (final col in columns) {
-      _drawLightColumn(canvas, size, col.x, col.w, shiftY, col.opacity);
+    // Step 2: Draw horizontal venetian blind shadow bands across full window
+    _paintBlindBands(
+        canvas, size, angle, startX, size.width * rightFrac, shiftAtBottom);
+
+    // Step 3: Right-edge frame shadow (window frame / wall boundary)
+    _paintFrameEdge(canvas, size, shiftAtBottom);
+
+    // Step 4: Subtle brightening at top — closer to light source
+    _paintLightSourceHint(canvas, size);
+  }
+
+  void _paintMullions(
+    Canvas canvas,
+    Size size,
+    double startX,
+    double paneW,
+    double mullionW,
+    double shiftAtBottom,
+  ) {
+    // Each mullion: a parallelogram shadow strip between adjacent panes
+    // Soft blur gives realistic soft-edged shadow feel
+    final softPaint = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5)
+      ..color = const Color(0xFF5A5040).withOpacity(0.22);
+
+    final hardPaint = Paint()
+      ..color = const Color(0xFF5A5040).withOpacity(0.13);
+
+    for (int i = 0; i < 3; i++) {
+      // Left edge of this mullion
+      final double xLeft = startX + (i + 1) * paneW + i * mullionW;
+
+      // Parallelogram path (diagonal due to projection angle)
+      final path = Path()
+        ..moveTo(xLeft, 0)
+        ..lineTo(xLeft + mullionW, 0)
+        ..lineTo(xLeft + mullionW - shiftAtBottom, size.height)
+        ..lineTo(xLeft - shiftAtBottom, size.height)
+        ..close();
+
+      // Outer soft shadow first, then harder core on top
+      canvas.drawPath(path, softPaint);
+      canvas.drawPath(path, hardPaint);
     }
+  }
 
-    // Draw horizontal blind shadow lines across all light columns
-    _paintBlindLines(canvas, size, angle,
-        startX - shiftY - 20, startX + totalW - shiftY + 20);
+  void _paintBlindBands(
+    Canvas canvas,
+    Size size,
+    double angle,
+    double xStart,
+    double xEnd,
+    double shiftAtBottom,
+  ) {
+    // 30+ horizontal bands give the venetian blind slat pattern
+    const int numBands = 32;
+    final double spacing = size.height / numBands;
 
-    // Very subtle warm glow from upper right (light source direction)
+    // Extra horizontal extent so bands aren't clipped at edges after diagonal shift
+    final double extra = shiftAtBottom + 10;
+
+    // Shadow band — slightly darker than the near-white base
+    final shadowPaint = Paint()
+      ..color = const Color(0xFF5A5040).withOpacity(0.075)
+      ..strokeWidth = spacing * 0.42
+      ..strokeCap = StrokeCap.square;
+
+    // Bright edge line between bands — simulates light reflecting off slat edge
+    final brightPaint = Paint()
+      ..color = Colors.white.withOpacity(0.10)
+      ..strokeWidth = 1.2
+      ..strokeCap = StrokeCap.round;
+
+    for (int i = 0; i <= numBands; i++) {
+      final double y = i * spacing;
+      // Diagonal offset: all lines shift left as they go down
+      final double xOff = -y * math.tan(angle);
+
+      // Shadow band
+      canvas.drawLine(
+        Offset(xStart + xOff - extra, y),
+        Offset(xEnd + xOff + extra, y),
+        shadowPaint,
+      );
+
+      // Bright edge just below the shadow (subtle highlight between slats)
+      if (i < numBands) {
+        final double yB = y + spacing * 0.10;
+        final double xOffB = -yB * math.tan(angle);
+        canvas.drawLine(
+          Offset(xStart + xOffB - extra, yB),
+          Offset(xEnd + xOffB + extra, yB),
+          brightPaint,
+        );
+      }
+    }
+  }
+
+  void _paintFrameEdge(Canvas canvas, Size size, double shiftAtBottom) {
+    // Window frame shadow on the right side — wall beyond the window is darker
+    final framePaint = Paint()
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 20)
+      ..color = const Color(0xFF5A5040).withOpacity(0.17);
+
+    // Diagonal parallelogram along right edge
+    final rightPath = Path()
+      ..moveTo(size.width * 0.88, 0)
+      ..lineTo(size.width * 1.05, 0) // extend past edge
+      ..lineTo(size.width * 1.05 - shiftAtBottom, size.height)
+      ..lineTo(size.width * 0.88 - shiftAtBottom, size.height)
+      ..close();
+
+    canvas.drawPath(rightPath, framePaint);
+
+    // Bottom fade — wall below window gets progressively less light
+    final bottomFade = Rect.fromLTWH(
+        0, size.height * 0.72, size.width, size.height * 0.28);
+    canvas.drawRect(
+      bottomFade,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            const Color(0xFF5A5040).withOpacity(0.06),
+          ],
+        ).createShader(bottomFade),
+    );
+  }
+
+  void _paintLightSourceHint(Canvas canvas, Size size) {
+    // Very faint brightening at top — the window is above, so the upper wall
+    // receives slightly more light. Keeps the scene from feeling flat.
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
     canvas.drawRect(
       rect,
       Paint()
         ..shader = RadialGradient(
-          center: const Alignment(1.3, -1.1),
-          radius: 1.2,
+          center: const Alignment(0.0, -1.4),
+          radius: 1.3,
           colors: [
-            const Color(0xFFFFF8F2).withOpacity(0.10),
+            Colors.white.withOpacity(0.07),
             Colors.transparent,
           ],
         ).createShader(rect),
     );
   }
 
-  void _drawLightColumn(Canvas canvas, Size size, double x, double colW,
-      double shiftY, double opacity) {
-    final path = Path()
-      ..moveTo(x, 0)
-      ..lineTo(x + colW, 0)
-      ..lineTo(x + colW - shiftY, size.height)
-      ..lineTo(x - shiftY, size.height)
-      ..close();
-
-    canvas.saveLayer(
-      Rect.fromLTWH(0, 0, size.width, size.height),
-      Paint(),
-    );
-
-    // Light fill — pure neutral white (no yellow tint)
-    final paint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          Colors.white.withOpacity(opacity),
-          Colors.white.withOpacity(opacity * 0.80),
-          Colors.white.withOpacity(opacity * 0.55),
-        ],
-        stops: const [0.0, 0.50, 1.0],
-      ).createShader(path.getBounds())
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
-
-    canvas.drawPath(path, paint);
-    canvas.restore();
-  }
-
-  void _paintBlindLines(Canvas canvas, Size size, double angle,
-      double xStart, double xEnd) {
-    // Fine horizontal shadow bands — venetian blind slat effect
-    const int numLines = 14;
-    final double spacing = size.height / numLines;
-
-    // Thicker slat shadow
-    final slatPaint = Paint()
-      ..color = const Color(0xFF6A5E52).withOpacity(0.058)
-      ..strokeWidth = spacing * 0.30
-      ..strokeCap = StrokeCap.square;
-
-    // Thin bright highlight between slats
-    final highlightPaint = Paint()
-      ..color = Colors.white.withOpacity(0.06)
-      ..strokeWidth = 1.0
-      ..strokeCap = StrokeCap.square;
-
-    for (int i = 0; i <= numLines; i++) {
-      final double y = i * spacing;
-      final double xOff = -y * math.tan(angle);
-      canvas.drawLine(
-        Offset(xStart + xOff, y),
-        Offset(xEnd + xOff, y),
-        slatPaint,
-      );
-      if (i < numLines) {
-        final double yH = y + spacing * 0.15;
-        final double xOffH = -yH * math.tan(angle);
-        canvas.drawLine(
-          Offset(xStart + xOffH, yH),
-          Offset(xEnd + xOffH, yH),
-          highlightPaint,
-        );
-      }
-    }
-  }
-
-  // ── Dark Mode ──────────────────────────────────────────────────────────────
+  // ── Dark Mode — unchanged from v1 ─────────────────────────────────────────
+  // Warm amber glow seeping around curtains. No streak in dark mode.
 
   void _paintDark(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0, 0, size.width, size.height);
 
+    // Main glow from upper-right corner
     canvas.drawRect(
       rect,
       Paint()
@@ -158,6 +219,7 @@ class Golden3pmPainter extends CustomPainter {
         ).createShader(rect),
     );
 
+    // Secondary glow from upper-left — fills corners warmly
     canvas.drawRect(
       rect,
       Paint()
@@ -174,9 +236,4 @@ class Golden3pmPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(Golden3pmPainter old) => old.isDark != isDark;
-}
-
-class _ColSpec {
-  final double x, w, opacity;
-  const _ColSpec(this.x, this.w, this.opacity);
 }
