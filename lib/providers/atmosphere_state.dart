@@ -64,12 +64,16 @@ class AtmosphereState extends ChangeNotifier {
   // INIT / DISPOSE
   // ─────────────────────────────────────────────────────────────────────────
 
+  Timer? _weatherRefreshTimer;
+
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _isDynamicTheme = prefs.getBool('isDynamicTheme') ?? true;
     _tick(); // Compute immediately
     _minuteTimer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
+    // Fetch weather now and refresh every 30 minutes
     _fetchWeather();
+    _weatherRefreshTimer = Timer.periodic(const Duration(minutes: 30), (_) => _fetchWeather());
   }
 
   Future<void> setDynamicTheme(bool value) async {
@@ -82,6 +86,7 @@ class AtmosphereState extends ChangeNotifier {
   @override
   void dispose() {
     _minuteTimer?.cancel();
+    _weatherRefreshTimer?.cancel();
     super.dispose();
   }
 
@@ -251,7 +256,11 @@ class AtmosphereState extends ChangeNotifier {
     if (code == 0) {
       return 'clear';
     }
-    // Default to clear for other codes (clouds, etc.)
+    // Partly cloudy (1-3): treat as clear for atmosphere purposes
+    if (code >= 1 && code <= 3) return 'clear';
+    // Thunderstorm (95-99): treat as rainy
+    if (code >= 95) return 'rainy';
+    // Default
     return 'clear';
   }
 

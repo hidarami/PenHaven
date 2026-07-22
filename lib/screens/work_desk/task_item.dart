@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../models/todo.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_colors.dart';
+import 'package:flutter/services.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TASK ITEM
@@ -29,6 +30,7 @@ class TaskItem extends StatefulWidget {
 class _TaskItemState extends State<TaskItem> {
   bool _fading = false;
   bool _editing = false;
+  bool _isExpanded = false;
   late TextEditingController _editController;
   final FocusNode _focusNode = FocusNode();
 
@@ -57,6 +59,7 @@ class _TaskItemState extends State<TaskItem> {
 
   Future<void> _onCheckboxTap() async {
     if (_fading) return; // Already fading
+    HapticFeedback.lightImpact();
     final appState = context.read<AppState>();
     await appState.completeTodo(widget.todo.id);
     setState(() => _fading = true);
@@ -75,7 +78,7 @@ class _TaskItemState extends State<TaskItem> {
 
   void _startEdit() {
     if (_fading) return;
-    setState(() => _editing = true);
+    setState(() { _editing = true; _isExpanded = true; });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
       _editController.selection = TextSelection(
@@ -83,6 +86,13 @@ class _TaskItemState extends State<TaskItem> {
         extentOffset: _editController.text.length,
       );
     });
+  }
+
+  String _formatDeadline(DateTime deadline) {
+    final date = DateFormat('MMM d').format(deadline);
+    final hasTime = deadline.hour != 0 || deadline.minute != 0;
+    if (hasTime) return '$date · ${DateFormat('h:mm a').format(deadline)}';
+    return date;
   }
 
   void _saveEdit() {
@@ -93,7 +103,7 @@ class _TaskItemState extends State<TaskItem> {
     } else {
       _editController.text = widget.todo.title;
     }
-    setState(() => _editing = false);
+    setState(() { _editing = false; _isExpanded = false; });
   }
 
   @override
@@ -145,7 +155,8 @@ class _TaskItemState extends State<TaskItem> {
             // ── Task text or edit field ───────────────────────────────────
             Expanded(
               child: GestureDetector(
-                onLongPress: _startEdit,
+                onTap: _editing ? null : () { if (!_fading) setState(() => _isExpanded = !_isExpanded); },
+                onDoubleTap: _startEdit,
                 child: _editing
                     ? TextField(
                         controller: _editController,
@@ -179,12 +190,16 @@ class _TaskItemState extends State<TaskItem> {
                                   : null,
                               decorationColor: mutedColor,
                             ),
+                            maxLines: _isExpanded ? null : 2,
+                            overflow: _isExpanded
+                                ? TextOverflow.visible
+                                : TextOverflow.ellipsis,
                           ),
                           // Deadline (if set) — no red, just muted
                           if (widget.todo.deadline != null) ...[
                             const SizedBox(height: 2),
                             Text(
-                              DateFormat('MMM d').format(widget.todo.deadline!),
+                              _formatDeadline(widget.todo.deadline!),
                               style: GoogleFonts.inter(
                                 fontSize: 11,
                                 color: mutedColor.withOpacity(0.7),

@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../settings/settings_screen.dart';
+import '../search/search_screen.dart';
+import '../period/period_tracker_screen.dart';
 import 'archived_tasks_sheet.dart';
 
 /// Bottom action rows inside the menu panel.
@@ -38,6 +40,43 @@ class MenuActions extends StatelessWidget {
               ),
             ),
           ),
+
+          // Search
+          _ActionTile(
+            icon: Icons.search_rounded,
+            label: 'Search',
+            isDark: isDark,
+            textColor: textColor,
+            mutedColor: mutedColor,
+            onTap: () async {
+              Navigator.of(context).pop();
+              await Future.delayed(const Duration(milliseconds: 150));
+              if (context.mounted) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SearchScreen()),
+                );
+              }
+            },
+          ),
+
+          // Period tracker (only when enabled)
+          if (appState.isPeriodTrackerEnabled)
+            _ActionTile(
+              icon: Icons.favorite_border_rounded,
+              label: 'Period Tracker',
+              isDark: isDark,
+              textColor: textColor,
+              mutedColor: mutedColor,
+              onTap: () async {
+                Navigator.of(context).pop();
+                await Future.delayed(const Duration(milliseconds: 150));
+                if (context.mounted) {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const PeriodTrackerScreen()),
+                  );
+                }
+              },
+            ),
 
           // Archived tasks
           _ActionTile(

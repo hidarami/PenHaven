@@ -130,8 +130,36 @@ class StoryCard extends StatelessWidget {
               title: Text(story.isLocked ? 'Unlock story' : 'Lock story'),
               onTap: () {
                 Navigator.pop(ctx);
+                appState.updateStory(story.copyWith(isLocked: !story.isLocked));
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                story.themeLock == 'dark'
+                    ? Icons.dark_mode
+                    : story.themeLock == 'light'
+                        ? Icons.light_mode
+                        : Icons.brightness_auto,
+              ),
+              title: Text(
+                story.themeLock == 'dark'
+                    ? 'Theme: Always Dark'
+                    : story.themeLock == 'light'
+                        ? 'Theme: Always Light'
+                        : 'Theme: Follow System',
+              ),
+              subtitle: const Text('Tap to cycle'),
+              onTap: () {
+                Navigator.pop(ctx);
+                final next = story.themeLock == null
+                    ? 'dark'
+                    : story.themeLock == 'dark'
+                        ? 'light'
+                        : null;
                 appState.updateStory(
-                  story.copyWith(isLocked: !story.isLocked),
+                  next == null
+                      ? story.copyWith(clearThemeLock: true)
+                      : story.copyWith(themeLock: next),
                 );
               },
             ),

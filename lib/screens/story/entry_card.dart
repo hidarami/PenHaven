@@ -44,6 +44,7 @@ class EntryCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       onLongPress: () => _showContextMenu(context),
+      behavior: HitTestBehavior.opaque,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
         child: Column(

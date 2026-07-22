@@ -46,6 +46,7 @@ class EditorCanvasState extends State<EditorCanvas> {
   final Map<String, RichEditorController> _controllers = {};
   final Map<String, FocusNode> _focusNodes = {};
   String? _focusedBlockId;
+  bool _markdownOfferPending = false;
   final _scrollController = ScrollController();
 
   @override
@@ -95,11 +96,98 @@ class EditorCanvasState extends State<EditorCanvas> {
     final idx = _blocks.indexWhere((b) => b.id == blockId);
     if (idx == -1) return;
     final block = _blocks[idx] as TextBlock;
+
+    final addedLen = ctrl.text.length - block.text.length;
+    if (addedLen > 50 && !_markdownOfferPending && _hasMarkdownSyntax(ctrl.text)) {
+      _offerMarkdownConversion(blockId, ctrl.text);
+    }
+
     _blocks[idx] = block.copyWith(
       text: ctrl.text,
       formats: List.from(ctrl.formats),
     );
     widget.onBlocksChanged(_blocks);
+  }
+
+  bool _hasMarkdownSyntax(String text) {
+    return text.contains(RegExp(r'#{1,6} ')) ||
+        text.contains('**') ||
+        text.contains('> ') ||
+        text.contains('```') ||
+        text.contains('---\n');
+  }
+
+  void _offerMarkdownConversion(String blockId, String text) {
+    _markdownOfferPending = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) { _markdownOfferPending = false; return; }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Markdown detected — render as formatted blocks?'),
+          action: SnackBarAction(
+            label: 'Render',
+            onPressed: () => _convertMarkdownToBlocks(blockId, text),
+          ),
+          duration: const Duration(seconds: 5),
+        ),
+      ).closed.then((_) => _markdownOfferPending = false);
+    });
+  }
+
+  void _convertMarkdownToBlocks(String blockId, String text) {
+    final newBlocks = _parseMarkdownToBlocks(text);
+    setState(() {
+      final idx = _blocks.indexWhere((b) => b.id == blockId);
+      if (idx != -1) {
+        _blocks.removeAt(idx);
+        _controllers.remove(blockId)?.dispose();
+        _focusNodes.remove(blockId)?.dispose();
+        if (_focusedBlockId == blockId) _focusedBlockId = null;
+        _blocks.insertAll(idx, newBlocks);
+        for (final b in newBlocks) {
+          if (b is TextBlock) _ensureController(b);
+        }
+      }
+    });
+    _markdownOfferPending = false;
+    widget.onBlocksChanged(_blocks);
+  }
+
+  List<EditorBlock> _parseMarkdownToBlocks(String text) {
+    final blocks = <EditorBlock>[];
+    final lines = text.split('\n');
+    final currentText = StringBuffer();
+
+    void flushText() {
+      final t = currentText.toString().trim();
+      if (t.isNotEmpty) blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.text, text: t));
+      currentText.clear();
+    }
+
+    for (final line in lines) {
+      if (line.startsWith('# ')) {
+        flushText();
+        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.heading1, text: line.substring(2)));
+      } else if (line.startsWith('## ')) {
+        flushText();
+        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.heading2, text: line.substring(3)));
+      } else if (line.startsWith('### ')) {
+        flushText();
+        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.heading3, text: line.substring(4)));
+      } else if (line.startsWith('> ')) {
+        flushText();
+        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.quote, text: line.substring(2)));
+      } else if (line.trim() == '---' || line.trim() == '***') {
+        flushText();
+        blocks.add(DividerBlock(id: const Uuid().v4()));
+      } else {
+        if (currentText.isNotEmpty) currentText.write('\n');
+        currentText.write(line);
+      }
+    }
+    flushText();
+    if (blocks.isEmpty) blocks.add(TextBlock.empty());
+    return blocks;
   }
 
   double _fontSizeForType(BlockType type) {

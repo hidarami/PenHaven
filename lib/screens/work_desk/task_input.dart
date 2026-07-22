@@ -30,6 +30,7 @@ class _TaskInputState extends State<TaskInput> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   DateTime? _deadline;
+  TimeOfDay? _deadlineTime;
   bool _submitting = false;
 
   @override
@@ -52,20 +53,34 @@ class _TaskInputState extends State<TaskInput> {
     }
   }
 
-  void _clearDeadline() => setState(() => _deadline = null);
+  void _clearDeadline() => setState(() { _deadline = null; _deadlineTime = null; });
+
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _deadlineTime ?? TimeOfDay.now(),
+    );
+    if (picked != null && mounted) setState(() => _deadlineTime = picked);
+  }
 
   Future<void> _submit() async {
     final title = _controller.text.trim();
     if (title.isEmpty || _submitting) return;
 
     setState(() => _submitting = true);
-    await widget.onAddTask(title, _deadline);
+
+    DateTime? finalDeadline;
+    if (_deadline != null) {
+      final t = _deadlineTime ?? const TimeOfDay(hour: 23, minute: 59);
+      finalDeadline = DateTime(
+        _deadline!.year, _deadline!.month, _deadline!.day, t.hour, t.minute,
+      );
+    }
+
+    await widget.onAddTask(title, finalDeadline);
 
     _controller.clear();
-    setState(() {
-      _deadline = null;
-      _submitting = false;
-    });
+    setState(() { _deadline = null; _deadlineTime = null; _submitting = false; });
     _focusNode.unfocus();
   }
 
@@ -100,6 +115,22 @@ class _TaskInputState extends State<TaskInput> {
                   ),
                 ),
               ),
+              // Time icon (enabled only after date is picked)
+              GestureDetector(
+                onTap: _deadline != null ? _pickTime : null,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: Icon(
+                    Icons.access_time_rounded,
+                    size: 16,
+                    color: _deadlineTime != null
+                        ? AppColors.aqua
+                        : _deadline != null
+                            ? mutedColor
+                            : mutedColor.withOpacity(0.3),
+                  ),
+                ),
+              ),
               // Submit arrow
               GestureDetector(
                 onTap: _submit,
@@ -124,14 +155,12 @@ class _TaskInputState extends State<TaskInput> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 12,
-                  color: AppColors.aqua,
-                ),
+                const Icon(Icons.calendar_today_outlined, size: 12, color: AppColors.aqua),
                 const SizedBox(width: 4),
                 Text(
-                  DateFormat('MMM d').format(_deadline!),
+                  _deadlineTime != null
+                      ? '${DateFormat('MMM d').format(_deadline!)} · ${_deadlineTime!.format(context)}'
+                      : DateFormat('MMM d').format(_deadline!),
                   style: const TextStyle(
                     fontSize: 12,
                     color: AppColors.aqua,

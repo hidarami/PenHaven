@@ -10,6 +10,7 @@ import '../../providers/atmosphere_state.dart';
 import '../../data/version_dao.dart';
 import '../../theme/app_colors.dart';
 import '../../atmosphere/comfort_engine.dart';
+// MilestoneOverlay is in comfort_engine.dart
 import '../../atmosphere/atmosphere_overlay.dart';
 import '../../atmosphere/atmosphere_image_layer.dart';
 import 'editor_header_image.dart';
@@ -307,6 +308,8 @@ class _EditorScreenState extends State<EditorScreen> {
             // Comfort engine
             const ComfortWhisperOverlay(),
             const ComfortTintOverlay(),
+            // Word milestone easter egg
+            const MilestoneOverlay(),
 
             // Export view is rendered inside ExportSheet on demand
           ],

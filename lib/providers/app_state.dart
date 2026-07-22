@@ -26,12 +26,18 @@ class AppState extends ChangeNotifier {
   bool _isPeriodTrackerEnabled = false;
   bool _hasSeenOnboarding = false;
   bool _isConfettiEnabled = true;
+  String _preferredFont = 'crimsonPro';
 
-  bool get isDarkMode => _isDarkMode;
+  bool get isDarkMode => _storyThemeOverride == 'dark'
+      ? true
+      : _storyThemeOverride == 'light'
+          ? false
+          : _isDarkMode;
   bool get isBiometricEnabled => _isBiometricEnabled;
   bool get isPeriodTrackerEnabled => _isPeriodTrackerEnabled;
   bool get hasSeenOnboarding => _hasSeenOnboarding;
   bool get isConfettiEnabled => _isConfettiEnabled;
+  String get preferredFont => _preferredFont;
 
   // ── Stories ───────────────────────────────────────────────────────────────
   List<Story> _stories = [];
@@ -67,6 +73,9 @@ class AppState extends ChangeNotifier {
   List<PeriodLog> _periodLogs = [];
 
   List<PeriodLog> get periodLogs => _periodLogs;
+
+  // ── Story theme override ──────────────────────────────────────────────────
+  String? _storyThemeOverride; // 'dark', 'light', or null
 
   // ── Loading state ─────────────────────────────────────────────────────────
   bool _isLoading = false;
@@ -121,6 +130,7 @@ class AppState extends ChangeNotifier {
     _hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
     _isConfettiEnabled = prefs.getBool('isConfettiEnabled') ?? true;
     _isLocked = prefs.getBool('isLocked') ?? false;
+    _preferredFont = prefs.getString('preferredFont') ?? 'crimsonPro';
   }
 
   Future<void> setDarkMode(bool value) async {
@@ -158,6 +168,13 @@ class AppState extends ChangeNotifier {
     await prefs.setBool('isConfettiEnabled', value);
   }
 
+  Future<void> setPreferredFont(String font) async {
+    _preferredFont = font;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('preferredFont', font);
+  }
+
   // ─────────────────────────────────────────────────────────────────────────
   // STORIES
   // ─────────────────────────────────────────────────────────────────────────
@@ -191,6 +208,7 @@ class AppState extends ChangeNotifier {
 
   Future<void> selectStory(Story story) async {
     _activeStory = story;
+    _storyThemeOverride = story.themeLock;
     await _loadEntriesForActiveStory();
     notifyListeners();
   }

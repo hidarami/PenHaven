@@ -210,10 +210,16 @@ class FlowMarkdownBody extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<AppState>().isDarkMode;
+    final appState = context.watch<AppState>();
+    final dark = appState.isDarkMode;
+    final preferredFont = appState.preferredFont;
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final codeBg = dark ? AppColors.codeBgDark : AppColors.codeBgLight;
+
+    // Use user's preferred body font
+    final bodyStyle = AppTypography.bodyTextFor(preferredFont, textColor);
+    final mutedBodyStyle = AppTypography.bodyTextFor(preferredFont, mutedColor);
 
     return MarkdownBody(
       data: _autoLinkify(data),
@@ -224,12 +230,8 @@ class FlowMarkdownBody extends StatelessWidget {
         }
       },
       styleSheet: MarkdownStyleSheet(
-        // Paragraph
-        p: GoogleFonts.crimsonPro(
-          fontSize: 18,
-          color: textColor,
-          height: 1.8,
-        ),
+        // Paragraph — uses user's preferred font
+        p: bodyStyle,
         // Headings
         h1: GoogleFonts.crimsonPro(
           fontSize: 32,
@@ -254,24 +256,11 @@ class FlowMarkdownBody extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: textColor,
         ),
-        // Bold / Italic
-        strong: GoogleFonts.crimsonPro(
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          color: textColor,
-        ),
-        em: GoogleFonts.crimsonPro(
-          fontSize: 18,
-          fontStyle: FontStyle.italic,
-          color: textColor,
-        ),
+        // Bold / Italic — inherit preferred font
+        strong: AppTypography.bodyTextFor(preferredFont, textColor).copyWith(fontWeight: FontWeight.w700),
+        em: AppTypography.bodyTextFor(preferredFont, textColor).copyWith(fontStyle: FontStyle.italic),
         // Blockquote
-        blockquote: GoogleFonts.crimsonPro(
-          fontSize: 18,
-          fontStyle: FontStyle.italic,
-          color: mutedColor,
-          height: 1.8,
-        ),
+        blockquote: AppTypography.bodyTextFor(preferredFont, mutedColor).copyWith(fontStyle: FontStyle.italic),
         blockquoteDecoration: BoxDecoration(
           color: AppColors.blockquoteBg,
           border: Border(

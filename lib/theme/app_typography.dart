@@ -197,6 +197,32 @@ class AppTypography {
         color: color,
       );
 
+// ── Switchable body font ───────────────────────────────────────────────────
+  // Used for entry body text when user selects a different reading font.
+  static TextStyle bodyTextFor(String fontName, Color color, {double size = 18, double height = 1.8}) {
+    switch (fontName) {
+      case 'sourceSerif4':
+        return GoogleFonts.sourceSerif4(fontSize: size, color: color, height: height);
+      case 'lora':
+        return GoogleFonts.lora(fontSize: size, color: color, height: height);
+      case 'merriweather':
+        return GoogleFonts.merriweather(fontSize: size, color: color, height: height);
+      case 'playfairDisplay':
+        return GoogleFonts.playfairDisplay(fontSize: size, color: color, height: height);
+      case 'crimsonPro':
+      default:
+        return GoogleFonts.crimsonPro(fontSize: size, color: color, height: height);
+    }
+  }
+
+  static const Map<String, String> fontDisplayNames = {
+    'crimsonPro': 'Crimson Pro',
+    'sourceSerif4': 'Source Serif 4',
+    'lora': 'Lora',
+    'merriweather': 'Merriweather',
+    'playfairDisplay': 'Playfair Display',
+  };
+
   // ── Base theme text theme (used in ThemeData) ─────────────────────────────
 
   static TextTheme textTheme(bool dark) {

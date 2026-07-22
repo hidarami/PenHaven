@@ -73,6 +73,17 @@ class EditorState extends ChangeNotifier {
   bool get showWhisper => _showWhisper;
   String get whisperText => _whisperText;
 
+  // ── Word milestone easter eggs ─────────────────────────────────────────────
+  int _lastMilestone = 0;
+  bool _showMilestone = false;
+  int _milestoneWords = 0;
+  bool get showMilestone => _showMilestone;
+  int get milestoneWords => _milestoneWords;
+
+  // ── Long session easter egg ────────────────────────────────────────────────
+  bool _longSessionTriggered = false;
+  Timer? _longSessionTimer;
+
   // ── Atmosphere reference (to push comfort mode upstream) ──────────────────
   AtmosphereState? _atmosphereState;
 
@@ -90,7 +101,15 @@ class EditorState extends ChangeNotifier {
     _sessionTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       _sessionSeconds++;
       // No notifyListeners here — it would rebuild too often.
-      // Word count and auto-save drive their own updates.
+    });
+
+    // Long session easter egg: trigger at 30 min
+    _longSessionTriggered = false;
+    _longSessionTimer = Timer(const Duration(minutes: 30), () {
+      if (!_longSessionTriggered) {
+        _longSessionTriggered = true;
+        _showWhisperMessage(override: '30 minutes in. this is real.');
+      }
     });
   }
 
@@ -116,6 +135,7 @@ class EditorState extends ChangeNotifier {
     _updateWordCount(content);
     _scheduleAutoSave();
     _checkSentiment(content);
+    _checkWordMilestone(_wordCount);
     notifyListeners();
   }
 
@@ -134,6 +154,39 @@ class EditorState extends ChangeNotifier {
         .split(RegExp(r'\s+'))
         .where((w) => w.isNotEmpty)
         .length;
+  }
+
+// ─────────────────────────────────────────────────────────────────────────
+  // WORD MILESTONE EASTER EGG
+  // Celebrates 500, 1000, 2000, 5000 words with a gentle whisper.
+  // ─────────────────────────────────────────────────────────────────────────
+
+  static const List<int> _milestones = [500, 1000, 2000, 5000];
+  static const Map<int, String> _milestoneMessages = {
+    500: '500 words. keep going.',
+    1000: 'a thousand words. remarkable.',
+    2000: 'two thousand words. you\'re in it.',
+    5000: 'five thousand words. extraordinary.',
+  };
+
+  void _checkWordMilestone(int count) {
+    for (final m in _milestones) {
+      if (count >= m && _lastMilestone < m) {
+        _lastMilestone = m;
+        _triggerMilestone(m);
+        break;
+      }
+    }
+  }
+
+  void _triggerMilestone(int words) {
+    _milestoneWords = words;
+    _showMilestone = true;
+    notifyListeners();
+    Timer(const Duration(seconds: 3500 ~/ 1000), () {
+      _showMilestone = false;
+      notifyListeners();
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -203,9 +256,9 @@ class EditorState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void _showWhisperMessage() {
+  void _showWhisperMessage({String? override}) {
     final messages = List<String>.from(_whisperMessages)..shuffle();
-    _whisperText = messages.first;
+    _whisperText = override ?? messages.first;
     _showWhisper = true;
     notifyListeners();
 
@@ -237,6 +290,10 @@ class EditorState extends ChangeNotifier {
     _autoSaveTimer?.cancel();
     _comfortTransitionTimer?.cancel();
     _whisperTimer?.cancel();
+    _longSessionTimer?.cancel();
+    _longSessionTriggered = false;
+    _showMilestone = false;
+    _lastMilestone = 0;
 
     _sessionSeconds = 0;
     _sessionStart = null;
@@ -258,6 +315,7 @@ class EditorState extends ChangeNotifier {
     _autoSaveTimer?.cancel();
     _comfortTransitionTimer?.cancel();
     _whisperTimer?.cancel();
+    _longSessionTimer?.cancel();
     super.dispose();
   }
 }

@@ -12,7 +12,7 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static Database? _db;
-  static const int _version = 4;
+  static const int _version = 5;
   static const String _dbName = 'flow.db';
 
   Future<Database> get database async {
@@ -58,7 +58,8 @@ class DatabaseHelper {
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL,
         isLocked INTEGER NOT NULL DEFAULT 0,
-        isDeleted INTEGER NOT NULL DEFAULT 0
+        isDeleted INTEGER NOT NULL DEFAULT 0,
+        themeLock TEXT
       )
     ''');
   }
@@ -154,6 +155,9 @@ class DatabaseHelper {
     if (oldVersion < 4) {
       // Add header image ratio column for aspect ratio support
       await db.execute('ALTER TABLE entries ADD COLUMN headerImageRatio TEXT');
+    }
+    if (oldVersion < 5) {
+      await db.execute('ALTER TABLE stories ADD COLUMN themeLock TEXT');
     }
   }
 

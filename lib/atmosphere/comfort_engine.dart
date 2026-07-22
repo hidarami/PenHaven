@@ -138,3 +138,87 @@ class ComfortTintOverlay extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MILESTONE OVERLAY
+// Celebrates word count milestones (500, 1000, 2000, 5000 words).
+// Shows briefly above toolbar — barely visible, warm, earned.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class MilestoneOverlay extends StatefulWidget {
+  const MilestoneOverlay({super.key});
+
+  @override
+  State<MilestoneOverlay> createState() => _MilestoneOverlayState();
+}
+
+class _MilestoneOverlayState extends State<MilestoneOverlay>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _opacity;
+  int _lastShownMilestone = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 600),
+    );
+    _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<EditorState>(
+      builder: (context, editor, _) {
+        // Animate in when milestone changes
+        if (editor.showMilestone && editor.milestoneWords != _lastShownMilestone) {
+          _lastShownMilestone = editor.milestoneWords;
+          _ctrl.forward(from: 0);
+          Future.delayed(const Duration(milliseconds: 2200), () {
+            if (mounted) _ctrl.reverse();
+          });
+        }
+
+        final dark = context.watch<AppState>().isDarkMode;
+        final textColor = dark ? AppColors.textDark : AppColors.textLight;
+
+        return Positioned(
+          bottom: 130,
+          left: 0,
+          right: 0,
+          child: IgnorePointer(
+            child: FadeTransition(
+              opacity: _opacity,
+              child: Center(
+                child: Text(
+                  '✦ ${_milestoneLabel(editor.milestoneWords)} ✦',
+                  style: GoogleFonts.crimsonPro(
+                    fontSize: 13,
+                    fontStyle: FontStyle.italic,
+                    color: textColor.withOpacity(0.25),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _milestoneLabel(int words) {
+    if (words >= 5000) return 'five thousand words';
+    if (words >= 2000) return 'two thousand words';
+    if (words >= 1000) return 'one thousand words';
+    return 'five hundred words';
+  }
+}

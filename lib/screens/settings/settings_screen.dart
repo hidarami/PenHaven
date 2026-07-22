@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/lock_service.dart';
 import '../lock/pin_setup_screen.dart';
+import '../period/period_tracker_screen.dart';
+import '../../theme/app_typography.dart';
 import '../../data/backup_service.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
@@ -131,7 +133,53 @@ class SettingsScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-              // ── HEALTH TRACKING ──────────────────────────────────────
+              // ── APPEARANCE — FONT ─────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 10),
+                        child: Text('READING FONT', style: GoogleFonts.inter(
+                          fontSize: 10, fontWeight: FontWeight.w600, color: mutedColor, letterSpacing: 2.0,
+                        )),
+                      ),
+                      SizedBox(
+                        height: 46,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          children: AppTypography.fontDisplayNames.entries.map((entry) {
+                            final isSelected = appState.preferredFont == entry.key;
+                            return GestureDetector(
+                              onTap: () => appState.setPreferredFont(entry.key),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? AppColors.aqua.withOpacity(0.12) : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: isSelected ? Border.all(color: AppColors.aqua.withOpacity(0.5)) : null,
+                                ),
+                                child: Text(
+                                  entry.value,
+                                  style: AppTypography.bodyTextFor(entry.key, isSelected ? AppColors.aqua : mutedColor, size: 14, height: 1),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+              // ── HEALTH TRACKING ──────────────────────────────────────────
               SliverToBoxAdapter(
                 child: SettingsSection(
                   label: 'HEALTH',
@@ -141,13 +189,23 @@ class SettingsScreen extends StatelessWidget {
                     SettingsToggleTile(
                       icon: Icons.favorite_border_rounded,
                       label: 'Period Tracker',
-                      description:
-                          'Enable discreet cycle tracking in your journal.',
+                      description: 'Enable discreet cycle tracking in your journal.',
                       value: appState.isPeriodTrackerEnabled,
                       isDark: isDark,
                       bg: bg,
                       onChanged: (v) => appState.setPeriodTracker(v),
                     ),
+                    if (appState.isPeriodTrackerEnabled)
+                      SettingsNavTile(
+                        icon: Icons.calendar_month_outlined,
+                        label: 'Open Period Tracker',
+                        description: 'View your cycle, history, and predictions.',
+                        isDark: isDark,
+                        bg: bg,
+                        onTap: () => Navigator.of(context).push(
+                          MaterialPageRoute(builder: (_) => const PeriodTrackerScreen()),
+                        ),
+                      ),
                   ],
                 ),
               ),

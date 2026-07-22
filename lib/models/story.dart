@@ -8,6 +8,7 @@ class Story {
   DateTime updatedAt;
   bool isLocked;
   bool isDeleted;
+  String? themeLock; // null=system, 'dark'=always dark, 'light'=always light
 
   Story({
     String? id,
@@ -17,6 +18,7 @@ class Story {
     DateTime? updatedAt,
     this.isLocked = false,
     this.isDeleted = false,
+    this.themeLock,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
@@ -30,6 +32,7 @@ class Story {
       'updatedAt': updatedAt.toIso8601String(),
       'isLocked': isLocked ? 1 : 0,
       'isDeleted': isDeleted ? 1 : 0,
+      'themeLock': themeLock,
     };
   }
 
@@ -42,6 +45,7 @@ class Story {
       updatedAt: DateTime.parse(map['updatedAt'] as String),
       isLocked: (map['isLocked'] as int) == 1,
       isDeleted: (map['isDeleted'] as int) == 1,
+      themeLock: map['themeLock'] as String?,
     );
   }
 
@@ -51,6 +55,8 @@ class Story {
     DateTime? updatedAt,
     bool? isLocked,
     bool? isDeleted,
+    String? themeLock,
+    bool clearThemeLock = false,
   }) {
     return Story(
       id: id,
@@ -60,6 +66,7 @@ class Story {
       updatedAt: updatedAt ?? DateTime.now(),
       isLocked: isLocked ?? this.isLocked,
       isDeleted: isDeleted ?? this.isDeleted,
+      themeLock: clearThemeLock ? null : (themeLock ?? this.themeLock),
     );
   }
 }

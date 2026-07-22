@@ -59,7 +59,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Auto-lock when app goes to background (if biometric is enabled)
     if (state == AppLifecycleState.paused) {
       final appState = context.read<AppState>();
-      if (appState.isBiometricEnabled && !appState.isLocked) {
+      if (appState.isLockEnabled && !appState.isLocked) {
         appState.lockApp();
       }
     }
