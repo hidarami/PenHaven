@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -108,6 +110,8 @@ class SettingsToggleTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
+    // Accent adapts to manual theme
+    final accent = context.watch<AtmosphereState>().accentColor;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
@@ -154,12 +158,12 @@ class SettingsToggleTile extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // Toggle
+          // Toggle — accent follows active manual theme
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
-            activeThumbColor: AppColors.aqua,
-            activeTrackColor: AppColors.aqua,
+            activeThumbColor: accent,
+            activeTrackColor: accent.withOpacity(0.55),
           ),
         ],
       ),

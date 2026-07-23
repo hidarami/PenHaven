@@ -14,6 +14,7 @@ import 'settings_section.dart';
 import 'settings_tile.dart';
 import 'about_section.dart';
 import 'fonts_screen.dart';
+import 'themes_screen.dart';
 
 
 /// Settings screen — full-screen push, no back button (swipe left-to-right).
@@ -134,6 +135,29 @@ class SettingsScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
+              // ── THEME ──────────────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  label: 'THEME',
+                  isDark: isDark,
+                  bg: bg,
+                  children: [
+                    SettingsNavTile(
+                      icon: Icons.palette_outlined,
+                      label: _themeLabel(atmosphereState),
+                      description: 'Manual themes override the atmosphere background.',
+                      isDark: isDark,
+                      bg: bg,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const ThemesScreen()),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
               // ── READING FONT ───────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: SettingsSection(
@@ -245,6 +269,15 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
+/// Returns display label for current theme selection.
+  String _themeLabel(AtmosphereState atmo) {
+    if (atmo.manualTheme == null) return 'Dynamic (Auto)';
+    for (final t in AppColors.manualThemes) {
+      if (t.key == atmo.manualTheme) return t.name;
+    }
+    return 'Dynamic (Auto)';
+  }
+
 void _setupLock(BuildContext context) async {
     await Future.delayed(const Duration(milliseconds: 150));
     if (!context.mounted) return;

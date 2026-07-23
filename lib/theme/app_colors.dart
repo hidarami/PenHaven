@@ -1,6 +1,28 @@
 import 'package:flutter/material.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
+// MANUAL THEME DATA — holds per-theme color palette
+// ─────────────────────────────────────────────────────────────────────────────
+
+class ManualThemeData {
+  final String key;
+  final String name;
+  final String feel;
+  final Color bgLight;
+  final Color bgDark;
+  final Color accent;
+
+  const ManualThemeData({
+    required this.key,
+    required this.name,
+    required this.feel,
+    required this.bgLight,
+    required this.bgDark,
+    required this.accent,
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // APP COLORS
 // Single source of truth for every color value in Flow.
 // Import this file wherever you need a named color constant.
@@ -151,4 +173,88 @@ class AppColors {
   /// Neumorphic dark shadow — adapts to dark mode.
   static Color neuDark(bool dark) =>
       dark ? neuDarkShadowDark : neuDarkShadowLight;
+
+  // ── Manual Theme Catalog ───────────────────────────────────────────────────
+  static const List<ManualThemeData> manualThemes = [
+    ManualThemeData(
+      key: 'tokyoRain',
+      name: 'Tokyo Rain',
+      feel: 'noir · neon · urban',
+      bgLight: Color(0xFFE8EDF5),
+      bgDark: Color(0xFF05080F),
+      accent: Color(0xFF00C4EE),
+    ),
+    ManualThemeData(
+      key: 'amberLibrary',
+      name: 'Amber Library',
+      feel: 'warm · cozy · afternoon',
+      bgLight: Color(0xFFFFF3DC),
+      bgDark: Color(0xFF1A1200),
+      accent: Color(0xFFD4820A),
+    ),
+    ManualThemeData(
+      key: 'nordic',
+      name: 'Nordic',
+      feel: 'cold · stark · minimal',
+      bgLight: Color(0xFFF0F4F8),
+      bgDark: Color(0xFF0A0F18),
+      accent: Color(0xFF5B8DB8),
+    ),
+    ManualThemeData(
+      key: 'cherryBlossom',
+      name: 'Cherry Blossom',
+      feel: 'soft · romantic · Japanese',
+      bgLight: Color(0xFFFFF0F5),
+      bgDark: Color(0xFF180A10),
+      accent: Color(0xFFE87FA0),
+    ),
+    ManualThemeData(
+      key: 'deepOcean',
+      name: 'Deep Ocean',
+      feel: 'calm · vast · cool',
+      bgLight: Color(0xFFEAF2F8),
+      bgDark: Color(0xFF020C18),
+      accent: Color(0xFF1B9B8D),
+    ),
+    ManualThemeData(
+      key: 'parchment',
+      name: 'Parchment',
+      feel: 'aged · literary · sepia',
+      bgLight: Color(0xFFF5EDD8),
+      bgDark: Color(0xFF1A1508),
+      accent: Color(0xFFB8922A),
+    ),
+    ManualThemeData(
+      key: 'gothicInk',
+      name: 'Gothic Ink',
+      feel: 'dark · dramatic · intense',
+      bgLight: Color(0xFFF2F0F5),
+      bgDark: Color(0xFF060208),
+      accent: Color(0xFF9B59C8),
+    ),
+    ManualThemeData(
+      key: 'bamboo',
+      name: 'Bamboo',
+      feel: 'zen · muted · calm',
+      bgLight: Color(0xFFEEF3EC),
+      bgDark: Color(0xFF0A1208),
+      accent: Color(0xFF5A8A5C),
+    ),
+  ];
+
+  /// Background for a manual theme key + dark flag. Null if key unknown.
+  static Color? manualThemeBg(String key, bool dark) {
+    for (final t in manualThemes) {
+      if (t.key == key) return dark ? t.bgDark : t.bgLight;
+    }
+    return null;
+  }
+
+  /// Accent color for a manual theme key. Falls back to aqua.
+  static Color manualThemeAccent(String key) {
+    for (final t in manualThemes) {
+      if (t.key == key) return t.accent;
+    }
+    return aqua;
+  }
 }

@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 
 import '../../models/story.dart';
 import '../../providers/app_state.dart';
+import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 
 /// Scrollable list of all stories inside the menu.
@@ -101,7 +102,8 @@ class _StoryTile extends StatelessWidget {
         ? Colors.white.withOpacity(isActive ? 0.09 : 0.0)
         : Colors.black.withOpacity(isActive ? 0.05 : 0.0);
 
-    final accentColor = AppColors.aqua;
+    // Active indicator colour follows the manual theme accent
+    final accentColor = context.watch<AtmosphereState>().accentColor;
 
     return GestureDetector(
       onTap: onTap,

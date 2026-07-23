@@ -59,6 +59,10 @@ class AtmosphereState extends ChangeNotifier {
   bool _isDynamicTheme = true;
   bool get isDynamicTheme => _isDynamicTheme;
 
+  // ── Manual theme (persisted override — bg only; painters still layer) ─────
+  String? _manualTheme;
+  String? get manualTheme => _manualTheme;
+
   // ── Internal ──────────────────────────────────────────────────────────────
   Timer? _minuteTimer;
 
@@ -71,6 +75,7 @@ class AtmosphereState extends ChangeNotifier {
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
     _isDynamicTheme = prefs.getBool('isDynamicTheme') ?? true;
+    _manualTheme = prefs.getString('manualTheme');
     _tick(); // Compute immediately
     _minuteTimer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
     // Fetch weather now and refresh every 30 minutes
@@ -83,6 +88,18 @@ class AtmosphereState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isDynamicTheme', value);
+  }
+
+  /// Persist a manual theme key (or null to restore dynamic mode).
+  Future<void> setManualTheme(String? key) async {
+    _manualTheme = key;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    if (key == null) {
+      await prefs.remove('manualTheme');
+    } else {
+      await prefs.setString('manualTheme', key);
+    }
   }
 
   @override
@@ -298,6 +315,11 @@ class AtmosphereState extends ChangeNotifier {
     if (_isComfortMode) {
       return dark ? AppColors.comfortDark : AppColors.comfortLight;
     }
+    // Manual theme overrides bg; atmosphere painters still layer on top
+    if (_manualTheme != null) {
+      final bg = AppColors.manualThemeBg(_manualTheme!, dark);
+      if (bg != null) return bg;
+    }
     if (!_isDynamicTheme) {
       return dark ? AppColors.normalDark : AppColors.normalLight;
     }
@@ -305,8 +327,20 @@ class AtmosphereState extends ChangeNotifier {
   }
 
   /// Color for the Sun/Moon indicator icon.
+  /// Accent color for interactive elements — manual theme or default aqua.
+  Color get accentColor {
+    if (_manualTheme != null) {
+      return AppColors.manualThemeAccent(_manualTheme!);
+    }
+    return AppColors.aqua;
+  }
+
   Color sunMoonColor() {
     final isDay = _isDayTime();
+    // Manual theme: use its accent for the sun/moon indicator
+    if (_manualTheme != null) {
+      return AppColors.manualThemeAccent(_manualTheme!).withOpacity(0.88);
+    }
     return AppColors.sunMoonColor(_current, isDay);
   }
 
@@ -330,5 +364,5 @@ class AtmosphereState extends ChangeNotifier {
   /// Unique key string for AtmosphereOverlay to force rebuild on change.
   /// Combines atmosphere + comfort mode so painters always re-render.
   String get overlayKey =>
-      '${_isComfortMode ? "Comfort" : _current}_${_isDayTime()}';
+      '${_isComfortMode ? "Comfort" : _current}_${_isDayTime()}_${_manualTheme ?? ""}';
 }
