@@ -275,11 +275,16 @@ void _setupLock(BuildContext context) async {
     );
   }
 
-  void _showLockOptions(BuildContext context, AppState appState) {
+  void _showLockOptions(BuildContext context, AppState appState) async {
     final isDark = appState.isDarkMode;
     final bg = isDark ? AppColors.warmDark : AppColors.warmWhite;
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
+
+    // Pre-fetch bio state before showing the sheet
+    final bioAvailable = await LockService.instance.isBiometricAvailable();
+    bool bioEnabled = await LockService.instance.isBiometricEnabled();
+    if (!context.mounted) return;
 
     showModalBottomSheet<void>(
       context: context,
@@ -287,41 +292,80 @@ void _setupLock(BuildContext context) async {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            ListTile(
-              leading: Icon(Icons.edit_outlined, color: mutedColor),
-              title: Text('Change PIN',
-                  style: GoogleFonts.inter(fontSize: 15, color: textColor)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await Future.delayed(const Duration(milliseconds: 150));
-                if (context.mounted) {
-                  await Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          const PinSetupScreen(mode: PinSetupMode.change),
-                    ),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.lock_open_outlined,
-                  color: AppColors.danger),
-              title: Text('Remove App Lock',
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setSheetState) => SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+
+              // Change PIN
+              ListTile(
+                leading: Icon(Icons.edit_outlined, color: mutedColor),
+                title: Text('Change PIN',
+                    style: GoogleFonts.inter(fontSize: 15, color: textColor)),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await Future.delayed(const Duration(milliseconds: 150));
+                  if (context.mounted) {
+                    await Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            const PinSetupScreen(mode: PinSetupMode.change),
+                      ),
+                    );
+                  }
+                },
+              ),
+
+              // Biometric toggle — only shown when hardware is present
+              if (bioAvailable)
+                ListTile(
+                  leading: Icon(
+                    Icons.fingerprint_rounded,
+                    color: bioEnabled ? AppColors.aqua : mutedColor,
+                  ),
+                  title: Text(
+                    'Biometric Unlock',
+                    style: GoogleFonts.inter(fontSize: 15, color: textColor),
+                  ),
+                  subtitle: Text(
+                    bioEnabled
+                        ? 'Fingerprint / Face ID active'
+                        : 'Enable fingerprint or Face ID',
+                    style: GoogleFonts.inter(fontSize: 12, color: mutedColor),
+                  ),
+                  trailing: Switch.adaptive(
+                    value: bioEnabled,
+                    onChanged: (v) async {
+                      await LockService.instance.setBiometricEnabled(v);
+                      setSheetState(() => bioEnabled = v);
+                    },
+                    activeThumbColor: AppColors.aqua,
+                    activeTrackColor: AppColors.aqua,
+                  ),
+                ),
+
+              // Remove lock
+              ListTile(
+                leading: const Icon(
+                  Icons.lock_open_outlined,
+                  color: AppColors.danger,
+                ),
+                title: Text(
+                  'Remove App Lock',
                   style: GoogleFonts.inter(
-                      fontSize: 15, color: AppColors.danger)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await _confirmRemoveLock(context, appState);
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
+                      fontSize: 15, color: AppColors.danger),
+                ),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await _confirmRemoveLock(context, appState);
+                },
+              ),
+
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );

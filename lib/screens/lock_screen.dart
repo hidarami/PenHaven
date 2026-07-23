@@ -7,6 +7,7 @@ import '../services/auth_service.dart';
 import '../services/lock_service.dart';
 import '../theme/app_colors.dart';
 import 'lock/lock_numpad.dart';
+import 'lock/recovery_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LOCK SCREEN
@@ -29,6 +30,8 @@ class _LockScreenState extends State<LockScreen> {
   String _pinInput = '';
   bool _pinError = false;
   String? _statusMessage;
+  bool _bioAvailable = false; // hardware present + enrolled
+  bool _bioEnabled = false;   // user opted in during PIN setup
 
   @override
   void initState() {
@@ -37,13 +40,19 @@ class _LockScreenState extends State<LockScreen> {
   }
 
   Future<void> _checkBiometricSetting() async {
+    // Check both hardware availability and user preference
+    final bioAvailable = await LockService.instance.isBiometricAvailable();
     final bioEnabled = await LockService.instance.isBiometricEnabled();
     if (mounted) {
-      // If biometric is not enabled, show PIN entry immediately
-      if (!bioEnabled) {
+      setState(() {
+        _bioAvailable = bioAvailable;
+        _bioEnabled = bioEnabled;
+      });
+      if (!bioEnabled || !bioAvailable) {
+        // No bio configured — go straight to PIN
         setState(() => _showPinEntry = true);
       } else {
-        // Try biometric first
+        // Hardware available and user enabled — try bio first
         _tryBiometricUnlock();
       }
     }
@@ -126,6 +135,8 @@ class _LockScreenState extends State<LockScreen> {
         attempting: _attempting,
         onDigit: _onDigit,
         onDelete: _onDelete,
+        showBiometric: _bioAvailable && _bioEnabled,
+        onBiometric: (_bioAvailable && _bioEnabled) ? _tryBiometricUnlock : null,
       );
     }
 
@@ -256,6 +267,8 @@ class _PinEntryView extends StatelessWidget {
   final bool attempting;
   final Function(String) onDigit;
   final VoidCallback onDelete;
+  final bool showBiometric;
+  final VoidCallback? onBiometric;
 
   const _PinEntryView({
     required this.pinInput,
@@ -264,6 +277,8 @@ class _PinEntryView extends StatelessWidget {
     required this.attempting,
     required this.onDigit,
     required this.onDelete,
+    this.showBiometric = false,
+    this.onBiometric,
   });
 
   @override
@@ -348,6 +363,42 @@ class _PinEntryView extends StatelessWidget {
             const SizedBox(height: 24),
 
             LockNumpad(onDigit: onDigit, onDelete: onDelete),
+
+            // ── Biometric retry (shown when bio is configured) ─────────────
+            if (showBiometric && onBiometric != null) ...[
+              const SizedBox(height: 16),
+              TextButton.icon(
+                onPressed: attempting ? null : onBiometric,
+                icon: const Icon(
+                  Icons.fingerprint_rounded,
+                  color: AppColors.aqua,
+                  size: 22,
+                ),
+                label: Text(
+                  'Use Biometric',
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    color: AppColors.aqua,
+                  ),
+                ),
+              ),
+            ],
+
+            // ── Forgot PIN recovery link ───────────────────────────────────
+            TextButton(
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => const RecoveryScreen(),
+                ),
+              ),
+              child: Text(
+                'Forgot PIN?',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.mutedDark.withOpacity(0.65),
+                ),
+              ),
+            ),
 
             const Spacer(),
           ],
