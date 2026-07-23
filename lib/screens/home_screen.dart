@@ -9,6 +9,7 @@ import '../providers/app_state.dart';
 import 'library/library_panel.dart';
 import 'story/story_panel.dart';
 import 'work_desk/work_desk_panel.dart';
+import 'community/community_panel.dart';
 import 'menu/menu_panel.dart';
 import 'home_persistent_ui.dart';
 import 'lock_screen.dart';
@@ -90,9 +91,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               controller: _pageController,
               physics: const BouncingScrollPhysics(),
               children: [
-                const LibraryPanel(), // Panel 0 — leftmost
-                const StoryPanel(), // Panel 1 — HOME (default)
-                const WorkDeskPanel(), // Panel 2 — rightmost
+                const LibraryPanel(),    // Panel 0 — leftmost
+                const StoryPanel(),      // Panel 1 — HOME (default)
+                const WorkDeskPanel(),   // Panel 2
+                const CommunityPanel(),  // Panel 3 — rightmost
               ],
             ),
 

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import 'providers/app_state.dart';
 import 'providers/atmosphere_state.dart';
 import 'providers/editor_state.dart';
+import 'providers/community_state.dart';
 import 'screens/splash_screen.dart';
 import 'services/supabase_service.dart';
 import 'services/notification_service.dart';
@@ -27,6 +28,7 @@ class FlowApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => AppState()),
         ChangeNotifierProvider(create: (_) => AtmosphereState()),
         ChangeNotifierProvider(create: (_) => EditorState()),
+        ChangeNotifierProvider(create: (_) => CommunityState()),
       ],
       child: Consumer<AppState>(
         builder: (context, appState, _) {

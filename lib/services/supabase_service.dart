@@ -5,6 +5,8 @@ import '../models/story.dart';
 import '../models/entry.dart';
 import '../models/todo.dart';
 import '../models/time_capsule.dart';
+import '../models/published_entry.dart';
+import '../models/community_comment.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUPABASE SERVICE
@@ -23,8 +25,8 @@ class SupabaseService {
   static final SupabaseService instance = SupabaseService._();
 
   // ── Replace these with your project credentials ───────────────────────────
-  static const String _supabaseUrl = 'YOUR_SUPABASE_URL';
-  static const String _supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  static const String _supabaseUrl = 'https://vjmzileqdrhxiklxqftv.supabase.co';
+  static const String _supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqbXppbGVxZHJoeGlrbHhxZnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MjM2NTMsImV4cCI6MjEwMDI5OTY1M30.4DLkLbMfJ67JeJGwjoJ9lXlIGMWAE_N0hEQD4Lm1HQo';
   // ─────────────────────────────────────────────────────────────────────────
 
   static Future<void> initialize() async {
@@ -211,4 +213,167 @@ class SupabaseService {
       debugPrint('[Supabase] upsertCapsule: $e');
     }
   }
+  // ─────────────────────────────────────────────────────────────────────────
+  // COMMUNITY
+  // ─────────────────────────────────────────────────────────────────────────
+
+  bool get isSupabaseConfigured =>
+      _supabaseUrl != 'YOUR_SUPABASE_URL' &&
+      _supabaseAnonKey != 'YOUR_SUPABASE_ANON_KEY';
+
+  Future<void> publishEntry({
+    required Entry entry,
+    bool isAnonymous = false,
+    String? displayName,
+  }) async {
+    if (!isAuthenticated) throw Exception('Not authenticated');
+    final map = {
+      'id': entry.id,
+      'user_id': userId,
+      'title': entry.title,
+      'content': entry.content,
+      'blocks_json': entry.blocksJson,
+      'is_anonymous': isAnonymous,
+      'display_name': isAnonymous ? null : displayName,
+    };
+    await _client?.from('published_entries').upsert(map);
+  }
+
+  Future<List<PublishedEntry>> getPublishedEntries({
+    int page = 0,
+    int limit = 20,
+  }) async {
+    try {
+      final from = page * limit;
+      final to = from + limit - 1;
+      final response = await _client
+          ?.from('published_entries')
+          .select()
+          .order('created_at', ascending: false)
+          .range(from, to);
+      if (response == null) return [];
+      return (response as List)
+          .map((e) => PublishedEntry.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[Supabase] getPublishedEntries: $e');
+      return [];
+    }
+  }
+
+  Future<List<PublishedEntry>> getMyPublishedEntries() async {
+    if (!isAuthenticated) return [];
+    try {
+      final response = await _client
+          ?.from('published_entries')
+          .select()
+          .eq('user_id', userId!)
+          .order('created_at', ascending: false);
+      if (response == null) return [];
+      return (response as List)
+          .map((e) => PublishedEntry.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[Supabase] getMyPublishedEntries: $e');
+      return [];
+    }
+  }
+
+  Future<void> clapEntry(String entryId) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client?.from('community_claps').insert({
+        'entry_id': entryId,
+        'user_id': userId,
+      });
+      await _client?.rpc('increment_clap_count', params: {'p_entry_id': entryId});
+    } catch (e) {
+      debugPrint('[Supabase] clapEntry: $e');
+    }
+  }
+
+  Future<void> removeClap(String entryId) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client
+          ?.from('community_claps')
+          .delete()
+          .eq('entry_id', entryId)
+          .eq('user_id', userId!);
+      await _client?.rpc('decrement_clap_count', params: {'p_entry_id': entryId});
+    } catch (e) {
+      debugPrint('[Supabase] removeClap: $e');
+    }
+  }
+
+  Future<Set<String>> getClappedEntryIds(List<String> entryIds) async {
+    if (!isAuthenticated || entryIds.isEmpty) return {};
+    try {
+      final response = await _client
+          ?.from('community_claps')
+          .select('entry_id')
+          .eq('user_id', userId!)
+          .inFilter('entry_id', entryIds);
+      if (response == null) return {};
+      return Set<String>.from(
+        (response as List).map((r) => r['entry_id'] as String),
+      );
+    } catch (e) {
+      return {};
+    }
+  }
+
+  Future<List<CommunityComment>> getCommunityComments(String entryId) async {
+    try {
+      final response = await _client
+          ?.from('community_comments')
+          .select()
+          .eq('entry_id', entryId)
+          .order('created_at', ascending: true);
+      if (response == null) return [];
+      return (response as List)
+          .map((e) => CommunityComment.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (e) {
+      debugPrint('[Supabase] getCommunityComments: $e');
+      return [];
+    }
+  }
+
+  Future<bool> addCommunityComment({
+    required String entryId,
+    required String body,
+    bool isAnonymous = false,
+    String? displayName,
+  }) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client?.from('community_comments').insert({
+        'entry_id': entryId,
+        'user_id': userId,
+        'body': body,
+        'is_anonymous': isAnonymous,
+        'display_name': isAnonymous ? null : displayName,
+      });
+      await _client?.rpc('increment_comment_count', params: {'p_entry_id': entryId});
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] addCommunityComment: $e');
+      return false;
+    }
+  }
+
+  Future<void> deletePublishedEntry(String entryId) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client
+          ?.from('published_entries')
+          .delete()
+          .eq('id', entryId)
+          .eq('user_id', userId!);
+    } catch (e) {
+      debugPrint('[Supabase] deletePublishedEntry: $e');
+    }
+  }
 }
+
