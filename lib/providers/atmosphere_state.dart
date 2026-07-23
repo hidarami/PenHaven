@@ -24,6 +24,8 @@ class Atmosphere {
   static const String rainy = 'Rainy';
   static const String foggy = 'Foggy';
   static const String snowy = 'Snowy';
+  static const String cloudy = 'Cloudy';
+  static const String stormy = 'Stormy';
 }
 
 class WeatherData {
@@ -116,6 +118,10 @@ class AtmosphereState extends ChangeNotifier {
           return Atmosphere.foggy;
         case 'snowy':
           return Atmosphere.snowy;
+        case 'cloudy':
+          return Atmosphere.cloudy;
+        case 'stormy':
+          return Atmosphere.stormy;
       }
     }
 
@@ -256,10 +262,14 @@ class AtmosphereState extends ChangeNotifier {
     if (code == 0) {
       return 'clear';
     }
-    // Partly cloudy (1-3): treat as clear for atmosphere purposes
-    if (code >= 1 && code <= 3) return 'clear';
-    // Thunderstorm (95-99): treat as rainy
-    if (code >= 95) return 'rainy';
+    // Partly cloudy (1-2): treat as clear for atmosphere
+    if (code >= 1 && code <= 2) return 'clear';
+    // Overcast (3): cloudy
+    if (code == 3) return 'cloudy';
+    // Thunderstorm (95-99): stormy
+    if (code >= 95) return 'stormy';
+    // Heavy rain (65, 67, 82): stormy
+    if (code == 65 || code == 67 || code == 82) return 'stormy';
     // Default
     return 'clear';
   }

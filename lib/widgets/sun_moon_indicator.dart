@@ -114,6 +114,13 @@ class _SunMoonIndicatorState extends State<SunMoonIndicator>
         return _FogPainter(color: color, pulse: pulse);
       case 'GoldenHour':
         return _GoldenHourPainter(color: color, pulse: pulse);
+      case 'Cloudy':
+        return isDay
+            ? _CloudyPainter(color: color, pulse: pulse)
+            : _CloudyNightPainter(color: color, pulse: pulse);
+      case 'Stormy':
+        return _ThunderstormPainter(
+            color: color, progress: rainProgress, pulse: pulse);
       default:
         if (isDay) {
           return _SunPainter(color: color, rotation: rotation, pulse: pulse);
@@ -246,43 +253,50 @@ class _RainPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
 
-    // Cloud shape
+    // Pulsing cloud glow
+    canvas.drawCircle(
+      Offset(center.dx, center.dy - 3),
+      12,
+      Paint()
+        ..color = color.withOpacity(0.08 + math.sin(progress * math.pi * 2) * 0.04)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
+    );
+
+    // Cloud — slightly larger and bolder
     final cloudPaint = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3
+      ..strokeWidth = 1.5
       ..strokeCap = StrokeCap.round;
 
     final cloudPath = Path();
-    cloudPath.moveTo(center.dx - 9, center.dy - 2);
-    cloudPath.arcToPoint(Offset(center.dx - 5, center.dy - 7),
+    cloudPath.moveTo(center.dx - 10, center.dy - 3);
+    cloudPath.arcToPoint(Offset(center.dx - 6, center.dy - 8),
         radius: const Radius.circular(5));
-    cloudPath.arcToPoint(Offset(center.dx + 1, center.dy - 8),
+    cloudPath.arcToPoint(Offset(center.dx + 1, center.dy - 9),
         radius: const Radius.circular(4));
-    cloudPath.arcToPoint(Offset(center.dx + 9, center.dy - 3),
-        radius: const Radius.circular(5));
-    cloudPath.arcToPoint(Offset(center.dx - 9, center.dy - 2),
-        radius: const Radius.circular(8), clockwise: false);
+    cloudPath.arcToPoint(Offset(center.dx + 10, center.dy - 3),
+        radius: const Radius.circular(5.5));
+    cloudPath.arcToPoint(Offset(center.dx - 10, center.dy - 3),
+        radius: const Radius.circular(9), clockwise: false);
     canvas.drawPath(cloudPath, cloudPaint);
 
-    // 3 animated rain drops
-    final dropPaint = Paint()
-      ..color = color
-      ..strokeWidth = 1.2
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
+    // 5 angled rain streaks — fast, visible, continuous
+    const xOff = [-8.0, -4.0, 0.0, 4.0, 8.0];
+    const delays = [0.0, 0.2, 0.4, 0.6, 0.8];
 
-    const dropOffsets = [-6.0, 0.0, 6.0];
-    const dropDelays = [0.0, 0.33, 0.66];
-
-    for (int i = 0; i < 3; i++) {
-      final phase = (progress + dropDelays[i]) % 1.0;
-      final y = center.dy + 2 + phase * 12;
-      final opacity = (1.0 - phase).clamp(0.0, 1.0);
+    for (int i = 0; i < 5; i++) {
+      final phase = (progress * 1.4 + delays[i]) % 1.0;
+      final y = center.dy + 2.0 + phase * 16.0;
+      final opacity = math.sin(phase * math.pi).clamp(0.15, 1.0);
       canvas.drawLine(
-        Offset(center.dx + dropOffsets[i] - 1, y),
-        Offset(center.dx + dropOffsets[i] + 1, y + 4),
-        dropPaint..color = color.withOpacity(opacity),
+        Offset(center.dx + xOff[i], y),
+        Offset(center.dx + xOff[i] + 1.5, y + 6.0),
+        Paint()
+          ..color = color.withOpacity(opacity * 0.95)
+          ..strokeWidth = 1.6
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke,
       );
     }
   }
@@ -443,4 +457,214 @@ class _GoldenHourPainter extends CustomPainter {
   @override
   bool shouldRepaint(_GoldenHourPainter old) =>
       old.pulse != pulse || old.color != color;
+}
+
+// ── Cloudy Day Painter ────────────────────────────────────────────────────────
+
+class _CloudyPainter extends CustomPainter {
+  final Color color;
+  final double pulse;
+
+  const _CloudyPainter({required this.color, required this.pulse});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final drift = math.sin(pulse * math.pi * 2) * 1.4;
+
+    // Back cloud — dimmer, drifts right
+    _drawCloud(canvas, Offset(cx + 4 + drift, cy - 1), 8.5,
+        Paint()
+          ..color = color.withOpacity(0.42)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.2
+          ..strokeCap = StrokeCap.round);
+
+    // Front cloud — solid, drifts left
+    _drawCloud(canvas, Offset(cx - 2 - drift * 0.4, cy + 2), 10.5,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.4
+          ..strokeCap = StrokeCap.round);
+  }
+
+  void _drawCloud(Canvas canvas, Offset c, double r, Paint paint) {
+    final path = Path();
+    path.moveTo(c.dx - r, c.dy);
+    path.arcToPoint(Offset(c.dx - r * 0.4, c.dy - r * 0.55),
+        radius: Radius.circular(r * 0.55));
+    path.arcToPoint(Offset(c.dx + r * 0.2, c.dy - r * 0.65),
+        radius: Radius.circular(r * 0.45));
+    path.arcToPoint(Offset(c.dx + r, c.dy),
+        radius: Radius.circular(r * 0.6));
+    path.arcToPoint(Offset(c.dx - r, c.dy),
+        radius: Radius.circular(r * 0.85), clockwise: false);
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(_CloudyPainter old) =>
+      old.pulse != pulse || old.color != color;
+}
+
+// ── Cloudy Night Painter ──────────────────────────────────────────────────────
+
+class _CloudyNightPainter extends CustomPainter {
+  final Color color;
+  final double pulse;
+
+  const _CloudyNightPainter({required this.color, required this.pulse});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+
+    // Moon glow (peeking through cloud)
+    canvas.drawCircle(
+      Offset(cx + 6, cy - 5),
+      11,
+      Paint()
+        ..color = color.withOpacity(0.11 + pulse * 0.07)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 9),
+    );
+
+    // Crescent moon — partially hidden behind cloud
+    final moonC = Offset(cx + 6, cy - 5);
+    final moonPath = Path()
+      ..addOval(Rect.fromCircle(center: moonC, radius: 7.5));
+    final maskPath = Path()
+      ..addOval(
+          Rect.fromCircle(center: Offset(moonC.dx + 5, moonC.dy - 1), radius: 7.0));
+    final crescent = Path.combine(PathOperation.difference, moonPath, maskPath);
+    canvas.drawPath(
+        crescent, Paint()..color = color..style = PaintingStyle.fill);
+
+    // Cloud drifting over moon
+    final drift = math.sin(pulse * math.pi * 2) * 0.9;
+    final cloudPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.3
+      ..strokeCap = StrokeCap.round;
+
+    final base = Offset(cx - 1 + drift, cy + 3);
+    final cloudPath = Path();
+    cloudPath.moveTo(base.dx - 10, base.dy);
+    cloudPath.arcToPoint(Offset(base.dx - 5, base.dy - 6),
+        radius: const Radius.circular(5.5));
+    cloudPath.arcToPoint(Offset(base.dx + 2, base.dy - 7),
+        radius: const Radius.circular(4.5));
+    cloudPath.arcToPoint(Offset(base.dx + 10, base.dy),
+        radius: const Radius.circular(5.5));
+    cloudPath.arcToPoint(Offset(base.dx - 10, base.dy),
+        radius: const Radius.circular(9), clockwise: false);
+    canvas.drawPath(cloudPath, cloudPaint);
+  }
+
+  @override
+  bool shouldRepaint(_CloudyNightPainter old) =>
+      old.pulse != pulse || old.color != color;
+}
+
+// ── Thunderstorm Painter ──────────────────────────────────────────────────────
+
+class _ThunderstormPainter extends CustomPainter {
+  final Color color;
+  final double progress; // rain animation 0–1
+  final double pulse;    // lightning flash trigger
+
+  const _ThunderstormPainter({
+    required this.color,
+    required this.progress,
+    required this.pulse,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+
+    // Storm cloud glow
+    canvas.drawCircle(
+      Offset(center.dx, center.dy - 4),
+      14,
+      Paint()
+        ..color = color.withOpacity(0.11)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
+    );
+
+    // Heavy cloud — thicker stroke
+    final cloudPaint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.7
+      ..strokeCap = StrokeCap.round;
+
+    final cloudPath = Path();
+    cloudPath.moveTo(center.dx - 10, center.dy - 3);
+    cloudPath.arcToPoint(Offset(center.dx - 6, center.dy - 8.5),
+        radius: const Radius.circular(5));
+    cloudPath.arcToPoint(Offset(center.dx + 1, center.dy - 9.5),
+        radius: const Radius.circular(4.5));
+    cloudPath.arcToPoint(Offset(center.dx + 10, center.dy - 3),
+        radius: const Radius.circular(5.5));
+    cloudPath.arcToPoint(Offset(center.dx - 10, center.dy - 3),
+        radius: const Radius.circular(9), clockwise: false);
+    canvas.drawPath(cloudPath, cloudPaint);
+
+    // 5 heavy rain streaks (faster than normal rain)
+    const xOff = [-7.5, -3.5, 0.5, 4.0, 8.0];
+    const delays = [0.0, 0.2, 0.4, 0.6, 0.8];
+    for (int i = 0; i < 5; i++) {
+      final phase = (progress * 1.6 + delays[i]) % 1.0;
+      final y = center.dy + 2.0 + phase * 15.0;
+      final op = math.sin(phase * math.pi).clamp(0.1, 1.0);
+      canvas.drawLine(
+        Offset(center.dx + xOff[i], y),
+        Offset(center.dx + xOff[i] + 2.0, y + 6.5),
+        Paint()
+          ..color = color.withOpacity(op * 0.95)
+          ..strokeWidth = 1.7
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke,
+      );
+    }
+
+    // Lightning bolt — flashes when pulse > 0.62 (~once per 3s cycle)
+    if (pulse > 0.62) {
+      final flash = ((pulse - 0.62) / 0.38).clamp(0.0, 1.0);
+
+      final boltPath = Path()
+        ..moveTo(center.dx + 2, center.dy - 1)
+        ..lineTo(center.dx - 2, center.dy + 4)
+        ..lineTo(center.dx + 1.5, center.dy + 4)
+        ..lineTo(center.dx - 3, center.dy + 10);
+
+      // Glow pass
+      canvas.drawPath(
+        boltPath,
+        Paint()
+          ..color = const Color(0xFFFFEE55).withOpacity(flash * 0.30)
+          ..strokeWidth = 6
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 5),
+      );
+      // Core bolt
+      canvas.drawPath(
+        boltPath,
+        Paint()
+          ..color = const Color(0xFFFFEE55).withOpacity(flash * 0.92)
+          ..strokeWidth = 1.6
+          ..strokeCap = StrokeCap.round
+          ..style = PaintingStyle.stroke,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ThunderstormPainter old) =>
+      old.progress != progress || old.pulse != pulse || old.color != color;
 }

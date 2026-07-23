@@ -60,6 +60,10 @@ class AppColors {
   static const Color rainyDark = Color(0xFF0D1220);
   static const Color foggyDark = Color(0xFF141414);
   static const Color snowyDark = Color(0xFF0F1220);
+  static const Color cloudyLight = Color(0xFFEAEAEE);
+  static const Color cloudyDark = Color(0xFF18181E);
+  static const Color stormyLight = Color(0xFFD2D6E2);
+  static const Color stormyDark = Color(0xFF090A14);
   static const Color normalDark = warmDark;
 
   // ── Sun/Moon Indicator Colors ──────────────────────────────────────────────
@@ -103,6 +107,10 @@ class AppColors {
         return dark ? foggyDark : foggyLight;
       case 'Snowy':
         return dark ? snowyDark : snowyLight;
+      case 'Cloudy':
+        return dark ? cloudyDark : cloudyLight;
+      case 'Stormy':
+        return dark ? stormyDark : stormyLight;
       case 'Comfort':
         return dark ? comfortDark : comfortLight;
       default:
@@ -122,8 +130,15 @@ class AppColors {
 
   /// Sun/moon indicator color for the current [atmosphere] and [isDay].
   static Color sunMoonColor(String atmosphere, bool isDay) {
-    if (!isDay) return moonNight;
+    if (!isDay) {
+      if (atmosphere == 'Stormy' || atmosphere == 'Cloudy') {
+        return const Color(0xFF6B7088);
+      }
+      return moonNight;
+    }
     if (atmosphere == 'Golden3PM') return sunGolden3pm;
+    if (atmosphere == 'Cloudy') return const Color(0xFF8890A0);
+    if (atmosphere == 'Stormy') return const Color(0xFF505868);
     final hour = DateTime.now().hour;
     if (hour >= 6 && hour < 10) return sunMorning;
     return sunDaytime;

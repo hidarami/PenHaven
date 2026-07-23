@@ -11,6 +11,7 @@ import '../data/story_dao.dart';
 import '../data/entry_dao.dart';
 import '../data/todo_dao.dart';
 import '../data/capsule_dao.dart';
+import '../services/notification_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APP STATE
@@ -373,6 +374,13 @@ class AppState extends ChangeNotifier {
     final todo = Todo(title: title, deadline: deadline);
     await TodoDao.instance.insert(todo);
     _activeTodos.add(todo);
+    if (deadline != null) {
+      NotificationService.instance.scheduleTaskDeadline(
+        taskId: todo.id,
+        title: title,
+        deadline: deadline,
+      );
+    }
     notifyListeners();
     return todo;
   }
@@ -432,6 +440,15 @@ class AppState extends ChangeNotifier {
 
   Future<void> _loadTimeCapsules() async {
     _timeCapsules = await CapsuleDao.instance.getAllCapsules();
+    // Notify if any capsules are ready and not yet opened
+    final ready = _timeCapsules
+        .where((c) => c.isReadyToOpen && !c.isOpened)
+        .toList();
+    if (ready.isNotEmpty) {
+      NotificationService.instance.showTimeCapsuleReady(
+        ready.first.message,
+      );
+    }
   }
 
   Future<void> _loadTimeCapsuleEntries() async {

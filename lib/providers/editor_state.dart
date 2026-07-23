@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 
+import 'package:flutter/services.dart';
 import 'atmosphere_state.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -180,6 +181,7 @@ class EditorState extends ChangeNotifier {
   }
 
   void _triggerMilestone(int words) {
+    HapticFeedback.mediumImpact();
     _milestoneWords = words;
     _showMilestone = true;
     notifyListeners();

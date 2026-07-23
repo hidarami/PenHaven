@@ -231,11 +231,14 @@ class RainyPainter extends CustomPainter {
         _paintFoggy(canvas, size, rect);
       case 'Snowy':
         _paintSnowy(canvas, size, rect);
+      case 'Stormy':
+        _paintStormy(canvas, size, rect);
+      case 'Cloudy':
+        _paintCloudy(canvas, size, rect);
     }
   }
 
   void _paintRainy(Canvas canvas, Size size, Rect rect) {
-    // Desaturated blue-grey overlay
     final paint = Paint()
       ..shader = LinearGradient(
         begin: Alignment.topCenter,
@@ -246,6 +249,35 @@ class RainyPainter extends CustomPainter {
           Colors.transparent,
         ],
         stops: const [0.0, 0.5, 1.0],
+      ).createShader(rect);
+    canvas.drawRect(rect, paint);
+  }
+
+  void _paintStormy(Canvas canvas, Size size, Rect rect) {
+    final paint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          const Color(0xFF3A4560).withOpacity(isDark ? 0.22 : 0.16),
+          const Color(0xFF252E48).withOpacity(isDark ? 0.12 : 0.08),
+          Colors.transparent,
+        ],
+        stops: const [0.0, 0.55, 1.0],
+      ).createShader(rect);
+    canvas.drawRect(rect, paint);
+  }
+
+  void _paintCloudy(Canvas canvas, Size size, Rect rect) {
+    final paint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(0.0, -0.8),
+        radius: 1.1,
+        colors: [
+          (isDark ? const Color(0xFF8888AA) : const Color(0xFFBBBBCC))
+              .withOpacity(isDark ? 0.08 : 0.10),
+          Colors.transparent,
+        ],
       ).createShader(rect);
     canvas.drawRect(rect, paint);
   }

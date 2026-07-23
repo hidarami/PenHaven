@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 
+import 'package:flutter/services.dart';
 import '../../data/capsule_dao.dart';
 import '../../models/period_log.dart';
 import '../../providers/app_state.dart';
@@ -103,6 +104,7 @@ class _PeriodTrackerScreenState extends State<PeriodTrackerScreen> {
   // ── Actions ───────────────────────────────────────────────────────────────
 
   Future<void> _startPeriod() async {
+    HapticFeedback.mediumImpact();
     await context.read<AppState>().startPeriod();
     await _loadLogs();
   }
