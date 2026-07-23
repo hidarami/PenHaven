@@ -3,7 +3,10 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../services/image_service.dart';
+import '../../services/permission_service.dart';
 
 import '../../models/entry.dart';
 import '../../models/published_entry.dart';
@@ -278,6 +281,7 @@ class _ProfileAvatar extends StatefulWidget {
 
 class _ProfileAvatarState extends State<_ProfileAvatar> {
   String? _displayName;
+  String? _imagePath;
 
   @override
   void initState() {
@@ -288,13 +292,21 @@ class _ProfileAvatarState extends State<_ProfileAvatar> {
   Future<void> _load() async {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString('communityDisplayName');
-    if (mounted) setState(() => _displayName = stored);
+    final img = prefs.getString('communityProfileImage');
+    if (mounted) setState(() { _displayName = stored; _imagePath = img; });
   }
 
   @override
   Widget build(BuildContext context) {
     final label = _displayName ?? widget.email.split('@').first;
     final initial = label.isNotEmpty ? label[0].toUpperCase() : '?';
+
+    if (_imagePath != null && File(_imagePath!).existsSync()) {
+      return ClipOval(
+        child: Image.file(File(_imagePath!), width: 36, height: 36, fit: BoxFit.cover),
+      );
+    }
+
     return Container(
       width: 36,
       height: 36,
@@ -306,11 +318,7 @@ class _ProfileAvatarState extends State<_ProfileAvatar> {
       child: Center(
         child: Text(
           initial,
-          style: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: widget.accentColor,
-          ),
+          style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: widget.accentColor),
         ),
       ),
     );
@@ -344,6 +352,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   late TextEditingController _nameCtrl;
   bool _saving = false;
   bool _saved = false;
+  String? _imagePath;
 
   @override
   void initState() {
@@ -356,7 +365,24 @@ class _ProfileSheetState extends State<_ProfileSheet> {
     final prefs = await SharedPreferences.getInstance();
     final stored = prefs.getString('communityDisplayName') ??
         widget.email.split('@').first;
-    if (mounted) _nameCtrl.text = stored;
+    final img = prefs.getString('communityProfileImage');
+    if (mounted) setState(() { _nameCtrl.text = stored; _imagePath = img; });
+  }
+
+  Future<void> _pickProfileImage() async {
+    final ok = await PermissionService.instance.ensurePhotos(context);
+    if (!ok || !mounted) return;
+    final path = await ImageService.instance.pickAndSave(
+      context: context,
+      allowCrop: true,
+      cropAspectRatioX: 1,
+      cropAspectRatioY: 1,
+    );
+    if (path != null && mounted) {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('communityProfileImage', path);
+      setState(() => _imagePath = path);
+    }
   }
 
   Future<void> _save() async {
@@ -396,7 +422,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Handle
+            // Drag handle
             Center(
               child: Container(
                 width: 36,
@@ -408,6 +434,40 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                 ),
               ),
             ),
+
+            // Profile photo picker
+            Center(
+              child: GestureDetector(
+                onTap: _pickProfileImage,
+                child: Stack(
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: cardBg,
+                        border: Border.all(color: AppColors.aqua.withOpacity(0.4), width: 2),
+                      ),
+                      child: _imagePath != null && File(_imagePath!).existsSync()
+                          ? ClipOval(child: Image.file(File(_imagePath!), width: 72, height: 72, fit: BoxFit.cover))
+                          : Center(child: Icon(Icons.person_rounded, size: 36, color: widget.mutedColor)),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(color: AppColors.aqua, shape: BoxShape.circle),
+                        child: const Icon(Icons.camera_alt_rounded, size: 12, color: Colors.white),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
 
             // Email row
             Container(

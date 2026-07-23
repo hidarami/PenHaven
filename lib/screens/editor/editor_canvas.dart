@@ -1355,6 +1355,18 @@ class _ChecklistBlockWidgetState extends State<_ChecklistBlockWidget> {
                       ),
                     ),
             ),
+            if (widget.isEditing && widget.onRemove != null)
+              GestureDetector(
+                onTap: widget.onRemove,
+                child: Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: Icon(
+                    Icons.close_rounded,
+                    size: 16,
+                    color: mutedColor.withOpacity(0.35),
+                  ),
+                ),
+              ),
           ],
         ),
       ),

@@ -261,8 +261,62 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
   void _toggleBlockType(BlockType type) {
     final id = widget.canvas.focusedBlockId;
     if (id == null) return;
+
+    if (type == BlockType.quote) {
+      final ctrl = widget.canvas.focusedController;
+      if (ctrl != null && !ctrl.selection.isCollapsed && ctrl.selection.isValid) {
+        _extractSelectionAsType(id, ctrl, BlockType.quote);
+        return;
+      }
+    }
+
     final current = _isFocusedType(type) ? BlockType.text : type;
     widget.canvas.changeBlockType(id, current);
+    setState(() {});
+  }
+
+  void _extractSelectionAsType(
+      String blockId, RichEditorController ctrl, BlockType type) {
+    final sel = ctrl.selection;
+    if (!sel.isValid || sel.isCollapsed) return;
+    final text = ctrl.text;
+    final selected = text.substring(sel.start, sel.end).trim();
+    if (selected.isEmpty) return;
+
+    final before = text.substring(0, sel.start).trimRight();
+    final after = text.substring(sel.end).trimLeft();
+
+    final blocks = widget.canvas.blocks;
+    final origBlock = blocks.firstWhere(
+      (b) => b.id == blockId,
+      orElse: () => TextBlock.empty(),
+    );
+    if (origBlock is! TextBlock) return;
+
+    final quoteBlock =
+        TextBlock(id: const Uuid().v4(), type: type, text: selected);
+
+    if (before.isNotEmpty) {
+      widget.canvas.updateBlock(origBlock.copyWith(text: before));
+      widget.canvas.insertBlockAfter(blockId, quoteBlock);
+    } else {
+      widget.canvas.insertBlockAfter(blockId, quoteBlock);
+      widget.canvas.removeBlock(blockId);
+    }
+
+    if (after.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          widget.canvas.insertBlockAfter(
+            quoteBlock.id,
+            TextBlock(
+                id: const Uuid().v4(), type: BlockType.text, text: after),
+          );
+          setState(() {});
+        }
+      });
+    }
+
     setState(() {});
   }
 

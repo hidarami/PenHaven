@@ -1,6 +1,9 @@
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/entry.dart';
@@ -10,9 +13,10 @@ import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 import '../editor/editor_screen.dart';
-import '../community/community_entry_viewer.dart';
 import '../../services/supabase_service.dart';
 import '../../models/published_entry.dart';
+import '../../models/community_comment.dart';
+import '../../providers/community_state.dart';
 import 'entry_header_image.dart';
 import 'entry_content.dart';
 import 'entry_footer.dart';
@@ -191,6 +195,9 @@ class _PublishedStatsPill extends StatefulWidget {
 class _PublishedStatsPillState extends State<_PublishedStatsPill> {
   PublishedEntry? _pub;
   bool _loaded = false;
+  bool _hasClapped = false;
+  int _clapCount = 0;
+  int _commentCount = 0;
 
   @override
   void initState() {
@@ -204,14 +211,46 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
       return;
     }
     final pub = await SupabaseService.instance.getPublishedEntry(widget.entryId);
-    if (mounted) setState(() { _pub = pub; _loaded = true; });
+    if (mounted) {
+      setState(() {
+        _pub = pub;
+        _loaded = true;
+        if (pub != null) {
+          _hasClapped = pub.hasClapped;
+          _clapCount = pub.clapCount;
+          _commentCount = pub.commentCount;
+        }
+      });
+    }
+  }
+
+  void _handleClap(BuildContext ctx) {
+    if (!SupabaseService.instance.isAuthenticated || _pub == null) return;
+    HapticFeedback.lightImpact();
+    final was = _hasClapped;
+    setState(() {
+      _hasClapped = !was;
+      _clapCount = (_clapCount + (was ? -1 : 1)).clamp(0, 999999);
+    });
+    ctx.read<CommunityState>().toggleClap(_pub!.id);
+  }
+
+  void _showComments(BuildContext ctx) {
+    if (_pub == null) return;
+    showModalBottomSheet<void>(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _InlineCommentsSheet(
+        entryId: _pub!.id,
+        onCommentAdded: () => setState(() => _commentCount++),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // Only show if loaded and published by current user
     if (!_loaded || _pub == null) return const SizedBox.shrink();
-
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return Positioned(
@@ -219,89 +258,303 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
       left: 0,
       right: 0,
       child: Center(
-        child: GestureDetector(
-          onTap: () => Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: _pub!)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(32),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.13),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 20, offset: const Offset(0, 4)),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // ── Clap button ──────────────────────────────────────
+                  GestureDetector(
+                    onTap: () => _handleClap(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 200),
+                            child: Icon(
+                              _hasClapped
+                                  ? Icons.volunteer_activism_rounded
+                                  : Icons.volunteer_activism_outlined,
+                              key: ValueKey(_hasClapped),
+                              size: 17,
+                              color: _hasClapped
+                                  ? const Color(0xFFFFD700)
+                                  : Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            '$_clapCount',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Divider
+                  Container(width: 0.5, height: 16, color: Colors.white.withOpacity(0.35)),
+                  // ── Comment button ───────────────────────────────────
+                  GestureDetector(
+                    onTap: () => _showComments(context),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.chat_bubble_outline_rounded, size: 15, color: Colors.white.withOpacity(0.9)),
+                          const SizedBox(width: 5),
+                          Text(
+                            '$_commentCount',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white.withOpacity(0.9),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  // Divider
+                  Container(width: 0.5, height: 16, color: Colors.white.withOpacity(0.35)),
+                  // Published label
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.public_rounded, size: 13, color: Colors.white.withOpacity(0.7)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Published',
+                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.7)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(32),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INLINE COMMENTS SHEET
+// Bottom sheet for reading and adding comments without leaving the entry.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InlineCommentsSheet extends StatefulWidget {
+  final String entryId;
+  final VoidCallback? onCommentAdded;
+
+  const _InlineCommentsSheet({required this.entryId, this.onCommentAdded});
+
+  @override
+  State<_InlineCommentsSheet> createState() => _InlineCommentsSheetState();
+}
+
+class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
+  List<CommunityComment> _comments = [];
+  bool _loading = true;
+  final _ctrl = TextEditingController();
+  bool _isAnon = false;
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadComments();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadComments() async {
+    try {
+      final c = await SupabaseService.instance.getCommunityComments(widget.entryId);
+      if (mounted) setState(() { _comments = c; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _submit() async {
+    final body = _ctrl.text.trim();
+    if (body.isEmpty || _submitting) return;
+    if (!SupabaseService.instance.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign in to comment.')));
+      return;
+    }
+    setState(() => _submitting = true);
+    final email = SupabaseService.instance.userEmail;
+    final displayName = _isAnon ? null : email?.split('@').first;
+    final ok = await context.read<CommunityState>().addComment(
+      entryId: widget.entryId,
+      body: body,
+      isAnonymous: _isAnon,
+      displayName: displayName,
+    );
+    if (ok && mounted) {
+      _ctrl.clear();
+      widget.onCommentAdded?.call();
+      await _loadComments();
+    }
+    if (mounted) setState(() => _submitting = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = context.watch<AppState>().isDarkMode;
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = dark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+    final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
+    final cardBg = dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.35,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (ctx, sc) => Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: mutedColor.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  Text('Responses', style: GoogleFonts.crimsonPro(fontSize: 22, fontWeight: FontWeight.w700, color: textColor)),
+                  const Spacer(),
+                  if (_loading) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Divider(color: divColor, height: 1),
+            // Input box
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.13),
-                  borderRadius: BorderRadius.circular(32),
-                  border: Border.all(
-                    color: Colors.white.withOpacity(0.25), width: 0.5),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.10),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: divColor.withOpacity(0.5))),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Clap count
-                    Icon(
-                      _pub!.hasClapped
-                          ? Icons.volunteer_activism_rounded
-                          : Icons.volunteer_activism_outlined,
-                      size: 17,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${_pub!.clapCount}',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.9),
+                    TextField(
+                      controller: _ctrl,
+                      maxLines: 3,
+                      minLines: 1,
+                      style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.5),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        hintText: 'Share your thoughts...',
+                        hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor, fontStyle: FontStyle.italic),
                       ),
                     ),
-                    // Divider
-                    Container(
-                      width: 0.5, height: 16,
-                      margin: const EdgeInsets.symmetric(horizontal: 14),
-                      color: Colors.white.withOpacity(0.35),
-                    ),
-                    // Comment count
-                    Icon(Icons.chat_bubble_outline_rounded,
-                        size: 15, color: Colors.white.withOpacity(0.9)),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${_pub!.commentCount}',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                    // Published label
-                    Container(
-                      width: 0.5, height: 16,
-                      margin: const EdgeInsets.symmetric(horizontal: 14),
-                      color: Colors.white.withOpacity(0.35),
-                    ),
-                    Icon(Icons.public_rounded,
-                        size: 13, color: Colors.white.withOpacity(0.7)),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Published',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.white.withOpacity(0.7),
-                      ),
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => setState(() => _isAnon = !_isAnon),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              width: 14, height: 14,
+                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: _isAnon ? AppColors.aqua : Colors.transparent, border: Border.all(color: _isAnon ? AppColors.aqua : mutedColor.withOpacity(0.5), width: 1.5)),
+                              child: _isAnon ? const Icon(Icons.check, size: 10, color: Colors.white) : null,
+                            ),
+                            const SizedBox(width: 5),
+                            Text('Anonymous', style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                          ]),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: _submitting ? null : _submit,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                            decoration: BoxDecoration(color: AppColors.aqua.withOpacity(0.12), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.aqua.withOpacity(0.4))),
+                            child: _submitting
+                                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.aqua))
+                                : Text('Post', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
               ),
             ),
-          ),
+            Divider(color: divColor, height: 1),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _comments.isEmpty
+                      ? Center(child: Text('No responses yet.', style: GoogleFonts.crimsonPro(fontSize: 16, fontStyle: FontStyle.italic, color: mutedColor)))
+                      : ListView.separated(
+                          controller: sc,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                          itemCount: _comments.length,
+                          separatorBuilder: (_, __) => Divider(color: divColor.withOpacity(0.5), height: 20),
+                          itemBuilder: (_, i) {
+                            final c = _comments[i];
+                            final diff = DateTime.now().difference(c.createdAt);
+                            final ago = diff.inMinutes < 60 ? '${diff.inMinutes}m ago'
+                                : diff.inHours < 24 ? '${diff.inHours}h ago'
+                                : diff.inDays < 7 ? '${diff.inDays}d ago'
+                                : DateFormat('MMM d').format(c.createdAt);
+                            const colors = [Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A), Color(0xFF9472D4), Color(0xFFE87FA0)];
+                            final avatarColor = colors[c.authorLabel.codeUnits.fold(0, (a, b) => a + b) % colors.length];
+                            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                              Container(width: 28, height: 28, decoration: BoxDecoration(color: avatarColor, shape: BoxShape.circle),
+                                  child: Center(child: Text(c.authorLabel.isNotEmpty ? c.authorLabel[0].toUpperCase() : '?', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)))),
+                              const SizedBox(width: 10),
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Row(children: [
+                                  Text(c.authorLabel, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+                                  const SizedBox(width: 6),
+                                  Text(ago, style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                                ]),
+                                const SizedBox(height: 3),
+                                Text(c.body, style: GoogleFonts.inter(fontSize: 14, color: textColor.withOpacity(0.85), height: 1.5)),
+                              ])),
+                            ]);
+                          },
+                        ),
+            ),
+          ],
         ),
       ),
     );

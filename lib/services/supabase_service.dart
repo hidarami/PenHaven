@@ -328,6 +328,7 @@ class SupabaseService {
       'blocks_json': entry.blocksJson,
       'is_anonymous': isAnonymous,
       'display_name': isAnonymous ? null : displayName,
+      'header_image': entry.headerImage,
     };
     await _client?.from('published_entries').upsert(map);
   }

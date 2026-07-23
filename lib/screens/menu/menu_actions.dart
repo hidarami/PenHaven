@@ -6,6 +6,7 @@ import '../../providers/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../settings/settings_screen.dart';
 import '../search/search_screen.dart';
+import '../work_desk/time_capsule_sheet.dart';
 
 /// Bottom action rows inside the menu panel.
 /// Covers: Archived Tasks, Deleted Entries (Bin), Settings, Lock app.
@@ -37,6 +38,24 @@ class MenuActions extends StatelessWidget {
                 letterSpacing: 2.0,
               ),
             ),
+          ),
+
+          // Time Capsule
+          _ActionTile(
+            icon: Icons.hourglass_empty_rounded,
+            label: 'Time Capsule',
+            isDark: isDark,
+            textColor: textColor,
+            mutedColor: mutedColor,
+            onTap: () {
+              Navigator.of(context).pop();
+              showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => const TimeCapsuleSheet(),
+              );
+            },
           ),
 
           // Search

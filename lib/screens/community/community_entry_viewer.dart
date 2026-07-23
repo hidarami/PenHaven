@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -42,11 +43,17 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   Timer? _hideTimer;
   final ScrollController _scrollCtrl = ScrollController();
   double _readProgress = 0;
+  bool _hasClapped = false;
+  int _clapCount = 0;
+  int _commentCount = 0;
 
   @override
   void initState() {
     super.initState();
     _entry = widget.entry;
+    _hasClapped = _entry.hasClapped;
+    _clapCount = _entry.clapCount;
+    _commentCount = _entry.commentCount;
     _schedulePillHide();
     _scrollCtrl.addListener(_onScroll);
   }
@@ -137,7 +144,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
 
     if (ok && mounted) {
       _commentCtrl.clear();
-      _entry.commentCount++;
+      setState(() => _commentCount++);
       await _loadComments();
     }
     if (mounted) setState(() => _submittingComment = false);
@@ -151,13 +158,12 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
       return;
     }
     HapticFeedback.lightImpact();
-    context.read<CommunityState>().toggleClap(_entry.id);
+    final was = _hasClapped;
     setState(() {
-      final was = _entry.hasClapped;
-      _entry.hasClapped = !was;
-      _entry.clapCount =
-          (_entry.clapCount + (was ? -1 : 1)).clamp(0, 999999);
+      _hasClapped = !was;
+      _clapCount = (_clapCount + (was ? -1 : 1)).clamp(0, 999999);
     });
+    context.read<CommunityState>().toggleClap(_entry.id);
   }
 
   /// Estimates reading time in minutes.
@@ -294,12 +300,28 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                    child: Container(
-                      height: 0.5,
-                      color: divColor,
-                    ),
+                    child: Container(height: 0.5, color: divColor),
                   ),
                 ),
+
+                // ── Header image (local path, shows for author) ───────────
+                if (_entry.headerImage != null && _entry.headerImage!.isNotEmpty)
+                  SliverToBoxAdapter(
+                    child: Builder(builder: (context) {
+                      final file = File(_entry.headerImage!);
+                      if (!file.existsSync()) return const SizedBox.shrink();
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 16),
+                        child: Image.file(
+                          file,
+                          width: double.infinity,
+                          height: 220,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      );
+                    }),
+                  ),
 
                 // ── Body content ──────────────────────────────────────────
                 SliverToBoxAdapter(
@@ -345,11 +367,14 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                   ignoring: !_pillVisible,
                   child: Center(
                     child: _ActionPill(
-                      entry: _entry,
-                      commentsOpen: _commentsOpen,
-                      onClap: _handleClap,
-                      onComment: _toggleComments,
-                    ),
+                    entry: _entry,
+                    hasClapped: _hasClapped,
+                    clapCount: _clapCount,
+                    commentCount: _commentCount,
+                    commentsOpen: _commentsOpen,
+                    onClap: _handleClap,
+                    onComment: _toggleComments,
+                  ),
                   ),
                 ),
               ),
@@ -380,12 +405,18 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
 
 class _ActionPill extends StatelessWidget {
   final PublishedEntry entry;
+  final bool hasClapped;
+  final int clapCount;
+  final int commentCount;
   final bool commentsOpen;
   final VoidCallback onClap;
   final VoidCallback onComment;
 
   const _ActionPill({
     required this.entry,
+    required this.hasClapped,
+    required this.clapCount,
+    required this.commentCount,
     required this.commentsOpen,
     required this.onClap,
     required this.onComment,
@@ -421,23 +452,27 @@ class _ActionPill extends StatelessWidget {
               GestureDetector(
                 onTap: onClap,
                 child: AnimatedScale(
-                  scale: entry.hasClapped ? 1.15 : 1.0,
+                  scale: hasClapped ? 1.15 : 1.0,
                   duration: const Duration(milliseconds: 200),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(
-                        entry.hasClapped
-                            ? Icons.volunteer_activism_rounded
-                            : Icons.volunteer_activism_outlined,
-                        size: 20,
-                        color: entry.hasClapped
-                            ? const Color(0xFFFFD700)
-                            : Colors.white.withOpacity(0.9),
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 200),
+                        child: Icon(
+                          hasClapped
+                              ? Icons.volunteer_activism_rounded
+                              : Icons.volunteer_activism_outlined,
+                          key: ValueKey(hasClapped),
+                          size: 20,
+                          color: hasClapped
+                              ? const Color(0xFFFFD700)
+                              : Colors.white.withOpacity(0.9),
+                        ),
                       ),
                       const SizedBox(width: 7),
                       Text(
-                        _formatCount(entry.clapCount),
+                        _formatCount(clapCount),
                         style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
@@ -472,7 +507,7 @@ class _ActionPill extends StatelessWidget {
                     ),
                     const SizedBox(width: 7),
                     Text(
-                      _formatCount(entry.commentCount),
+                      _formatCount(commentCount),
                       style: GoogleFonts.inter(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
