@@ -22,6 +22,8 @@ enum BlockType {
   unsplashImage,
   codeBlock,
   divider,
+  checklistItem,
+  bulletList,
 }
 
 // ── Format attributes for inline rich text ────────────────────────────────────
@@ -177,6 +179,10 @@ abstract class EditorBlock {
         return CodeBlock.fromMap(map);
       case BlockType.divider:
         return DividerBlock.fromMap(map);
+      case BlockType.checklistItem:
+        return ChecklistBlock.fromMap(map);
+      case BlockType.bulletList:
+        return TextBlock.fromMap(map);
     }
   }
 }
@@ -229,7 +235,7 @@ class TextBlock extends EditorBlock {
     );
   }
 
-  factory TextBlock.empty({BlockType type = BlockType.text}) =>
+factory TextBlock.empty({BlockType type = BlockType.text}) =>
       TextBlock(id: const Uuid().v4(), type: type, text: '');
 }
 
@@ -426,6 +432,57 @@ class DividerBlock extends EditorBlock {
       DividerBlock(id: m['id'] as String);
 }
 
+// ── Checklist block ───────────────────────────────────────────────────────────
+
+class ChecklistBlock extends EditorBlock {
+  final String text;
+  final bool isChecked;
+  final DateTime createdAt;
+
+  ChecklistBlock({
+    required String id,
+    required this.text,
+    this.isChecked = false,
+    DateTime? createdAt,
+  })  : createdAt = createdAt ?? DateTime.now(),
+        super(id: id, type: BlockType.checklistItem);
+
+  ChecklistBlock copyWith({String? text, bool? isChecked}) => ChecklistBlock(
+        id: id,
+        text: text ?? this.text,
+        isChecked: isChecked ?? this.isChecked,
+        createdAt: createdAt,
+      );
+
+  /// Mercy rule: unchecked items fade after 48h, checked items after 24h.
+  bool get shouldFade {
+    final now = DateTime.now();
+    if (isChecked) return now.difference(createdAt).inHours >= 24;
+    return now.difference(createdAt).inHours >= 48;
+  }
+
+  @override
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'type': type.name,
+        'text': text,
+        'isChecked': isChecked,
+        'createdAt': createdAt.toIso8601String(),
+      };
+
+  factory ChecklistBlock.fromMap(Map<String, dynamic> m) => ChecklistBlock(
+        id: m['id'] as String,
+        text: m['text'] as String? ?? '',
+        isChecked: m['isChecked'] as bool? ?? false,
+        createdAt: m['createdAt'] != null
+            ? DateTime.parse(m['createdAt'] as String)
+            : DateTime.now(),
+      );
+
+  factory ChecklistBlock.empty() =>
+      ChecklistBlock(id: const Uuid().v4(), text: '');
+}
+
 // ── Serialization helpers ─────────────────────────────────────────────────────
 
 String serializeBlocks(List<EditorBlock> blocks) =>
@@ -463,7 +520,10 @@ List<EditorBlock> blocksFromLegacy(String content, List<dynamic> images) {
 String plainTextFromBlocks(List<EditorBlock> blocks) {
   final buf = StringBuffer();
   for (final block in blocks) {
-    if (block is TextBlock) {
+    if (block is ChecklistBlock) {
+      final prefix = block.isChecked ? '[x] ' : '[ ] ';
+      buf.writeln('$prefix${block.text}');
+    } else if (block is TextBlock) {
       buf.writeln(block.text);
     } else if (block is ImageBlock) {
       if (block.caption != null) buf.writeln(block.caption);

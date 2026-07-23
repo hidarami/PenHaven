@@ -154,6 +154,27 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                     isActive: _isFocusedType(BlockType.quote),
                     onTap: () => _toggleBlockType(BlockType.quote),
                   ),
+                  // Bullet list block type
+                  _BlockTypeButton(
+                    icon: Icons.format_list_bulleted_rounded,
+                    color: muted,
+                    isActive: _isFocusedType(BlockType.bulletList),
+                    onTap: () => _toggleBlockType(BlockType.bulletList),
+                  ),
+                  // Checklist (task) block insertion
+                  _BlockTypeButton(
+                    icon: Icons.checklist_rounded,
+                    color: muted,
+                    isActive: false,
+                    onTap: () {
+                      final id = widget.canvas.focusedBlockId ??
+                          (widget.canvas.blocks.isNotEmpty
+                              ? widget.canvas.blocks.last.id
+                              : null);
+                      if (id != null) widget.canvas.insertChecklistBlock(id);
+                      setState(() {});
+                    },
+                  ),
 
                   _ToolbarDivider(color: divider),
 

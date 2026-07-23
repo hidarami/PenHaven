@@ -1,13 +1,10 @@
 import 'package:sqflite/sqflite.dart';
 import '../models/time_capsule.dart';
-import '../models/period_log.dart';
 import 'database_helper.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CAPSULE DAO
-// Handles both TimeCapsule (user letters to future self) and
-// PeriodLog (optional health tracking) since both are small tables
-// with minimal query complexity.
+// Handles TimeCapsule (user letters to future self).
 // ─────────────────────────────────────────────────────────────────────────────
 
 class CapsuleDao {
@@ -61,53 +58,5 @@ class CapsuleDao {
   Future<void> deleteCapsule(String id) async {
     final db = await DatabaseHelper.instance.database;
     await db.delete('time_capsules', where: 'id = ?', whereArgs: [id]);
-  }
-
-  // ── Period Log ────────────────────────────────────────────────────────────
-  // Only written to / read from if user enables period tracking in Settings.
-
-  Future<void> insertPeriodLog(PeriodLog log) async {
-    final db = await DatabaseHelper.instance.database;
-    await db.insert(
-      'period_logs',
-      log.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
-    );
-  }
-
-  Future<List<PeriodLog>> getAllPeriodLogs() async {
-    final db = await DatabaseHelper.instance.database;
-    final maps = await db.query(
-      'period_logs',
-      orderBy: 'startDate DESC',
-    );
-    return maps.map(PeriodLog.fromMap).toList();
-  }
-
-  /// The current active period (no endDate set), if any.
-  Future<PeriodLog?> getActivePeriod() async {
-    final db = await DatabaseHelper.instance.database;
-    final maps = await db.query(
-      'period_logs',
-      where: 'endDate IS NULL',
-      limit: 1,
-    );
-    if (maps.isEmpty) return null;
-    return PeriodLog.fromMap(maps.first);
-  }
-
-  Future<void> updatePeriodLog(PeriodLog log) async {
-    final db = await DatabaseHelper.instance.database;
-    await db.update(
-      'period_logs',
-      log.toMap(),
-      where: 'id = ?',
-      whereArgs: [log.id],
-    );
-  }
-
-  Future<void> deletePeriodLog(String id) async {
-    final db = await DatabaseHelper.instance.database;
-    await db.delete('period_logs', where: 'id = ?', whereArgs: [id]);
   }
 }

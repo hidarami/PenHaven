@@ -51,6 +51,8 @@ class EditorCanvasState extends State<EditorCanvas> {
   String? _focusedBlockId;
   bool _markdownOfferPending = false;
   final _scrollController = ScrollController();
+  // Tracks which checklist block IDs should auto-focus after insertion
+  final Set<String> _pendingFocus = {};
 
   @override
   void initState() {
@@ -206,6 +208,20 @@ class EditorCanvasState extends State<EditorCanvas> {
       } else if (line.trim() == '---' || line.trim() == '***') {
         flushText();
         blocks.add(DividerBlock(id: const Uuid().v4()));
+      } else if (line.startsWith('- [ ] ') || line.startsWith('- [x] ') || line.startsWith('- [X] ')) {
+        // Markdown checklist syntax
+        flushText();
+        final isChecked = !line.startsWith('- [ ] ');
+        final text = line.substring(6);
+        blocks.add(ChecklistBlock(id: const Uuid().v4(), text: text, isChecked: isChecked));
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        // Bullet list
+        flushText();
+        blocks.add(TextBlock(
+          id: const Uuid().v4(),
+          type: BlockType.bulletList,
+          text: line.substring(2),
+        ));
       } else {
         if (currentText.isNotEmpty) currentText.write('\n');
         currentText.write(line);
@@ -314,6 +330,13 @@ class EditorCanvasState extends State<EditorCanvas> {
 
   void insertCodeBlock(String afterId) {
     insertBlockAfter(afterId, CodeBlock(id: const Uuid().v4(), code: ''));
+  }
+
+  /// Inserts a new empty ChecklistBlock after [afterId].
+  void insertChecklistBlock(String afterId) {
+    final block = ChecklistBlock.empty();
+    _pendingFocus.add(block.id);
+    insertBlockAfter(afterId, block);
   }
 
   void changeBlockType(String blockId, BlockType newType) {
@@ -445,7 +468,23 @@ class EditorCanvasState extends State<EditorCanvas> {
 
   Widget _buildBlock(
       EditorBlock block, int idx, Color textColor, Color mutedColor) {
-    if (block is TextBlock) {
+    // ── Checklist block ───────────────────────────────────────────────────
+    if (block is ChecklistBlock) {
+      return _ChecklistBlockWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        isDark: widget.isDark,
+        isEditing: true,
+        autoFocus: _pendingFocus.remove(block.id),
+        onToggle: (isChecked) => updateBlock(block.copyWith(isChecked: isChecked)),
+        onTextChanged: (text) => updateBlock(block.copyWith(text: text)),
+        onRemove: () => removeBlock(block.id),
+        onEnterAtEnd: () => insertChecklistBlock(block.id),
+        onBackspaceAtEmpty: () {
+          if (block.text.isEmpty) removeBlock(block.id);
+        },
+      );
+    } else if (block is TextBlock) {
       return _TextBlockWidget(
         key: ValueKey('block_${block.id}'),
         block: block,
@@ -458,8 +497,12 @@ class EditorCanvasState extends State<EditorCanvas> {
         textAlignment: textAlignment,
         fontName: widget.fontName,
         onEnterAtEnd: () {
-          // Create new text block after this one
-          insertBlockAfter(block.id, TextBlock.empty());
+          // Continue bullet list on Enter; otherwise plain text
+          if (block.type == BlockType.bulletList) {
+            insertBlockAfter(block.id, TextBlock.empty(type: BlockType.bulletList));
+          } else {
+            insertBlockAfter(block.id, TextBlock.empty());
+          }
         },
         onBackspaceAtStart: () {
           // Merge with previous block if it's text
@@ -650,6 +693,23 @@ class _TextBlockWidget extends StatelessWidget {
       );
     }
 
+    // Bullet list — prefix with bullet point
+    if (block.type == BlockType.bulletList) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 2, top: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 3, right: 10),
+              child: Text('•',
+                  style: AppTypography.bodyTextFor(fontName, textColor, size: 18, height: 1.8)),
+            ),
+            Expanded(child: field),
+          ],
+        ),
+      );
+    }
     return Padding(
       padding: EdgeInsets.only(
         bottom: isHeading ? 4 : 2,
@@ -1154,6 +1214,222 @@ class _CodeBlockWidgetState extends State<_CodeBlockWidget> {
   }
 }
 
+// ── Checklist block widget (editing) ─────────────────────────────────────────
+
+class _ChecklistBlockWidget extends StatefulWidget {
+  final ChecklistBlock block;
+  final bool isDark;
+  final bool isEditing;
+  final bool autoFocus;
+  final ValueChanged<bool>? onToggle;
+  final ValueChanged<String>? onTextChanged;
+  final VoidCallback? onRemove;
+  final VoidCallback? onEnterAtEnd;
+  final VoidCallback? onBackspaceAtEmpty;
+
+  const _ChecklistBlockWidget({
+    super.key,
+    required this.block,
+    required this.isDark,
+    this.isEditing = false,
+    this.autoFocus = false,
+    this.onToggle,
+    this.onTextChanged,
+    this.onRemove,
+    this.onEnterAtEnd,
+    this.onBackspaceAtEmpty,
+  });
+
+  @override
+  State<_ChecklistBlockWidget> createState() => _ChecklistBlockWidgetState();
+}
+
+class _ChecklistBlockWidgetState extends State<_ChecklistBlockWidget> {
+  late TextEditingController _ctrl;
+  late FocusNode _focus;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.block.text);
+    _focus = FocusNode();
+    if (widget.autoFocus) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focus.requestFocus();
+      });
+    }
+  }
+
+  @override
+  void didUpdateWidget(_ChecklistBlockWidget old) {
+    super.didUpdateWidget(old);
+    // Sync text if parent changed it (e.g. restore from version)
+    if (old.block.text != widget.block.text && _ctrl.text != widget.block.text) {
+      _ctrl.text = widget.block.text;
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    _focus.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final checked = widget.block.isChecked;
+    final fade = widget.block.shouldFade;
+
+    return AnimatedOpacity(
+      opacity: fade ? 0.3 : 1.0,
+      duration: const Duration(milliseconds: 600),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 3),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Checkbox
+            GestureDetector(
+              onTap: () => widget.onToggle?.call(!checked),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 20,
+                height: 20,
+                margin: const EdgeInsets.only(right: 12, top: 1),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(5),
+                  color: checked ? AppColors.aqua : Colors.transparent,
+                  border: Border.all(
+                    color: checked ? AppColors.aqua : mutedColor.withOpacity(0.5),
+                    width: 1.5,
+                  ),
+                ),
+                child: checked
+                    ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                    : null,
+              ),
+            ),
+            // Text field
+            Expanded(
+              child: widget.isEditing
+                  ? TextField(
+                      controller: _ctrl,
+                      focusNode: _focus,
+                      maxLines: null,
+                      textInputAction: TextInputAction.done,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: checked ? mutedColor.withOpacity(0.5) : textColor,
+                        decoration: checked ? TextDecoration.lineThrough : null,
+                        decorationColor: mutedColor,
+                        height: 1.5,
+                      ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        isDense: true,
+                        hintText: 'Task...',
+                        hintStyle: GoogleFonts.inter(
+                          fontSize: 16,
+                          color: mutedColor.withOpacity(0.35),
+                          fontStyle: FontStyle.italic,
+                        ),
+                      ),
+                      onChanged: (val) {
+                        widget.onTextChanged?.call(val);
+                        if (val.isEmpty) widget.onBackspaceAtEmpty?.call();
+                      },
+                      onSubmitted: (_) => widget.onEnterAtEnd?.call(),
+                    )
+                  : Text(
+                      widget.block.text,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: checked ? mutedColor.withOpacity(0.5) : textColor,
+                        decoration: checked ? TextDecoration.lineThrough : null,
+                        decorationColor: mutedColor,
+                        height: 1.5,
+                      ),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Checklist read view (interactive local state, no persistence) ─────────────
+
+class _ChecklistReadView extends StatefulWidget {
+  final ChecklistBlock block;
+  final bool isDark;
+  const _ChecklistReadView({required this.block, required this.isDark});
+
+  @override
+  State<_ChecklistReadView> createState() => _ChecklistReadViewState();
+}
+
+class _ChecklistReadViewState extends State<_ChecklistReadView> {
+  late bool _checked;
+
+  @override
+  void initState() {
+    super.initState();
+    _checked = widget.block.isChecked;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _checked = !_checked),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: 20,
+              height: 20,
+              margin: const EdgeInsets.only(right: 12, top: 1),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(5),
+                color: _checked ? AppColors.aqua : Colors.transparent,
+                border: Border.all(
+                  color: _checked ? AppColors.aqua : mutedColor.withOpacity(0.5),
+                  width: 1.5,
+                ),
+              ),
+              child: _checked
+                  ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                  : null,
+            ),
+          ),
+          Expanded(
+            child: Text(
+              widget.block.text,
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: _checked ? mutedColor.withOpacity(0.5) : textColor,
+                decoration: _checked ? TextDecoration.lineThrough : null,
+                decorationColor: mutedColor,
+                height: 1.5,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ── Divider block ─────────────────────────────────────────────────────────────
 
 class _DividerBlockWidget extends StatelessWidget {
@@ -1240,7 +1516,9 @@ class BlocksReadView extends StatelessWidget {
 
   Widget _buildBlock(EditorBlock block) {
     debugPrint('[BlocksReadView] Building block type: ${block.type}');
-    if (block is TextBlock) {
+    if (block is ChecklistBlock) {
+      return _ChecklistReadView(block: block, isDark: isDark);
+    } else if (block is TextBlock) {
       debugPrint('[BlocksReadView] TextBlock text: "${block.text}"');
       return _TextBlockReadView(
           block: block, isDark: isDark, textAlignment: textAlignment, fontName: fontName);
@@ -1284,6 +1562,26 @@ class _TextBlockReadView extends StatelessWidget {
     final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
     final span = _buildSpan(textColor);
+    // Bullet list — prefix with bullet point
+    if (block.type == BlockType.bulletList) {
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 2, top: 2),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.only(top: 3, right: 10),
+              child: Text('•',
+                  style: _styleForType(BlockType.text, textColor)),
+            ),
+            Expanded(
+              child: Text.rich(span, textAlign: _alignFromString(textAlignment)),
+            ),
+          ],
+        ),
+      );
+    }
+
     Widget text = Text.rich(
       span,
       textAlign: _alignFromString(textAlignment),

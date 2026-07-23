@@ -9,7 +9,6 @@ import 'package:timezone/timezone.dart' as tz;
 // Handles local push notifications for:
 //   - Time capsules ready to open
 //   - Task deadlines (1h before)
-//   - Period predictions (2 days before)
 //
 // Uses flutter_local_notifications. No backend required.
 // All data stays local.
@@ -36,7 +35,6 @@ class NotificationService {
 
   // ── IDs ──────────────────────────────────────────────────────────────────
   static const int _capsuleReadyId = 1001;
-  static const int _periodPredictionId = 2001;
   static const int _taskBaseId = 3000; // task notifications start here
 
   Future<void> init() async {
@@ -164,26 +162,6 @@ class NotificationService {
       );
     } catch (e) {
       debugPrint('[NotificationService] scheduleTaskDeadline: $e');
-    }
-  }
-
-  Future<void> schedulePeriodPrediction(DateTime predicted) async {
-    if (!_initialized) await init();
-    final notifyAt = predicted.subtract(const Duration(days: 2));
-    if (notifyAt.isBefore(DateTime.now())) return;
-    try {
-      await _plugin.zonedSchedule(
-        _periodPredictionId,
-        '🌸 Upcoming period',
-        'Your period may start in about 2 days.',
-        tz.TZDateTime.from(notifyAt, tz.local),
-        _details,
-        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
-      );
-    } catch (e) {
-      debugPrint('[NotificationService] schedulePeriodPrediction: $e');
     }
   }
 

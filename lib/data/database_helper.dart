@@ -42,7 +42,6 @@ class DatabaseHelper {
     await _createEntries(db);
     await _createTodos(db);
     await _createTimeCapsules(db);
-    await _createPeriodLogs(db);
     await _createAppLog(db);
     await _createEntryVersions(db);
   }
@@ -116,18 +115,6 @@ class DatabaseHelper {
     ''');
   }
 
-  Future<void> _createPeriodLogs(Database db) async {
-    await db.execute('''
-      CREATE TABLE period_logs (
-        id TEXT PRIMARY KEY,
-        startDate TEXT NOT NULL,
-        endDate TEXT,
-        flowLevel INTEGER NOT NULL DEFAULT 2,
-        notes TEXT NOT NULL DEFAULT ''
-      )
-    ''');
-  }
-
   Future<void> _createAppLog(Database db) async {
     await db.execute('''
       CREATE TABLE app_log (
@@ -181,7 +168,6 @@ class DatabaseHelper {
     await db.delete('stories');
     await db.delete('todos');
     await db.delete('time_capsules');
-    await db.delete('period_logs');
     await db.delete('app_log');
   }
 

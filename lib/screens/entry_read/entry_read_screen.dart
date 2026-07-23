@@ -1,4 +1,6 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/entry.dart';
@@ -8,6 +10,9 @@ import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 import '../editor/editor_screen.dart';
+import '../community/community_entry_viewer.dart';
+import '../../services/supabase_service.dart';
+import '../../models/published_entry.dart';
 import 'entry_header_image.dart';
 import 'entry_content.dart';
 import 'entry_footer.dart';
@@ -101,8 +106,12 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
               behavior: HitTestBehavior.translucent,
               child: _ReadContent(entry: _entry, isDark: dark),
             ),
+          // ── Atmosphere visual overlay (glow painters) ──────────────────
           const AtmosphereOverlay(),
+          // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
           const AtmosphereImageLayer(),
+          // ── Glassmorphic community stats pill (shows if published) ───────
+          _PublishedStatsPill(entryId: _entry.id),
         ],
       ),
     );
@@ -160,6 +169,141 @@ class _ReadContent extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PUBLISHED STATS PILL
+// Shows clap + comment count for entries the user has published.
+// Appears as a floating glassmorphic pill at the bottom of the read view.
+// Tapping navigates to the community entry viewer.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PublishedStatsPill extends StatefulWidget {
+  final String entryId;
+  const _PublishedStatsPill({required this.entryId});
+
+  @override
+  State<_PublishedStatsPill> createState() => _PublishedStatsPillState();
+}
+
+class _PublishedStatsPillState extends State<_PublishedStatsPill> {
+  PublishedEntry? _pub;
+  bool _loaded = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetch();
+  }
+
+  Future<void> _fetch() async {
+    if (!SupabaseService.instance.isAuthenticated) {
+      if (mounted) setState(() => _loaded = true);
+      return;
+    }
+    final pub = await SupabaseService.instance.getPublishedEntry(widget.entryId);
+    if (mounted) setState(() { _pub = pub; _loaded = true; });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Only show if loaded and published by current user
+    if (!_loaded || _pub == null) return const SizedBox.shrink();
+
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    return Positioned(
+      bottom: bottomPad + 28,
+      left: 0,
+      right: 0,
+      child: Center(
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: _pub!)),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(32),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 13),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.13),
+                  borderRadius: BorderRadius.circular(32),
+                  border: Border.all(
+                    color: Colors.white.withOpacity(0.25), width: 0.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.10),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Clap count
+                    Icon(
+                      _pub!.hasClapped
+                          ? Icons.volunteer_activism_rounded
+                          : Icons.volunteer_activism_outlined,
+                      size: 17,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${_pub!.clapCount}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                    // Divider
+                    Container(
+                      width: 0.5, height: 16,
+                      margin: const EdgeInsets.symmetric(horizontal: 14),
+                      color: Colors.white.withOpacity(0.35),
+                    ),
+                    // Comment count
+                    Icon(Icons.chat_bubble_outline_rounded,
+                        size: 15, color: Colors.white.withOpacity(0.9)),
+                    const SizedBox(width: 5),
+                    Text(
+                      '${_pub!.commentCount}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                    // Published label
+                    Container(
+                      width: 0.5, height: 16,
+                      margin: const EdgeInsets.symmetric(horizontal: 14),
+                      color: Colors.white.withOpacity(0.35),
+                    ),
+                    Icon(Icons.public_rounded,
+                        size: 13, color: Colors.white.withOpacity(0.7)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Published',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.7),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

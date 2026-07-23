@@ -7,7 +7,6 @@ import 'package:local_auth/local_auth.dart';
 // Used for:
 //   - App-level lock (if user enables in Settings)
 //   - Per-story lock (if story.isLocked = true)
-//   - Period tracker privacy gate
 //
 // Android: Fingerprint / face unlock via BiometricPrompt
 // iOS: Face ID / Touch ID (same Dart API, different native impl)
@@ -86,13 +85,6 @@ class AuthService {
   Future<bool> authenticateStoryUnlock(String storyTitle) async {
     return authenticate(
       reason: 'Unlock "$storyTitle"',
-    );
-  }
-
-  /// Authenticate before entering the period tracker.
-  Future<bool> authenticateHealthVault() async {
-    return authenticate(
-      reason: 'Authenticate to access private health data',
     );
   }
 

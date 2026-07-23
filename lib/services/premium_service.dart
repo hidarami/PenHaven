@@ -14,7 +14,6 @@ import 'package:flutter/foundation.dart';
 /// Named feature gates. Check these with PremiumService.instance.isAvailable(feature).
 class PremiumFeature {
   static const String cloudSync = 'cloud_sync';
-  static const String periodTracker = 'period_tracker';        // always free for now
   static const String advancedExport = 'advanced_export';      // PDF + image export
   static const String versionHistory = 'version_history';      // beyond 5 versions
   static const String fontChoice = 'font_choice';              // premium fonts
@@ -37,7 +36,6 @@ class PremiumService extends ChangeNotifier {
   // Features that are always free regardless of subscription
   static const Set<String> _alwaysFree = {
     PremiumFeature.search,
-    PremiumFeature.periodTracker, // decide later
   };
 
   bool isAvailable(String feature) {

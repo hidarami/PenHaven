@@ -26,7 +26,6 @@ class BackupService {
     'entries',
     'todos',
     'time_capsules',
-    'period_logs',
     'app_log',
     'entry_versions',
   ];

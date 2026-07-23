@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/lock_service.dart';
 import '../lock/pin_setup_screen.dart';
-import '../period/period_tracker_screen.dart';
 import '../../theme/app_typography.dart';
 import '../../data/backup_service.dart';
 import '../../providers/app_state.dart';
@@ -175,39 +174,6 @@ class SettingsScreen extends StatelessWidget {
                         MaterialPageRoute(builder: (_) => const FontsScreen()),
                       ),
                     ),
-                  ],
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-              // ── HEALTH TRACKING ──────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  label: 'HEALTH',
-                  isDark: isDark,
-                  bg: bg,
-                  children: [
-                    SettingsToggleTile(
-                      icon: Icons.favorite_border_rounded,
-                      label: 'Period Tracker',
-                      description: 'Enable discreet cycle tracking in your journal.',
-                      value: appState.isPeriodTrackerEnabled,
-                      isDark: isDark,
-                      bg: bg,
-                      onChanged: (v) => appState.setPeriodTracker(v),
-                    ),
-                    if (appState.isPeriodTrackerEnabled)
-                      SettingsNavTile(
-                        icon: Icons.calendar_month_outlined,
-                        label: 'Open Period Tracker',
-                        description: 'View your cycle, history, and predictions.',
-                        isDark: isDark,
-                        bg: bg,
-                        onTap: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const PeriodTrackerScreen()),
-                        ),
-                      ),
                   ],
                 ),
               ),

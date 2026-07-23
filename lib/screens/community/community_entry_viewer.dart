@@ -17,9 +17,13 @@ import '../../theme/app_colors.dart';
 import '../editor/editor_canvas.dart';
 import '../../widgets/shared_widgets.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY ENTRY VIEWER — Medium-inspired editorial layout
+// Large title · Author row · Full reading body · Glassmorphic action pill
+// ─────────────────────────────────────────────────────────────────────────────
+
 class CommunityEntryViewer extends StatefulWidget {
   final PublishedEntry entry;
-
   const CommunityEntryViewer({super.key, required this.entry});
 
   @override
@@ -34,33 +38,79 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   final _commentCtrl = TextEditingController();
   bool _commentAnon = false;
   bool _submittingComment = false;
-  bool _barVisible = true;
+  bool _pillVisible = true;
   Timer? _hideTimer;
+  final ScrollController _scrollCtrl = ScrollController();
+  double _readProgress = 0;
 
   @override
   void initState() {
     super.initState();
     _entry = widget.entry;
-    _scheduleHide();
+    _schedulePillHide();
+    _scrollCtrl.addListener(_onScroll);
   }
 
   @override
   void dispose() {
     _commentCtrl.dispose();
     _hideTimer?.cancel();
+    _scrollCtrl.dispose();
     super.dispose();
+  }
+
+  void _onScroll() {
+    // Update reading progress
+    if (_scrollCtrl.hasClients && _scrollCtrl.position.maxScrollExtent > 0) {
+      final progress =
+          (_scrollCtrl.offset / _scrollCtrl.position.maxScrollExtent)
+              .clamp(0.0, 1.0);
+      if ((progress - _readProgress).abs() > 0.01) {
+        setState(() => _readProgress = progress);
+      }
+    }
+    // Show pill on scroll
+    if (!_pillVisible) {
+      setState(() => _pillVisible = true);
+      _schedulePillHide();
+    }
+  }
+
+  void _schedulePillHide() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 4), () {
+      if (mounted) setState(() => _pillVisible = false);
+    });
   }
 
   Future<void> _loadComments() async {
     if (_commentsLoading) return;
     setState(() => _commentsLoading = true);
-    final comments = await context.read<CommunityState>().getComments(_entry.id);
-    if (mounted) setState(() { _comments = comments; _commentsLoading = false; });
+    final comments =
+        await context.read<CommunityState>().getComments(_entry.id);
+    if (mounted) {
+      setState(() {
+        _comments = comments;
+        _commentsLoading = false;
+      });
+    }
   }
 
   void _toggleComments() {
     setState(() => _commentsOpen = !_commentsOpen);
     if (_commentsOpen && _comments.isEmpty) _loadComments();
+    // Scroll to bottom when opening
+    if (_commentsOpen) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_scrollCtrl.hasClients) {
+          _scrollCtrl.animateTo(
+            _scrollCtrl.position.maxScrollExtent,
+            duration: const Duration(milliseconds: 400),
+            curve: Curves.easeOut,
+          );
+        }
+      });
+    }
   }
 
   Future<void> _submitComment() async {
@@ -68,18 +118,22 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     if (body.isEmpty || _submittingComment) return;
 
     if (!SupabaseService.instance.isAuthenticated) {
-      _showAuthRequired();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to comment.')),
+      );
       return;
     }
 
     setState(() => _submittingComment = true);
-    final prefs = await _getDisplayName();
+    final email = SupabaseService.instance.userEmail;
+    final displayName = email?.split('@').first;
+
     final ok = await context.read<CommunityState>().addComment(
-      entryId: _entry.id,
-      body: body,
-      isAnonymous: _commentAnon,
-      displayName: prefs,
-    );
+          entryId: _entry.id,
+          body: body,
+          isAnonymous: _commentAnon,
+          displayName: _commentAnon ? null : displayName,
+        );
 
     if (ok && mounted) {
       _commentCtrl.clear();
@@ -89,55 +143,35 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     if (mounted) setState(() => _submittingComment = false);
   }
 
-  Future<String?> _getDisplayName() async {
-    final prefs = await _getStoredDisplayName();
-    return prefs;
-  }
-
-  Future<String?> _getStoredDisplayName() async {
-    // Could use SharedPreferences here; for simplicity, use email prefix
-    final email = SupabaseService.instance.userEmail;
-    if (email == null) return null;
-    return email.split('@').first;
-  }
-
-  void _showAuthRequired() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Sign in to interact with the community.')),
-    );
-  }
-
-  void _scheduleHide() {
-    _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 5), () {
-      if (mounted) setState(() => _barVisible = false);
-    });
-  }
-
-  void _onTapScreen() {
-    if (!_barVisible) {
-      setState(() => _barVisible = true);
-      _scheduleHide();
-    }
-  }
-
-  void _dismissBar() {
-    _hideTimer?.cancel();
-    setState(() => _barVisible = false);
-  }
-
   void _handleClap() {
     if (!SupabaseService.instance.isAuthenticated) {
-      _showAuthRequired();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to clap.')),
+      );
       return;
     }
     HapticFeedback.lightImpact();
     context.read<CommunityState>().toggleClap(_entry.id);
     setState(() {
-      final wasClapped = _entry.hasClapped;
-      _entry.hasClapped = !wasClapped;
-      _entry.clapCount = (_entry.clapCount + (wasClapped ? -1 : 1)).clamp(0, 999999);
+      final was = _entry.hasClapped;
+      _entry.hasClapped = !was;
+      _entry.clapCount =
+          (_entry.clapCount + (was ? -1 : 1)).clamp(0, 999999);
     });
+  }
+
+  /// Estimates reading time in minutes.
+  String _readTime(String content) {
+    final words = content.trim().split(RegExp(r'\s+')).length;
+    final minutes = (words / 200).ceil().clamp(1, 999);
+    return '$minutes min read';
+  }
+
+  String _formatDate(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inDays < 1) return 'Today';
+    if (diff.inDays < 7) return DateFormat('EEEE').format(dt);
+    return DateFormat('MMM d, yyyy').format(dt);
   }
 
   @override
@@ -148,91 +182,135 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     final mutedColor = AppColors.readableMuted(bg);
     final fontName = context.watch<AppState>().preferredFont;
     final bottomPad = MediaQuery.of(context).padding.bottom;
+    final topPad = MediaQuery.of(context).padding.top;
+    final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
 
-    return Scaffold(
-      backgroundColor: bg,
-      body: GestureDetector(
-        behavior: HitTestBehavior.translucent,
-        onHorizontalDragEnd: (d) {
-          if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
-        },
-        onTap: _onTapScreen,
-        child: Stack(
+    return GestureDetector(
+      onHorizontalDragEnd: (d) {
+        if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+      },
+      onTap: () {
+        if (!_pillVisible) {
+          setState(() => _pillVisible = true);
+          _schedulePillHide();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: bg,
+        body: Stack(
           children: [
-            // ── Scrollable content ──────────────────────────────────────
+            // ── Reading progress bar ──────────────────────────────────────
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Container(
+                height: 2.5,
+                width: MediaQuery.of(context).size.width * _readProgress,
+                color: AppColors.aqua.withOpacity(0.7),
+              ),
+            ),
+
+            // ── Scrollable content ────────────────────────────────────────
             CustomScrollView(
+              controller: _scrollCtrl,
               physics: const BouncingScrollPhysics(),
               slivers: [
+                // Status bar + nav row
                 SliverToBoxAdapter(
-                  child: SafeArea(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.chevron_left_rounded,
-                                size: 28, color: mutedColor),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                        ],
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(8, topPad + 8, 16, 0),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(Icons.chevron_left_rounded,
+                              size: 28, color: mutedColor),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        const Spacer(),
+                        // Share button
+                        Icon(Icons.ios_share_outlined,
+                            size: 20, color: mutedColor),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // ── Title — editorial large format ────────────────────────
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                    child: Text(
+                      _entry.title.isEmpty ? 'Untitled' : _entry.title,
+                      style: GoogleFonts.crimsonPro(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                        height: 1.15,
+                        letterSpacing: -0.3,
                       ),
                     ),
                   ),
                 ),
+
+                // ── Author row ────────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
                     child: Row(
                       children: [
-                        _AvatarCircle(name: _entry.authorLabel, size: 32),
-                        const SizedBox(width: 10),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(_entry.authorLabel,
+                        // Author avatar
+                        _AvatarCircle(name: _entry.authorLabel, size: 38),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _entry.authorLabel,
                                 style: GoogleFonts.inter(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w600,
-                                    color: textColor)),
-                            Text(_formatDate(_entry.createdAt),
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_readTime(_entry.content)}  ·  ${_formatDate(_entry.createdAt)}',
                                 style: GoogleFonts.inter(
-                                    fontSize: 11, color: mutedColor)),
-                          ],
+                                  fontSize: 12,
+                                  color: mutedColor,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ],
                     ),
                   ),
                 ),
+
+                // ── Thin divider ──────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-                    child: Text(
-                      _entry.title.isEmpty ? 'Untitled' : _entry.title,
-                      style: GoogleFonts.crimsonPro(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w700,
-                          color: textColor,
-                          height: 1.15),
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                    child: Container(
+                      height: 0.5,
+                      color: divColor,
                     ),
                   ),
                 ),
+
+                // ── Body content ──────────────────────────────────────────
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: Divider(
-                        color: dark
-                            ? AppColors.dividerDark
-                            : AppColors.dividerLight,
-                        thickness: 0.5),
+                    padding:
+                        EdgeInsets.fromLTRB(24, 24, 24, bottomPad + 100),
+                    child: _buildBody(dark, fontName),
                   ),
                 ),
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: EdgeInsets.fromLTRB(
-                        24, 16, 24, bottomPad + 100),
-                    child: _buildBody(dark, fontName, textColor),
-                  ),
-                ),
+
+                // ── Comments section ──────────────────────────────────────
                 if (_commentsOpen)
                   SliverToBoxAdapter(
                     child: _CommentsSection(
@@ -244,33 +322,33 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                       isDark: dark,
                       textColor: textColor,
                       mutedColor: mutedColor,
-                      onAnonChanged: (v) =>
-                          setState(() => _commentAnon = v),
+                      onAnonChanged: (v) => setState(() => _commentAnon = v),
                       onSubmit: _submitComment,
                     ),
                   ),
-                const SliverToBoxAdapter(child: SizedBox(height: 40)),
+
+                SliverToBoxAdapter(
+                    child: SizedBox(height: bottomPad + 80)),
               ],
             ),
 
-            // ── Floating glassmorphic pill ───────────────────────────────
+            // ── Glassmorphic action pill ──────────────────────────────────
             Positioned(
-              bottom: bottomPad + 24,
+              bottom: bottomPad + 28,
               left: 0,
               right: 0,
-              child: Center(
-                child: AnimatedOpacity(
-                  opacity: _barVisible ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeOut,
-                  child: IgnorePointer(
-                    ignoring: !_barVisible,
-                    child: _GlassPill(
+              child: AnimatedOpacity(
+                opacity: _pillVisible ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                child: IgnorePointer(
+                  ignoring: !_pillVisible,
+                  child: Center(
+                    child: _ActionPill(
                       entry: _entry,
                       commentsOpen: _commentsOpen,
                       onClap: _handleClap,
                       onComment: _toggleComments,
-                      onDismiss: _dismissBar,
                     ),
                   ),
                 ),
@@ -282,7 +360,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     );
   }
 
-  Widget _buildBody(bool dark, String fontName, Color textColor) {
+  Widget _buildBody(bool dark, String fontName) {
     if (_entry.blocksJson != null && _entry.blocksJson!.isNotEmpty) {
       return BlocksReadView(
         blocks: deserializeBlocks(_entry.blocksJson!),
@@ -296,68 +374,55 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     }
     return const SizedBox.shrink();
   }
-
-  String _formatDate(DateTime dt) {
-    final diff = DateTime.now().difference(dt);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat('MMM d, yyyy').format(dt);
-  }
 }
 
-// ── Glassmorphic pill ─────────────────────────────────────────────────────────
+// ── Action pill — glassmorphic ────────────────────────────────────────────────
 
-class _GlassPill extends StatelessWidget {
+class _ActionPill extends StatelessWidget {
   final PublishedEntry entry;
   final bool commentsOpen;
   final VoidCallback onClap;
   final VoidCallback onComment;
-  final VoidCallback onDismiss;
 
-  const _GlassPill({
+  const _ActionPill({
     required this.entry,
     required this.commentsOpen,
     required this.onClap,
     required this.onComment,
-    required this.onDismiss,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Ghost white — not dynamic, works on any background
-    const ghostColor = Color(0xDDFFFFFF);
-    const ghostMuted = Color(0x99FFFFFF);
-
-    return GestureDetector(
-      onTap: onDismiss,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(30),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.13),
-              borderRadius: BorderRadius.circular(30),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.22),
-                width: 0.5,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.10),
-                  blurRadius: 24,
-                  offset: const Offset(0, 6),
-                ),
-              ],
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(36),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.14),
+            borderRadius: BorderRadius.circular(36),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.25),
+              width: 0.5,
             ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // ── Clap ──────────────────────────────────────────────
-                GestureDetector(
-                  onTap: onClap,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.12),
+                blurRadius: 28,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Clap button ────────────────────────────────────────────
+              GestureDetector(
+                onTap: onClap,
+                child: AnimatedScale(
+                  scale: entry.hasClapped ? 1.15 : 1.0,
+                  duration: const Duration(milliseconds: 200),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
@@ -366,56 +431,101 @@ class _GlassPill extends StatelessWidget {
                             ? Icons.volunteer_activism_rounded
                             : Icons.volunteer_activism_outlined,
                         size: 20,
-                        color: ghostColor,
+                        color: entry.hasClapped
+                            ? const Color(0xFFFFD700)
+                            : Colors.white.withOpacity(0.9),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 7),
                       Text(
-                        '${entry.clapCount}',
+                        _formatCount(entry.clapCount),
                         style: GoogleFonts.inter(
-                          fontSize: 13,
+                          fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: ghostColor,
+                          color: Colors.white.withOpacity(0.9),
                         ),
                       ),
                     ],
                   ),
                 ),
+              ),
 
-                // ── Hairline divider ───────────────────────────────────
-                Container(
-                  width: 0.5,
-                  height: 20,
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  color: ghostMuted,
-                ),
+              // Hairline divider
+              Container(
+                width: 0.5,
+                height: 22,
+                margin: const EdgeInsets.symmetric(horizontal: 22),
+                color: Colors.white.withOpacity(0.35),
+              ),
 
-                // ── Comments ───────────────────────────────────────────
-                GestureDetector(
-                  onTap: onComment,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        commentsOpen
-                            ? Icons.chat_bubble_rounded
-                            : Icons.chat_bubble_outline_rounded,
-                        size: 18,
-                        color: ghostColor,
+              // ── Comment button ──────────────────────────────────────────
+              GestureDetector(
+                onTap: onComment,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      commentsOpen
+                          ? Icons.chat_bubble_rounded
+                          : Icons.chat_bubble_outline_rounded,
+                      size: 18,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                    const SizedBox(width: 7),
+                    Text(
+                      _formatCount(entry.commentCount),
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.9),
                       ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '${entry.commentCount}',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: ghostColor,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _formatCount(int n) {
+    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
+    return '$n';
+  }
+}
+
+// ── Avatar circle ─────────────────────────────────────────────────────────────
+
+class _AvatarCircle extends StatelessWidget {
+  final String name;
+  final double size;
+  const _AvatarCircle({required this.name, required this.size});
+
+  Color _color(String n) {
+    const colors = [
+      Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A),
+      Color(0xFF9472D4), Color(0xFFE87FA0), Color(0xFFD44A28),
+      Color(0xFF5A8A5C), Color(0xFF1B9B8D),
+    ];
+    final hash = n.codeUnits.fold(0, (a, b) => a + b);
+    return colors[hash % colors.length];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: _color(name), shape: BoxShape.circle),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.inter(
+            fontSize: size * 0.42,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
           ),
         ),
       ),
@@ -454,30 +564,34 @@ class _CommentsSection extends StatelessWidget {
   Widget build(BuildContext context) {
     final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
     final cardBg = isDark
-        ? Colors.white.withOpacity(0.04)
+        ? Colors.white.withOpacity(0.05)
         : Colors.black.withOpacity(0.03);
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Divider(color: divColor, thickness: 0.5),
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
           Text(
-            'Comments',
+            'Responses',
             style: GoogleFonts.crimsonPro(
-              fontSize: 22, fontWeight: FontWeight.w700, color: textColor,
+              fontSize: 24,
+              fontWeight: FontWeight.w700,
+              color: textColor,
             ),
           ),
           const SizedBox(height: 16),
 
-          // Comment input
+          // ── Comment input card ──────────────────────────────────────────
           Container(
             decoration: BoxDecoration(
-              color: cardBg, borderRadius: BorderRadius.circular(12),
+              color: cardBg,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: divColor.withOpacity(0.5)),
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -485,13 +599,18 @@ class _CommentsSection extends StatelessWidget {
                   controller: controller,
                   maxLines: 3,
                   minLines: 1,
-                  style: GoogleFonts.inter(fontSize: 14, color: textColor),
+                  style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.5),
                   decoration: InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Add a comment...',
-                    hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor),
+                    contentPadding: EdgeInsets.zero,
+                    hintText: 'What did this make you feel?',
+                    hintStyle: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: mutedColor,
+                        fontStyle: FontStyle.italic),
                   ),
                 ),
+                const SizedBox(height: 8),
                 Row(
                   children: [
                     GestureDetector(
@@ -501,12 +620,13 @@ class _CommentsSection extends StatelessWidget {
                         children: [
                           AnimatedContainer(
                             duration: const Duration(milliseconds: 120),
-                            width: 16, height: 16,
+                            width: 16,
+                            height: 16,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(4),
                               color: isAnon ? AppColors.aqua : Colors.transparent,
                               border: Border.all(
-                                color: isAnon ? AppColors.aqua : mutedColor,
+                                color: isAnon ? AppColors.aqua : mutedColor.withOpacity(0.5),
                                 width: 1.5,
                               ),
                             ),
@@ -515,27 +635,35 @@ class _CommentsSection extends StatelessWidget {
                                 : null,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            'Post anonymously',
-                            style: GoogleFonts.inter(fontSize: 12, color: mutedColor),
-                          ),
+                          Text('Post anonymously',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12, color: mutedColor)),
                         ],
                       ),
                     ),
                     const Spacer(),
                     GestureDetector(
                       onTap: submitting ? null : onSubmit,
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: AppColors.aqua.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: AppColors.aqua.withOpacity(0.4)),
+                        ),
                         child: submitting
                             ? const SizedBox(
-                                width: 16, height: 16,
-                                child: CircularProgressIndicator(strokeWidth: 1.5),
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 1.5, color: AppColors.aqua),
                               )
                             : Text(
-                                'Post',
+                                'Respond',
                                 style: GoogleFonts.inter(
-                                  fontSize: 13,
+                                  fontSize: 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.aqua,
                                 ),
@@ -548,67 +676,72 @@ class _CommentsSection extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 16),
+          const SizedBox(height: 20),
 
+          // ── Comment list ──────────────────────────────────────────────
           if (loading)
-            const Center(child: CircularProgressIndicator())
+            const Center(
+                child: Padding(
+                    padding: EdgeInsets.all(24),
+                    child: CircularProgressIndicator()))
           else if (comments.isEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 24),
               child: Text(
-                'No comments yet. Start the conversation.',
+                'No responses yet.\nBe the first to share your thoughts.',
                 style: GoogleFonts.crimsonPro(
-                  fontSize: 16, fontStyle: FontStyle.italic, color: mutedColor,
+                  fontSize: 16,
+                  fontStyle: FontStyle.italic,
+                  color: mutedColor,
+                  height: 1.6,
                 ),
               ),
             )
           else
-            ...comments.map((c) => _CommentTile(
+            ...comments.map((c) => _CommentCard(
                   comment: c,
                   isDark: isDark,
                   textColor: textColor,
                   mutedColor: mutedColor,
                 )),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
         ],
       ),
     );
   }
 }
 
-class _CommentTile extends StatelessWidget {
+class _CommentCard extends StatelessWidget {
   final CommunityComment comment;
   final bool isDark;
   final Color textColor;
   final Color mutedColor;
 
-  const _CommentTile({
+  const _CommentCard({
     required this.comment,
     required this.isDark,
     required this.textColor,
     required this.mutedColor,
   });
 
+  String _ago(DateTime dt) {
+    final diff = DateTime.now().difference(dt);
+    if (diff.inMinutes < 60) return '${diff.inMinutes}m';
+    if (diff.inHours < 24) return '${diff.inHours}h';
+    if (diff.inDays < 7) return '${diff.inDays}d';
+    return DateFormat('MMM d').format(dt);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final diff = DateTime.now().difference(comment.createdAt);
-    String ago;
-    if (diff.inMinutes < 60) {
-      ago = '${diff.inMinutes}m ago';
-    } else if (diff.inHours < 24) {
-      ago = '${diff.inHours}h ago';
-    } else {
-      ago = '${diff.inDays}d ago';
-    }
-
     return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.only(bottom: 18),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _AvatarCircle(name: comment.authorLabel, size: 28),
-          const SizedBox(width: 10),
+          _AvatarCircle(name: comment.authorLabel, size: 30),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,65 +751,32 @@ class _CommentTile extends StatelessWidget {
                     Text(
                       comment.authorLabel,
                       style: GoogleFonts.inter(
-                        fontSize: 12, fontWeight: FontWeight.w600, color: textColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: textColor,
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 8),
                     Text(
-                      ago,
-                      style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
+                      _ago(comment.createdAt),
+                      style: GoogleFonts.inter(
+                          fontSize: 11, color: mutedColor),
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   comment.body,
-                  style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.5),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: textColor.withOpacity(0.85),
+                    height: 1.55,
+                  ),
                 ),
               ],
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-// ── Avatar circle ─────────────────────────────────────────────────────────────
-
-class _AvatarCircle extends StatelessWidget {
-  final String name;
-  final double size;
-
-  const _AvatarCircle({required this.name, required this.size});
-
-  Color _color(String n) {
-    const colors = [
-      Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A),
-      Color(0xFF9472D4), Color(0xFFE87FA0), Color(0xFFD44A28),
-      Color(0xFF5A8A5C), Color(0xFF1B9B8D),
-    ];
-    final hash = n.codeUnits.fold(0, (a, b) => a + b);
-    return colors[hash % colors.length];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    final color = _color(name);
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-      child: Center(
-        child: Text(
-          initial,
-          style: GoogleFonts.inter(
-            fontSize: size * 0.45,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
       ),
     );
   }

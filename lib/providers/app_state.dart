@@ -6,7 +6,6 @@ import '../models/story.dart';
 import '../models/entry.dart';
 import '../models/todo.dart';
 import '../models/time_capsule.dart';
-import '../models/period_log.dart';
 import '../data/story_dao.dart';
 import '../data/entry_dao.dart';
 import '../data/todo_dao.dart';
@@ -24,7 +23,6 @@ class AppState extends ChangeNotifier {
   // ── Settings ──────────────────────────────────────────────────────────────
   bool _isDarkMode = false;
   bool _isBiometricEnabled = false;
-  bool _isPeriodTrackerEnabled = false;
   bool _hasSeenOnboarding = false;
   bool _isConfettiEnabled = true;
   String _preferredFont = 'crimsonPro';
@@ -35,7 +33,6 @@ class AppState extends ChangeNotifier {
           ? false
           : _isDarkMode;
   bool get isBiometricEnabled => _isBiometricEnabled;
-  bool get isPeriodTrackerEnabled => _isPeriodTrackerEnabled;
   bool get hasSeenOnboarding => _hasSeenOnboarding;
   bool get isConfettiEnabled => _isConfettiEnabled;
   String get preferredFont => _preferredFont;
@@ -69,11 +66,6 @@ class AppState extends ChangeNotifier {
 
   List<TimeCapsule> get timeCapsules => _timeCapsules;
   List<Entry> get timeCapsuleEntries => _timeCapsuleEntries;
-
-  // ── Period Logs ───────────────────────────────────────────────────────────
-  List<PeriodLog> _periodLogs = [];
-
-  List<PeriodLog> get periodLogs => _periodLogs;
 
   // ── Story theme override ──────────────────────────────────────────────────
   String? _storyThemeOverride; // 'dark', 'light', or null
@@ -113,8 +105,6 @@ class AppState extends ChangeNotifier {
     await _loadTodos();
     await _loadTimeCapsules();
     await _loadTimeCapsuleEntries();
-    if (_isPeriodTrackerEnabled) await _loadPeriodLogs();
-
     _isLoading = false;
     notifyListeners();
   }
@@ -127,7 +117,6 @@ class AppState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _isDarkMode = prefs.getBool('isDarkMode') ?? false;
     _isBiometricEnabled = prefs.getBool('isBiometricEnabled') ?? false;
-    _isPeriodTrackerEnabled = prefs.getBool('isPeriodTrackerEnabled') ?? false;
     _hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
     _isConfettiEnabled = prefs.getBool('isConfettiEnabled') ?? true;
     _isLocked = prefs.getBool('isLocked') ?? false;
@@ -148,13 +137,6 @@ class AppState extends ChangeNotifier {
     await prefs.setBool('isBiometricEnabled', value);
   }
 
-  Future<void> setPeriodTracker(bool value) async {
-    _isPeriodTrackerEnabled = value;
-    notifyListeners();
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isPeriodTrackerEnabled', value);
-    if (value) await _loadPeriodLogs();
-  }
 
   Future<void> markOnboardingSeen() async {
     _hasSeenOnboarding = true;
@@ -484,35 +466,4 @@ class AppState extends ChangeNotifier {
   List<TimeCapsule> get readyCapsules =>
       _timeCapsules.where((c) => c.isReadyToOpen && !c.isOpened).toList();
 
-  // ─────────────────────────────────────────────────────────────────────────
-  // PERIOD LOGS (optional)
-  // ─────────────────────────────────────────────────────────────────────────
-
-  Future<void> _loadPeriodLogs() async {
-    _periodLogs = await CapsuleDao.instance.getAllPeriodLogs();
-  }
-
-  Future<void> startPeriod() async {
-    final log = PeriodLog(startDate: DateTime.now());
-    await CapsuleDao.instance.insertPeriodLog(log);
-    _periodLogs.insert(0, log);
-    notifyListeners();
-  }
-
-  Future<void> endPeriod(String id) async {
-    final idx = _periodLogs.indexWhere((p) => p.id == id);
-    if (idx == -1) return;
-    final updated = _periodLogs[idx].copyWith(closeLog: true);
-    await CapsuleDao.instance.updatePeriodLog(updated);
-    _periodLogs[idx] = updated;
-    notifyListeners();
-  }
-
-  PeriodLog? get activePeriod {
-    try {
-      return _periodLogs.firstWhere((p) => p.isActive);
-    } catch (_) {
-      return null;
-    }
-  }
 }

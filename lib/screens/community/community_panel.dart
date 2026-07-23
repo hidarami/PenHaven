@@ -148,21 +148,26 @@ class _CommunityPanelState extends State<CommunityPanel>
                     ],
                   ),
                 ),
-                // Auth / Profile button
+                // Auth / Profile button — shows initial when signed in
                 GestureDetector(
                   onTap: isAuth ? _showProfileOptions : _showAuthSheet,
-                  child: Container(
-                    width: 36, height: 36,
-                    decoration: BoxDecoration(
-                      color: isAuth ? AppColors.aqua.withOpacity(0.15) : (dark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.06)),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      isAuth ? Icons.person_rounded : Icons.person_outline_rounded,
-                      size: 18,
-                      color: isAuth ? AppColors.aqua : mutedColor,
-                    ),
-                  ),
+                  child: isAuth
+                      ? _ProfileAvatar(
+                          email: SupabaseService.instance.userEmail ?? '',
+                          accentColor: AppColors.aqua,
+                        )
+                      : Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: dark
+                                ? Colors.white.withOpacity(0.08)
+                                : Colors.black.withOpacity(0.06),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.person_outline_rounded,
+                              size: 18, color: mutedColor),
+                        ),
                 ),
                 const SizedBox(width: 10),
                 // Publish button
@@ -233,39 +238,320 @@ class _CommunityPanelState extends State<CommunityPanel>
     final dark = context.read<AppState>().isDarkMode;
     final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
     final textColor = AppColors.readableText(bg);
-    final email = SupabaseService.instance.userEmail ?? 'Signed in';
+    final mutedColor = AppColors.readableMuted(bg);
+    final email = SupabaseService.instance.userEmail ?? '';
+    final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
 
     showModalBottomSheet<void>(
       context: context,
+      isScrollControlled: true,
       backgroundColor: bg,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (ctx) => SafeArea(
+      builder: (ctx) => _ProfileSheet(
+        email: email,
+        isDark: dark,
+        textColor: textColor,
+        mutedColor: mutedColor,
+        divColor: divColor,
+        onSignOut: () async {
+          Navigator.pop(ctx);
+          await SupabaseService.instance.signOut();
+          setState(() {});
+        },
+      ),
+    );
+  }
+}
+
+// ── Profile avatar — colored circle with user initial ─────────────────────────
+
+class _ProfileAvatar extends StatefulWidget {
+  final String email;
+  final Color accentColor;
+  const _ProfileAvatar({required this.email, required this.accentColor});
+
+  @override
+  State<_ProfileAvatar> createState() => _ProfileAvatarState();
+}
+
+class _ProfileAvatarState extends State<_ProfileAvatar> {
+  String? _displayName;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString('communityDisplayName');
+    if (mounted) setState(() => _displayName = stored);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final label = _displayName ?? widget.email.split('@').first;
+    final initial = label.isNotEmpty ? label[0].toUpperCase() : '?';
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: BoxDecoration(
+        color: widget.accentColor.withOpacity(0.18),
+        shape: BoxShape.circle,
+        border: Border.all(color: widget.accentColor.withOpacity(0.4), width: 1.5),
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.inter(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: widget.accentColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Profile sheet ─────────────────────────────────────────────────────────────
+
+class _ProfileSheet extends StatefulWidget {
+  final String email;
+  final bool isDark;
+  final Color textColor;
+  final Color mutedColor;
+  final Color divColor;
+  final VoidCallback onSignOut;
+
+  const _ProfileSheet({
+    required this.email,
+    required this.isDark,
+    required this.textColor,
+    required this.mutedColor,
+    required this.divColor,
+    required this.onSignOut,
+  });
+
+  @override
+  State<_ProfileSheet> createState() => _ProfileSheetState();
+}
+
+class _ProfileSheetState extends State<_ProfileSheet> {
+  late TextEditingController _nameCtrl;
+  bool _saving = false;
+  bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameCtrl = TextEditingController();
+    _loadName();
+  }
+
+  Future<void> _loadName() async {
+    final prefs = await SharedPreferences.getInstance();
+    final stored = prefs.getString('communityDisplayName') ??
+        widget.email.split('@').first;
+    if (mounted) _nameCtrl.text = stored;
+  }
+
+  Future<void> _save() async {
+    final name = _nameCtrl.text.trim();
+    if (name.isEmpty) return;
+    setState(() => _saving = true);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('communityDisplayName', name);
+    if (mounted) setState(() { _saving = false; _saved = true; });
+    await Future.delayed(const Duration(milliseconds: 1200));
+    if (mounted) setState(() => _saved = false);
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cardBg = widget.isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.black.withOpacity(0.03);
+
+    return Padding(
+      padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: Container(
+        decoration: BoxDecoration(
+          color: widget.isDark ? AppColors.warmDark : AppColors.warmWhite,
+          borderRadius:
+              const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 8),
-            Padding(
-              padding: const EdgeInsets.all(20),
+            // Handle
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: widget.mutedColor.withOpacity(0.3),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+
+            // Email row
+            Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                  color: cardBg, borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
-                  const Icon(Icons.person_rounded, color: AppColors.aqua, size: 20),
-                  const SizedBox(width: 12),
-                  Text(email, style: GoogleFonts.inter(fontSize: 14, color: textColor)),
+                  Icon(Icons.email_outlined,
+                      size: 16, color: widget.mutedColor),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      widget.email.isEmpty ? 'Signed in' : widget.email,
+                      style: GoogleFonts.inter(
+                          fontSize: 13, color: widget.textColor),
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.aqua.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'Verified',
+                      style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.aqua),
+                    ),
+                  ),
                 ],
               ),
             ),
-            ListTile(
-              leading: const Icon(Icons.logout_rounded, color: AppColors.danger),
-              title: Text('Sign Out', style: GoogleFonts.inter(fontSize: 14, color: AppColors.danger)),
-              onTap: () async {
-                Navigator.pop(ctx);
-                await SupabaseService.instance.signOut();
-                setState(() {});
-              },
+
+            const SizedBox(height: 16),
+
+            // Display name field
+            Text(
+              'DISPLAY NAME',
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: widget.mutedColor,
+                letterSpacing: 1.5,
+              ),
             ),
             const SizedBox(height: 8),
+            Container(
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: widget.divColor.withOpacity(0.5)),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: _nameCtrl,
+                      style: GoogleFonts.inter(
+                          fontSize: 15, color: widget.textColor),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
+                        hintText:
+                            widget.email.split('@').first,
+                        hintStyle: GoogleFonts.inter(
+                            fontSize: 15, color: widget.mutedColor),
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _saving ? null : _save,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.only(right: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: _saved
+                            ? Colors.green.withOpacity(0.15)
+                            : AppColors.aqua.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: _saved
+                              ? Colors.green.withOpacity(0.4)
+                              : AppColors.aqua.withOpacity(0.4),
+                        ),
+                      ),
+                      child: _saving
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 1.5, color: AppColors.aqua),
+                            )
+                          : Text(
+                              _saved ? 'Saved ✓' : 'Save',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: _saved ? Colors.green : AppColors.aqua,
+                              ),
+                            ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Text(
+              'This name appears on your published entries and comments.',
+              style: GoogleFonts.inter(
+                  fontSize: 11,
+                  color: widget.mutedColor,
+                  height: 1.4),
+            ),
+
+            const SizedBox(height: 24),
+            Divider(color: widget.divColor, thickness: 0.5),
+            const SizedBox(height: 12),
+
+            // Sign out
+            GestureDetector(
+              onTap: widget.onSignOut,
+              child: Row(
+                children: [
+                  const Icon(Icons.logout_rounded,
+                      size: 18, color: AppColors.danger),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Sign Out',
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.danger,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),

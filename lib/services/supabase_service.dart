@@ -456,6 +456,28 @@ class SupabaseService {
     }
   }
 
+/// Fetches a single published entry by its local entry ID.
+  /// Returns null if the entry has not been published or on error.
+  Future<PublishedEntry?> getPublishedEntry(String entryId) async {
+    try {
+      final response = await _client
+          ?.from('published_entries')
+          .select()
+          .eq('id', entryId)
+          .maybeSingle();
+      if (response == null) return null;
+      final pub = PublishedEntry.fromMap(response as Map<String, dynamic>);
+      // Tag if owned by current user
+      pub.isOwner = pub.userId == userId;
+      final clapped = await getClappedEntryIds([entryId]);
+      pub.hasClapped = clapped.contains(entryId);
+      return pub;
+    } catch (e) {
+      debugPrint('[Supabase] getPublishedEntry: $e');
+      return null;
+    }
+  }
+
   Future<void> deletePublishedEntry(String entryId) async {
     if (!isAuthenticated) return;
     try {
