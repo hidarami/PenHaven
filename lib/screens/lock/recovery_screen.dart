@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 
+import '../../providers/atmosphere_state.dart';
 import '../../services/lock_service.dart';
 import '../../theme/app_colors.dart';
 import 'pin_setup_screen.dart';
@@ -40,6 +42,7 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final accent = context.watch<AtmosphereState>().accentColor;
     return Scaffold(
       backgroundColor: AppColors.warmDark,
       body: SafeArea(
@@ -104,17 +107,17 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                 child: ElevatedButton(
                   onPressed: _busy ? null : _verify,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.aqua.withOpacity(0.2),
-                    foregroundColor: AppColors.aqua,
+                    backgroundColor: accent.withOpacity(0.2),
+                    foregroundColor: accent,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: _busy
-                      ? const SizedBox(width: 20, height: 20,
+                      ? SizedBox(width: 20, height: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: AppColors.aqua))
+                              strokeWidth: 2, color: accent))
                       : Text('Verify Code', style: GoogleFonts.inter(
                           fontSize: 15, fontWeight: FontWeight.w600)),
                 ),

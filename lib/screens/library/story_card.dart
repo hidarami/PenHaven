@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../models/story.dart';
 import '../../providers/app_state.dart';
+import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/neumorphic_widgets.dart';
 
@@ -43,7 +44,7 @@ class StoryCard extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               width: 4,
               decoration: BoxDecoration(
-                color: isActive ? AppColors.aqua : Colors.transparent,
+                color: isActive ? context.watch<AtmosphereState>().accentColor : Colors.transparent,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   bottomLeft: Radius.circular(12),

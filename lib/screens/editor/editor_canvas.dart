@@ -24,6 +24,7 @@ class EditorCanvas extends StatefulWidget {
   final void Function(List<EditorBlock>) onBlocksChanged;
   final ScrollController? scrollController;
   final String textAlignment;
+  final String fontName;
 
   const EditorCanvas({
     super.key,
@@ -32,6 +33,7 @@ class EditorCanvas extends StatefulWidget {
     required this.onBlocksChanged,
     this.scrollController,
     this.textAlignment = 'justify',
+    this.fontName = 'crimsonPro',
   });
 
   @override
@@ -454,6 +456,7 @@ class EditorCanvasState extends State<EditorCanvas> {
         mutedColor: mutedColor,
         isFirst: idx == 0,
         textAlignment: textAlignment,
+        fontName: widget.fontName,
         onEnterAtEnd: () {
           // Create new text block after this one
           insertBlockAfter(block.id, TextBlock.empty());
@@ -581,6 +584,7 @@ class _TextBlockWidget extends StatelessWidget {
   final VoidCallback onEnterAtEnd;
   final VoidCallback onBackspaceAtStart;
   final String textAlignment;
+  final String fontName;
 
   const _TextBlockWidget({
     super.key,
@@ -594,6 +598,7 @@ class _TextBlockWidget extends StatelessWidget {
     required this.onEnterAtEnd,
     required this.onBackspaceAtStart,
     required this.textAlignment,
+    this.fontName = 'crimsonPro',
   });
 
   @override
@@ -681,7 +686,7 @@ class _TextBlockWidget extends StatelessWidget {
             color: color,
             height: 1.8);
       default:
-        return GoogleFonts.crimsonPro(fontSize: 18, color: color, height: 1.8);
+        return AppTypography.bodyTextFor(fontName, color, size: 18, height: 1.8);
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/app_state.dart';
+import '../providers/atmosphere_state.dart';
 import '../services/auth_service.dart';
 import '../services/lock_service.dart';
 import '../theme/app_colors.dart';
@@ -127,6 +128,8 @@ class _LockScreenState extends State<LockScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final accent = context.watch<AtmosphereState>().accentColor;
+
     if (_showPinEntry) {
       return _PinEntryView(
         pinInput: _pinInput,
@@ -137,6 +140,7 @@ class _LockScreenState extends State<LockScreen> {
         onDelete: _onDelete,
         showBiometric: _bioAvailable && _bioEnabled,
         onBiometric: (_bioAvailable && _bioEnabled) ? _tryBiometricUnlock : null,
+        accentColor: accent,
       );
     }
 
@@ -145,6 +149,7 @@ class _LockScreenState extends State<LockScreen> {
       statusMessage: _statusMessage,
       onRetry: _tryBiometricUnlock,
       onUsePin: () => setState(() => _showPinEntry = true),
+      accentColor: accent,
     );
   }
 }
@@ -156,12 +161,14 @@ class _BiometricView extends StatelessWidget {
   final String? statusMessage;
   final VoidCallback onRetry;
   final VoidCallback onUsePin;
+  final Color accentColor;
 
   const _BiometricView({
     required this.attempting,
     required this.statusMessage,
     required this.onRetry,
     required this.onUsePin,
+    this.accentColor = AppColors.aqua,
   });
 
   @override
@@ -201,7 +208,7 @@ class _BiometricView extends StatelessWidget {
                   child: Icon(
                     Icons.fingerprint_rounded,
                     size: 72,
-                    color: AppColors.aqua,
+                    color: accentColor,
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -211,7 +218,7 @@ class _BiometricView extends StatelessWidget {
                     height: 18,
                     child: CircularProgressIndicator(
                       strokeWidth: 1.5,
-                      color: AppColors.aqua.withOpacity(0.7),
+                      color: accentColor.withOpacity(0.7),
                     ),
                   )
                 else
@@ -245,7 +252,7 @@ class _BiometricView extends StatelessWidget {
                       'Use PIN instead',
                       style: GoogleFonts.inter(
                         fontSize: 13,
-                        color: AppColors.aqua,
+                        color: accentColor,
                       ),
                     ),
                   ),
@@ -269,6 +276,7 @@ class _PinEntryView extends StatelessWidget {
   final VoidCallback onDelete;
   final bool showBiometric;
   final VoidCallback? onBiometric;
+  final Color accentColor;
 
   const _PinEntryView({
     required this.pinInput,
@@ -279,6 +287,7 @@ class _PinEntryView extends StatelessWidget {
     required this.onDelete,
     this.showBiometric = false,
     this.onBiometric,
+    this.accentColor = AppColors.aqua,
   });
 
   @override
@@ -322,7 +331,7 @@ class _PinEntryView extends StatelessWidget {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: i < pinInput.length
-                        ? AppColors.aqua
+                        ? accentColor
                         : Colors.white.withOpacity(0.18),
                   ),
                 );
@@ -362,23 +371,23 @@ class _PinEntryView extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            LockNumpad(onDigit: onDigit, onDelete: onDelete),
+            LockNumpad(onDigit: onDigit, onDelete: onDelete, accentColor: accentColor),
 
             // ── Biometric retry (shown when bio is configured) ─────────────
             if (showBiometric && onBiometric != null) ...[
               const SizedBox(height: 16),
               TextButton.icon(
                 onPressed: attempting ? null : onBiometric,
-                icon: const Icon(
+                icon: Icon(
                   Icons.fingerprint_rounded,
-                  color: AppColors.aqua,
+                  color: accentColor,
                   size: 22,
                 ),
                 label: Text(
                   'Use Biometric',
                   style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: AppColors.aqua,
+                    color: accentColor,
                   ),
                 ),
               ),

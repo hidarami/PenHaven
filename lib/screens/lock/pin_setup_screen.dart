@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/app_state.dart';
+import '../../providers/atmosphere_state.dart';
 import '../../services/lock_service.dart';
 import '../../theme/app_colors.dart';
 import 'lock_numpad.dart';
@@ -95,8 +96,10 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final accent = context.watch<AtmosphereState>().accentColor;
+
     if (_step == 3 && _recoveryCode != null) {
-      return _RecoveryCodeDisplay(code: _recoveryCode!, onDone: _done);
+      return _RecoveryCodeDisplay(code: _recoveryCode!, onDone: _done, accentColor: accent);
     }
 
     final headings = {
@@ -147,7 +150,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: i < _input.length
-                        ? AppColors.aqua
+                        ? accent
                         : Colors.white.withOpacity(0.18),
                   ),
                 );
@@ -172,7 +175,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
             const SizedBox(height: 24),
 
-            LockNumpad(onDigit: _onDigit, onDelete: _onDelete),
+            LockNumpad(onDigit: _onDigit, onDelete: _onDelete, accentColor: accent),
 
             // Biometric option (only on first-entry step)
             if (_bioAvailable && _step == 1) ...[
@@ -187,9 +190,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                       width: 20, height: 20,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(5),
-                        color: _bioEnabled ? AppColors.aqua : Colors.transparent,
+                        color: _bioEnabled ? accent : Colors.transparent,
                         border: Border.all(
-                          color: _bioEnabled ? AppColors.aqua : AppColors.mutedDark,
+                          color: _bioEnabled ? accent : AppColors.mutedDark,
                           width: 1.5,
                         ),
                       ),
@@ -219,8 +222,13 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 class _RecoveryCodeDisplay extends StatelessWidget {
   final String code;
   final VoidCallback onDone;
+  final Color accentColor;
 
-  const _RecoveryCodeDisplay({required this.code, required this.onDone});
+  const _RecoveryCodeDisplay({
+    required this.code,
+    required this.onDone,
+    this.accentColor = AppColors.aqua,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -233,7 +241,7 @@ class _RecoveryCodeDisplay extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Spacer(),
-              const Icon(Icons.key_rounded, color: AppColors.aqua, size: 40),
+              Icon(Icons.key_rounded, color: accentColor, size: 40),
               const SizedBox(height: 18),
               Text('Save this recovery code',
                   style: GoogleFonts.crimsonPro(
@@ -256,12 +264,12 @@ class _RecoveryCodeDisplay extends StatelessWidget {
                     color: Colors.white.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: AppColors.aqua.withOpacity(0.35), width: 1.5,
+                      color: accentColor.withOpacity(0.35), width: 1.5,
                     ),
                   ),
                   child: Text(code,
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 30, color: AppColors.aqua,
+                        fontSize: 30, color: accentColor,
                         letterSpacing: 5, fontWeight: FontWeight.w600,
                       )),
                 ),
@@ -272,7 +280,7 @@ class _RecoveryCodeDisplay extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: onDone,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.aqua,
+                    backgroundColor: accentColor,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(

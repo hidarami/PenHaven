@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/app_state.dart';
+import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -77,10 +78,10 @@ class _LargePlusButtonState extends State<_LargePlusButton> {
           ),
         ],
       ),
-      child: const Icon(
+      child: Icon(
         Icons.add,
         size: 32,
-        color: AppColors.aqua,
+        color: context.watch<AtmosphereState>().accentColor,
       ),
     );
   }

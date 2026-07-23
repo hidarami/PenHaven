@@ -6,12 +6,14 @@ class LockNumpad extends StatelessWidget {
   final ValueChanged<String> onDigit;
   final VoidCallback onDelete;
   final VoidCallback? onBiometric;
+  final Color accentColor;
 
   const LockNumpad({
     super.key,
     required this.onDigit,
     required this.onDelete,
     this.onBiometric,
+    this.accentColor = AppColors.aqua,
   });
 
   @override
@@ -34,8 +36,8 @@ class LockNumpad extends StatelessWidget {
                 child: onBiometric != null
                     ? NumpadKey(
                         onTap: onBiometric!,
-                        child: const Icon(Icons.fingerprint_rounded,
-                            size: 28, color: AppColors.aqua),
+                        child: Icon(Icons.fingerprint_rounded,
+                            size: 28, color: accentColor),
                       )
                     : const SizedBox(),
               ),

@@ -217,7 +217,9 @@ class _EditorScreenState extends State<EditorScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<AppState>().isDarkMode;
+    final appState = context.watch<AppState>();
+    final dark = appState.isDarkMode;
+    final fontName = appState.preferredFont;
     final bg = context.watch<AtmosphereState>().backgroundFor(dark);
 
     return PopScope(
@@ -273,6 +275,7 @@ class _EditorScreenState extends State<EditorScreen> {
                             initialBlocks: _blocks,
                             isDark: dark,
                             textAlignment: _entry.textAlignment,
+                            fontName: fontName,
                             onBlocksChanged: _onBlocksChanged,
                           ),
                         ),
