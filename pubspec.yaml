@@ -21,7 +21,7 @@ dependencies:
   share_plus: ^10.1.4
   local_auth: ^2.3.0
   image_picker: ^1.1.2
-  image_cropper: ^11.0.0
+  image_cropper: ^10.0.0+1
   pdf: ^3.11.1
   http: ^1.2.2
   geolocator: ^13.0.2
