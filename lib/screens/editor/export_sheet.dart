@@ -851,9 +851,9 @@ class _EntryExportView extends StatelessWidget {
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
+          mainAxisSize: _isPagesMode ? MainAxisSize.max : MainAxisSize.min,
           children: [
-            // ── Top aqua accent bar ─────────────────────────────────────
+            // ── Top aqua accent bar ─────────────────────────────────────────────
             Container(
               height: 3.5,
               decoration: const BoxDecoration(
@@ -902,126 +902,146 @@ class _EntryExportView extends StatelessWidget {
                 ),
               ),
 
-            // ── Main content area ───────────────────────────────────────
-            Expanded(
-              child: SingleChildScrollView(
+            // ── Main content area ────────────────────────────────────────
+            if (_isPagesMode)
+              Expanded(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Title — only on first page or single mode
-                      if (!_isPagesMode || pageNum == 1) ...[
-                        Text(
-                          entry.title.isEmpty ? 'Untitled' : entry.title,
-                          style: GoogleFonts.crimsonPro(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w700,
-                            color: textColor,
-                            height: 1.1,
-                            letterSpacing: -0.3,
+                      _contentTitle(textColor, mutedColor, aqua),
+                      Expanded(
+                        child: ClipRect(
+                          child: Align(
+                            alignment: Alignment.topLeft,
+                            child: _buildBody(textColor, mutedColor),
                           ),
                         ),
-                        if (showDate) ...[
-                          const SizedBox(height: 7),
-                          Text(
-                            DateFormat('MMMM d, yyyy')
-                                .format(entry.createdAt)
-                                .toUpperCase(),
-                            style: GoogleFonts.inter(
-                              fontSize: 9.5,
-                              letterSpacing: 2.0,
-                              fontWeight: FontWeight.w500,
-                              color: mutedColor,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        Container(height: 0.5, color: aqua.withOpacity(0.35)),
-                        const SizedBox(height: 18),
-                      ] else ...[
-                        // Subsequent pages: just a small continuation indicator
-                        Row(children: [
-                          Container(
-                              width: 20,
-                              height: 1.5,
-                              color: aqua.withOpacity(0.4)),
-                          const SizedBox(width: 8),
-                          Text(
-                            entry.title.isEmpty ? 'Untitled' : entry.title,
-                            style: GoogleFonts.inter(
-                              fontSize: 9,
-                              letterSpacing: 1.5,
-                              fontWeight: FontWeight.w500,
-                              color: mutedColor,
-                            ),
-                          ),
-                        ]),
-                        const SizedBox(height: 16),
-                      ],
-
-                      // ── Body Content ──────────────────────────────────────────
-                      Expanded(child: _buildBody(textColor, mutedColor)),
-
-                      // ── Footer ────────────────────────────────────────────
-                      const SizedBox(height: 20),
-                      Container(
-                          height: 0.5, color: mutedColor.withOpacity(0.18)),
-                      const SizedBox(height: 10),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          // Left: footer text or page number
-                          if (_isPagesMode && totalPages != null)
-                            Text(
-                              '${pageNum ?? 1} / $totalPages',
-                              style: GoogleFonts.inter(
-                                fontSize: 9,
-                                color: mutedColor.withOpacity(0.7),
-                                letterSpacing: 0.5,
-                              ),
-                            )
-                          else if (showFooter && footerText.isNotEmpty)
-                            Text(
-                              footerText,
-                              style: GoogleFonts.inter(
-                                  fontSize: 9.5, color: mutedColor),
-                            )
-                          else
-                            const SizedBox.shrink(),
-
-                          // Right: Flow watermark
-                          if (showWatermark)
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                    width: 12,
-                                    height: 1.5,
-                                    color: aqua.withOpacity(0.7)),
-                                const SizedBox(width: 5),
-                                Text(
-                                  'Flow',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    color: mutedColor,
-                                    letterSpacing: 2.5,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
-                        ],
                       ),
+                      const SizedBox(height: 8),
+                      _contentFooter(textColor, mutedColor, aqua),
                     ],
                   ),
                 ),
+              )
+            else
+              Padding(
+                padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _contentTitle(textColor, mutedColor, aqua),
+                    _buildBody(textColor, mutedColor),
+                    const SizedBox(height: 20),
+                    _contentFooter(textColor, mutedColor, aqua),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _contentTitle(Color textColor, Color mutedColor, Color aqua) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Title
+        Text(
+          entry.title.isNotEmpty ? entry.title : 'Untitled',
+          style: GoogleFonts.crimsonPro(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: textColor,
+            height: 1.3,
+          ),
+        ),
+        // Date (if enabled)
+        if (showDate) ...[
+          const SizedBox(height: 6),
+          Text(
+            DateFormat('MMMM d, yyyy').format(entry.createdAt),
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              color: mutedColor,
+              letterSpacing: 0.5,
+            ),
+          ),
+        ],
+        // Small divider
+        const SizedBox(height: 12),
+        Container(height: 1, color: mutedColor.withOpacity(0.2)),
+        const SizedBox(height: 12),
+      ],
+    );
+  }
+
+  Widget _contentFooter(Color textColor, Color mutedColor, Color aqua) {
+    return Column(
+      children: [
+        // Divider before footer
+        Container(height: 1, color: mutedColor.withOpacity(0.2)),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Footer text (if enabled)
+            if (showFooter && footerText.isNotEmpty)
+              Expanded(
+                child: Text(
+                  footerText,
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.w500,
+                    color: mutedColor,
+                  ),
+                ),
+              ),
+            // Page number (pages mode only)
+            if (_isPagesMode && pageNum != null && totalPages != null)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: aqua.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
+                  child: Text(
+                    '$pageNum / $totalPages',
+                    style: GoogleFonts.inter(
+                      fontSize: 9,
+                      fontWeight: FontWeight.w600,
+                      color: aqua,
+                    ),
+                  ),
+                ),
+              ),
+            // Spacer when no footer text but page number exists
+            if (!showFooter || footerText.isEmpty)
+              const Spacer(),
+            // Watermark
+            if (showWatermark)
+              Padding(
+                padding: const EdgeInsets.only(left: 8),
+                child: Text(
+                  'FLOW',
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    letterSpacing: 3,
+                    fontWeight: FontWeight.w600,
+                    color: mutedColor.withOpacity(0.4),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ],
     );
   }
 

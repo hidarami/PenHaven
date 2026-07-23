@@ -69,6 +69,22 @@ class ExportService {
     }
   }
 
+  /// Replaces common Unicode typography characters that many PDF fonts
+  /// cannot render (curly quotes, dashes, ellipsis, etc.).
+  String _sanitizeForPdf(String text) {
+    return text
+        .replaceAll('\u2018', "'")
+        .replaceAll('\u2019', "'")
+        .replaceAll('\u201C', '"')
+        .replaceAll('\u201D', '"')
+        .replaceAll('\u2014', '--')
+        .replaceAll('\u2013', '-')
+        .replaceAll('\u2026', '...')
+        .replaceAll('\u00A0', ' ')
+        .replaceAll('\u2022', '-')
+        .replaceAll('\uFFFC', '');
+  }
+
   String _stripMarkdown(String md) {
     return md
         .replaceAll(RegExp(r'#{1,6}\s'), '')
@@ -104,9 +120,10 @@ class ExportService {
 
       String bodyContent;
       if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty) {
-        bodyContent = plainTextFromBlocks(deserializeBlocks(entry.blocksJson!));
+        bodyContent = _sanitizeForPdf(
+            plainTextFromBlocks(deserializeBlocks(entry.blocksJson!)));
       } else {
-        bodyContent = _stripMarkdown(entry.content);
+        bodyContent = _sanitizeForPdf(_stripMarkdown(entry.content));
       }
 
       doc.addPage(

@@ -15,6 +15,10 @@ class RichEditorController extends TextEditingController {
   final List<FormatRange> _formats = [];
   String _prevText = '';
 
+  // Format applied to next typed characters when cursor is collapsed (no selection)
+  FormatAttrs _typingFormat = const FormatAttrs();
+  bool _hasTypingFormat = false;
+
   RichEditorController({
     String? text,
     List<FormatRange>? initialFormats,
@@ -35,6 +39,7 @@ class RichEditorController extends TextEditingController {
     _formats.clear();
     _formats.addAll(newFormats);
     _prevText = newText;
+    _hasTypingFormat = false;
     text = newText;
   }
 
@@ -79,8 +84,10 @@ class RichEditorController extends TextEditingController {
   }) {
     final sel = selection;
     if (!sel.isValid || sel.isCollapsed) {
-      // Check cursor position (what will be typed next)
-      final attrs = attrsAt(sel.start > 0 ? sel.start - 1 : 0);
+      // Reflect typing format (explicit) or infer from cursor position
+      final attrs = _hasTypingFormat
+          ? _typingFormat
+          : attrsAt(sel.start > 0 ? sel.start - 1 : 0);
       if (bold != null) return attrs.bold;
       if (italic != null) return attrs.italic;
       if (underline != null) return attrs.underline;
@@ -146,20 +153,42 @@ class RichEditorController extends TextEditingController {
     bool? strikethrough,
   }) {
     final sel = selection;
-    if (!sel.isValid || sel.isCollapsed) return;
+    if (!sel.isValid) return;
 
-    final hasFormat =
-        selectionHas(bold: bold, italic: italic, underline: underline, strikethrough: strikethrough);
+    if (sel.isCollapsed) {
+      // No selection — toggle typing format for subsequent characters
+      final base = _hasTypingFormat
+          ? _typingFormat
+          : attrsAt(sel.start > 0 ? sel.start - 1 : 0);
+      _typingFormat = FormatAttrs(
+        bold: bold != null ? !base.bold : base.bold,
+        italic: italic != null ? !base.italic : base.italic,
+        underline: underline != null ? !base.underline : base.underline,
+        strikethrough:
+            strikethrough != null ? !base.strikethrough : base.strikethrough,
+        highlight: base.highlight,
+        link: base.link,
+      );
+      _hasTypingFormat = true;
+      notifyListeners();
+      return;
+    }
+
+    // Has selection — apply to range and clear typing format
+    _hasTypingFormat = false;
+    final hasFormat = selectionHas(
+        bold: bold,
+        italic: italic,
+        underline: underline,
+        strikethrough: strikethrough);
 
     if (hasFormat) {
-      // Remove format in range
       _removeAttrInRange(sel.start, sel.end,
           removeBold: bold != null,
           removeItalic: italic != null,
           removeUnderline: underline != null,
           removeStrikethrough: strikethrough != null);
     } else {
-      // Add format range
       _addFormat(FormatRange(
         start: sel.start,
         end: sel.end,
@@ -294,6 +323,14 @@ class RichEditorController extends TextEditingController {
     }
     if (insertedLen > 0) {
       _shiftFormats(changeStart, insertedLen);
+      // Apply typing format to newly inserted characters
+      if (_hasTypingFormat && !_typingFormat.isEmpty) {
+        _addFormat(FormatRange(
+          start: changeStart,
+          end: changeStart + insertedLen,
+          attrs: _typingFormat,
+        ));
+      }
     }
 
     _cleanupFormats();
