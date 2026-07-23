@@ -27,22 +27,21 @@ class StoryFirstTime extends StatefulWidget {
 
 class _StoryFirstTimeState extends State<StoryFirstTime> {
   bool _editing = false;
+  bool _creating = false; // prevents double-creation
   final _controller = TextEditingController();
+  final _descController = TextEditingController();
   final _focusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
-    _focusNode.addListener(() {
-      if (!_focusNode.hasFocus && _editing) {
-        _tryCreate();
-      }
-    });
+    // No focus listener — prevents duplicate creation when keyboard dismisses
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _descController.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -55,16 +54,21 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
   }
 
   Future<void> _tryCreate() async {
+    if (_creating) return;
     final title = _controller.text.trim();
     if (title.isEmpty) {
       if (mounted) setState(() => _editing = false);
       return;
     }
+    setState(() => _creating = true);
     try {
-      await context.read<AppState>().createStory(title: title);
-      // AppState.hasStories will now be true, StoryPanel re-renders automatically
+      await context.read<AppState>().createStory(
+        title: title,
+        description: _descController.text.trim(),
+      );
     } catch (e) {
       if (!mounted) return;
+      setState(() => _creating = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to create story: $e')),
       );
@@ -91,18 +95,44 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
               onDoubleTap: _startEditing,
               onLongPress: _startEditing,
               child: _editing
-                  ? TextField(
-                      controller: _controller,
-                      focusNode: _focusNode,
-                      style: AppTypography.storyTitle(textColor),
-                      textInputAction: TextInputAction.done,
-                      onSubmitted: (_) => _tryCreate(),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: EdgeInsets.zero,
-                        hintText: 'Name your story...',
-                        hintStyle: AppTypography.storyTitle(mutedColor),
-                      ),
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          style: AppTypography.storyTitle(textColor),
+                          textInputAction: TextInputAction.next,
+                          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: 'Name your story...',
+                            hintStyle: AppTypography.storyTitle(mutedColor),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        TextField(
+                          controller: _descController,
+                          style: GoogleFonts.crimsonPro(
+                            fontSize: 16,
+                            fontStyle: FontStyle.italic,
+                            color: mutedColor,
+                          ),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _tryCreate(),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: 'A short description (optional)',
+                            hintStyle: GoogleFonts.crimsonPro(
+                              fontSize: 16,
+                              fontStyle: FontStyle.italic,
+                              color: mutedColor.withOpacity(0.5),
+                            ),
+                          ),
+                        ),
+                      ],
                     )
                   : Text(
                       'Story',

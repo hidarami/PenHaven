@@ -954,6 +954,41 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
     super.dispose();
   }
 
+  Future<void> _handleSocialLogin(String provider) async {
+    setState(() { _loading = true; _error = null; });
+    
+    String? err;
+    switch (provider) {
+      case 'google':
+        err = await SupabaseService.instance.signInWithGoogle();
+        break;
+      case 'apple':
+        err = await SupabaseService.instance.signInWithApple();
+        break;
+      case 'facebook':
+        err = await SupabaseService.instance.signInWithFacebook();
+        break;
+      case 'github':
+        err = await SupabaseService.instance.signInWithGitHub();
+        break;
+      case 'discord':
+        err = await SupabaseService.instance.signInWithDiscord();
+        break;
+      case 'twitter':
+        err = await SupabaseService.instance.signInWithTwitter();
+        break;
+    }
+    
+    if (!mounted) return;
+    if (err != null) {
+      setState(() { _error = err; _loading = false; });
+    } else if (SupabaseService.instance.isAuthenticated) {
+      setState(() => _loading = false);
+      widget.onSuccess();
+    }
+    // If not authenticated yet, the OAuth flow is in progress (user is in browser)
+  }
+
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text.trim();
@@ -964,16 +999,29 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
     String? err;
     if (_tab.index == 0) {
       err = await SupabaseService.instance.signInWithEmail(email, pass);
+      if (!mounted) return;
+      if (err != null) {
+        setState(() { _error = err; _loading = false; });
+      } else {
+        setState(() => _loading = false);
+        widget.onSuccess();
+      }
     } else {
       err = await SupabaseService.instance.signUpWithEmail(email, pass);
-    }
-
-    if (!mounted) return;
-    if (err != null) {
-      setState(() { _error = err; _loading = false; });
-    } else {
-      setState(() => _loading = false);
-      widget.onSuccess();
+      if (!mounted) return;
+      if (err != null) {
+        setState(() { _error = err; _loading = false; });
+      } else if (SupabaseService.instance.isAuthenticated) {
+        // Auto-confirmed (email confirmation disabled in Supabase)
+        setState(() => _loading = false);
+        widget.onSuccess();
+      } else {
+        // Email confirmation required
+        setState(() {
+          _error = 'Please check your email ($email) to confirm your account.';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -1014,6 +1062,43 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
               style: GoogleFonts.inter(fontSize: 13, color: mutedColor),
             ),
             const SizedBox(height: 20),
+            
+            // Social login buttons
+            _SocialLoginButton(
+              label: 'Continue with Google',
+              icon: Icons.g_mobiledata_rounded,
+              onTap: _loading ? null : () => _handleSocialLogin('google'),
+            ),
+            const SizedBox(height: 10),
+            _SocialLoginButton(
+              label: 'Continue with Apple',
+              icon: Icons.apple_rounded,
+              onTap: _loading ? null : () => _handleSocialLogin('apple'),
+            ),
+            const SizedBox(height: 10),
+            _SocialLoginButton(
+              label: 'Continue with GitHub',
+              icon: Icons.code_rounded,
+              onTap: _loading ? null : () => _handleSocialLogin('github'),
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Divider
+            Row(
+              children: [
+                Expanded(child: Divider(color: mutedColor.withOpacity(0.3))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: Text('or', style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+                ),
+                Expanded(child: Divider(color: mutedColor.withOpacity(0.3))),
+              ],
+            ),
+            
+            const SizedBox(height: 20),
+            
+            // Email tabs
             TabBar(
               controller: _tab,
               tabs: const [Tab(text: 'Sign In'), Tab(text: 'Sign Up')],
@@ -1100,6 +1185,54 @@ class _InputField extends StatelessWidget {
           contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           hintText: hint,
           hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Social login button ───────────────────────────────────────────────────────
+
+class _SocialLoginButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const _SocialLoginButton({
+    required this.label,
+    required this.icon,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = context.watch<AppState>().isDarkMode;
+    final textColor = dark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+        decoration: BoxDecoration(
+          color: dark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: mutedColor.withOpacity(0.2)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: textColor),
+            const SizedBox(width: 12),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: textColor,
+              ),
+            ),
+          ],
         ),
       ),
     );

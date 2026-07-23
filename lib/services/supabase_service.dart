@@ -8,6 +8,7 @@ import '../models/time_capsule.dart';
 import '../models/published_entry.dart';
 import '../models/community_comment.dart';
 
+// OAuth provider helper methods
 // ─────────────────────────────────────────────────────────────────────────────
 // SUPABASE SERVICE
 // Handles auth + cloud sync. All operations fail silently so local SQLite
@@ -95,6 +96,98 @@ class SupabaseService {
     try {
       await _client?.auth.signOut();
     } catch (_) {}
+  }
+
+  // ── OAuth / Social Login ────────────────────────────────────────────────────
+
+  /// Sign in with Google
+  Future<String?> signInWithGoogle() async {
+    try {
+      await _client?.auth.signInWithOAuth(
+        OAuthProvider.google,
+        redirectTo: 'flow://auth/callback',
+      );
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Sign in with Apple
+  Future<String?> signInWithApple() async {
+    try {
+      await _client?.auth.signInWithOAuth(
+        OAuthProvider.apple,
+        redirectTo: 'flow://auth/callback',
+      );
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Sign in with Facebook
+  Future<String?> signInWithFacebook() async {
+    try {
+      await _client?.auth.signInWithOAuth(
+        OAuthProvider.facebook,
+        redirectTo: 'flow://auth/callback',
+      );
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Sign in with GitHub
+  Future<String?> signInWithGitHub() async {
+    try {
+      await _client?.auth.signInWithOAuth(
+        OAuthProvider.github,
+        redirectTo: 'flow://auth/callback',
+      );
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Sign in with Discord
+  Future<String?> signInWithDiscord() async {
+    try {
+      await _client?.auth.signInWithOAuth(
+        OAuthProvider.discord,
+        redirectTo: 'flow://auth/callback',
+      );
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
+  }
+
+  /// Sign in with Twitter/X
+  Future<String?> signInWithTwitter() async {
+    try {
+      await _client?.auth.signInWithOAuth(
+        OAuthProvider.twitter,
+        redirectTo: 'flow://auth/callback',
+      );
+      return null;
+    } on AuthException catch (e) {
+      return e.message;
+    } catch (e) {
+      return e.toString();
+    }
   }
 
   Stream<AuthState>? get authStream => _client?.auth.onAuthStateChange;
@@ -376,4 +469,5 @@ class SupabaseService {
     }
   }
 }
+
 

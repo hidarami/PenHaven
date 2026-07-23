@@ -26,35 +26,52 @@ class StoryHeader extends StatefulWidget {
 class _StoryHeaderState extends State<StoryHeader> {
   bool _editing = false;
   late TextEditingController _controller;
+  late TextEditingController _descController;
   final FocusNode _focusNode = FocusNode();
+  final FocusNode _descFocusNode = FocusNode();
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.story.title);
+    _descController = TextEditingController(text: widget.story.description);
     _focusNode.addListener(() {
       if (!_focusNode.hasFocus && _editing) {
-        _saveTitle();
+        // Microtask: don't save if focus moved to description field
+        Future.microtask(() {
+          if (mounted && _editing && !_descFocusNode.hasFocus) _save();
+        });
       }
+    });
+    _descFocusNode.addListener(() {
+      if (!_descFocusNode.hasFocus && _editing) _save();
     });
   }
 
   @override
   void didUpdateWidget(StoryHeader old) {
     super.didUpdateWidget(old);
-    if (!_editing && old.story.title != widget.story.title) {
-      _controller.text = widget.story.title;
+    if (!_editing) {
+      if (old.story.title != widget.story.title) {
+        _controller.text = widget.story.title;
+      }
+      if (old.story.description != widget.story.description) {
+        _descController.text = widget.story.description;
+      }
     }
   }
 
   @override
   void dispose() {
     _controller.dispose();
+    _descController.dispose();
     _focusNode.dispose();
+    _descFocusNode.dispose();
     super.dispose();
   }
 
   void _startEditing() {
+    _descController.text = widget.story.description;
     setState(() => _editing = true);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
@@ -65,18 +82,23 @@ class _StoryHeaderState extends State<StoryHeader> {
     });
   }
 
-  void _saveTitle() {
+  void _save() {
     final newTitle = _controller.text.trim();
-    if (newTitle.isNotEmpty && newTitle != widget.story.title) {
-      try {
-        context.read<AppState>().updateStory(
-              widget.story.copyWith(title: newTitle),
-            );
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update title: $e')),
-        );
+    final newDesc = _descController.text.trim();
+    if (newTitle.isNotEmpty) {
+      final changed = newTitle != widget.story.title ||
+          newDesc != widget.story.description;
+      if (changed) {
+        try {
+          context.read<AppState>().updateStory(
+                widget.story.copyWith(title: newTitle, description: newDesc),
+              );
+        } catch (e) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Failed to update: $e')),
+          );
+        }
       }
     } else {
       _controller.text = widget.story.title;
@@ -100,22 +122,42 @@ class _StoryHeaderState extends State<StoryHeader> {
           onDoubleTap: _startEditing,
           onLongPress: _startEditing,
           child: _editing
-              ? TextField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  style: AppTypography.storyTitle(textColor),
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _saveTitle(),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    fillColor: Colors.transparent,
-                    filled: true,
-                    hintText: 'Story title',
-                    hintStyle: AppTypography.storyTitle(mutedColor),
-                  ),
-                  maxLines: 1,
-                )
+                  ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        TextField(
+                          controller: _controller,
+                          focusNode: _focusNode,
+                          style: AppTypography.storyTitle(textColor),
+                          textInputAction: TextInputAction.next,
+                          maxLines: 1,
+                          onSubmitted: (_) => _descFocusNode.requestFocus(),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            fillColor: Colors.transparent,
+                            filled: true,
+                            hintText: 'Story title',
+                            hintStyle: AppTypography.storyTitle(mutedColor),
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _descController,
+                          focusNode: _descFocusNode,
+                          style: AppTypography.storyDescription(mutedColor),
+                          textInputAction: TextInputAction.done,
+                          onSubmitted: (_) => _save(),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.zero,
+                            hintText: 'Description (optional)',
+                            hintStyle: AppTypography.storyDescription(
+                                mutedColor.withOpacity(0.5)),
+                          ),
+                        ),
+                      ],
+                    )
               : Text(
                   widget.story.title,
                   style: AppTypography.storyTitle(textColor),
@@ -125,13 +167,23 @@ class _StoryHeaderState extends State<StoryHeader> {
         ),
 
         // ── Description ───────────────────────────────────────────────────
-        if (widget.story.description.isNotEmpty) ...[
+        if (!_editing) ...[
           const SizedBox(height: 6),
-          Text(
-            widget.story.description,
-            style: AppTypography.storyDescription(mutedColor),
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
+          GestureDetector(
+            onLongPress: _startEditing,
+            onDoubleTap: _startEditing,
+            child: widget.story.description.isNotEmpty
+                ? Text(
+                    widget.story.description,
+                    style: AppTypography.storyDescription(mutedColor),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : Text(
+                    'Add a description…',
+                    style: AppTypography.storyDescription(
+                        mutedColor.withOpacity(0.4)),
+                  ),
           ),
         ],
 

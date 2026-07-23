@@ -80,9 +80,8 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
     }
   }
 
-  // ── Double-tap / Long-press ──────────────────────────────────────────────
+  // ── Long-press to open editor ────────────────────────────────────────────
 
-  void _handleDoubleTap() => _openEditor();
   void _handleLongPress() => _openEditor();
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -97,12 +96,11 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
       body: Stack(
         children: [
           GestureDetector(
-            onHorizontalDragEnd: _handleSwipeExit,
-            onDoubleTap: _handleDoubleTap,
-            onLongPress: _handleLongPress,
-            behavior: HitTestBehavior.translucent,
-            child: _ReadContent(entry: _entry, isDark: dark),
-          ),
+              onHorizontalDragEnd: _handleSwipeExit,
+              onLongPress: _handleLongPress,
+              behavior: HitTestBehavior.translucent,
+              child: _ReadContent(entry: _entry, isDark: dark),
+            ),
           const AtmosphereOverlay(),
           const AtmosphereImageLayer(),
         ],

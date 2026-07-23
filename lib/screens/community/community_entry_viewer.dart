@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -32,16 +34,20 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   final _commentCtrl = TextEditingController();
   bool _commentAnon = false;
   bool _submittingComment = false;
+  bool _barVisible = true;
+  Timer? _hideTimer;
 
   @override
   void initState() {
     super.initState();
     _entry = widget.entry;
+    _scheduleHide();
   }
 
   @override
   void dispose() {
     _commentCtrl.dispose();
+    _hideTimer?.cancel();
     super.dispose();
   }
 
@@ -101,6 +107,25 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     );
   }
 
+  void _scheduleHide() {
+    _hideTimer?.cancel();
+    _hideTimer = Timer(const Duration(seconds: 5), () {
+      if (mounted) setState(() => _barVisible = false);
+    });
+  }
+
+  void _onTapScreen() {
+    if (!_barVisible) {
+      setState(() => _barVisible = true);
+      _scheduleHide();
+    }
+  }
+
+  void _dismissBar() {
+    _hideTimer?.cancel();
+    setState(() => _barVisible = false);
+  }
+
   void _handleClap() {
     if (!SupabaseService.instance.isAuthenticated) {
       _showAuthRequired();
@@ -122,127 +147,134 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
     final fontName = context.watch<AppState>().preferredFont;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
 
-    return GestureDetector(
-      onHorizontalDragEnd: (d) {
-        if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
-      },
-      child: Scaffold(
-        backgroundColor: bg,
-        body: Column(
+    return Scaffold(
+      backgroundColor: bg,
+      body: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onHorizontalDragEnd: (d) {
+          if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+        },
+        onTap: _onTapScreen,
+        child: Stack(
           children: [
-            // Content
-            Expanded(
-              child: CustomScrollView(
-                physics: const BouncingScrollPhysics(),
-                slivers: [
-                  // Back button
-                  SliverToBoxAdapter(
-                    child: SafeArea(
-                      child: Padding(
-                        padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-                        child: Row(
-                          children: [
-                            IconButton(
-                              icon: Icon(Icons.chevron_left_rounded, size: 28, color: mutedColor),
-                              onPressed: () => Navigator.of(context).pop(),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-
-                  // Author + date
-                  SliverToBoxAdapter(
+            // ── Scrollable content ──────────────────────────────────────
+            CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                SliverToBoxAdapter(
+                  child: SafeArea(
                     child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                       child: Row(
                         children: [
-                          _AvatarCircle(name: _entry.authorLabel, size: 32),
-                          const SizedBox(width: 10),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _entry.authorLabel,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14, fontWeight: FontWeight.w600, color: textColor,
-                                ),
-                              ),
-                              Text(
-                                _formatDate(_entry.createdAt),
-                                style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
-                              ),
-                            ],
+                          IconButton(
+                            icon: Icon(Icons.chevron_left_rounded,
+                                size: 28, color: mutedColor),
+                            onPressed: () => Navigator.of(context).pop(),
                           ),
                         ],
                       ),
                     ),
                   ),
-
-                  // Title
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
-                      child: Text(
-                        _entry.title.isEmpty ? 'Untitled' : _entry.title,
-                        style: GoogleFonts.crimsonPro(
-                          fontSize: 32, fontWeight: FontWeight.w700,
-                          color: textColor, height: 1.15,
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+                    child: Row(
+                      children: [
+                        _AvatarCircle(name: _entry.authorLabel, size: 32),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(_entry.authorLabel,
+                                style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor)),
+                            Text(_formatDate(_entry.createdAt),
+                                style: GoogleFonts.inter(
+                                    fontSize: 11, color: mutedColor)),
+                          ],
                         ),
-                      ),
+                      ],
                     ),
                   ),
-
-                  // Divider
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
+                    child: Text(
+                      _entry.title.isEmpty ? 'Untitled' : _entry.title,
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                          height: 1.15),
+                    ),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Divider(
+                        color: dark
+                            ? AppColors.dividerDark
+                            : AppColors.dividerLight,
+                        thickness: 0.5),
+                  ),
+                ),
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.fromLTRB(
+                        24, 16, 24, bottomPad + 100),
+                    child: _buildBody(dark, fontName, textColor),
+                  ),
+                ),
+                if (_commentsOpen)
                   SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: Divider(
-                        color: dark ? AppColors.dividerDark : AppColors.dividerLight,
-                        thickness: 0.5,
-                      ),
+                    child: _CommentsSection(
+                      comments: _comments,
+                      loading: _commentsLoading,
+                      controller: _commentCtrl,
+                      isAnon: _commentAnon,
+                      submitting: _submittingComment,
+                      isDark: dark,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      onAnonChanged: (v) =>
+                          setState(() => _commentAnon = v),
+                      onSubmit: _submitComment,
                     ),
                   ),
-
-                  // Body
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 16, 24, 48),
-                      child: _buildBody(dark, fontName, textColor),
-                    ),
-                  ),
-
-                  // Comments section
-                  if (_commentsOpen)
-                    SliverToBoxAdapter(
-                      child: _CommentsSection(
-                        comments: _comments,
-                        loading: _commentsLoading,
-                        controller: _commentCtrl,
-                        isAnon: _commentAnon,
-                        submitting: _submittingComment,
-                        isDark: dark,
-                        textColor: textColor,
-                        mutedColor: mutedColor,
-                        onAnonChanged: (v) => setState(() => _commentAnon = v),
-                        onSubmit: _submitComment,
-                      ),
-                    ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 100)),
-                ],
-              ),
+                const SliverToBoxAdapter(child: SizedBox(height: 40)),
+              ],
             ),
 
-            // Bottom bar: clap + comment
-            _BottomBar(
-              entry: _entry,
-              isDark: dark,
-              onClap: _handleClap,
-              onComment: _toggleComments,
-              commentsOpen: _commentsOpen,
+            // ── Floating glassmorphic pill ───────────────────────────────
+            Positioned(
+              bottom: bottomPad + 24,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: AnimatedOpacity(
+                  opacity: _barVisible ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeOut,
+                  child: IgnorePointer(
+                    ignoring: !_barVisible,
+                    child: _GlassPill(
+                      entry: _entry,
+                      commentsOpen: _commentsOpen,
+                      onClap: _handleClap,
+                      onComment: _toggleComments,
+                      onDismiss: _dismissBar,
+                    ),
+                  ),
+                ),
+              ),
             ),
           ],
         ),
@@ -274,64 +306,67 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   }
 }
 
-// ── Bottom bar ────────────────────────────────────────────────────────────────
+// ── Glassmorphic pill ─────────────────────────────────────────────────────────
 
-class _BottomBar extends StatelessWidget {
+class _GlassPill extends StatelessWidget {
   final PublishedEntry entry;
-  final bool isDark;
+  final bool commentsOpen;
   final VoidCallback onClap;
   final VoidCallback onComment;
-  final bool commentsOpen;
+  final VoidCallback onDismiss;
 
-  const _BottomBar({
+  const _GlassPill({
     required this.entry,
-    required this.isDark,
+    required this.commentsOpen,
     required this.onClap,
     required this.onComment,
-    required this.commentsOpen,
+    required this.onDismiss,
   });
 
   @override
   Widget build(BuildContext context) {
-    final bg = isDark ? AppColors.warmDark : AppColors.warmWhite;
-    final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
-    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
-    final bottomPad = MediaQuery.of(context).padding.bottom;
+    // Ghost white — not dynamic, works on any background
+    const ghostColor = Color(0xDDFFFFFF);
+    const ghostMuted = Color(0x99FFFFFF);
 
-    return Container(
-      color: bg,
-      padding: EdgeInsets.fromLTRB(24, 12, 24, 12 + bottomPad),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Divider(color: divColor, thickness: 0.5, height: 0),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              // Clap
-              GestureDetector(
-                onTap: onClap,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: entry.hasClapped
-                        ? AppColors.aqua.withOpacity(0.15)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: entry.hasClapped
-                          ? AppColors.aqua
-                          : mutedColor.withOpacity(0.3),
-                    ),
-                  ),
+    return GestureDetector(
+      onTap: onDismiss,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(30),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 13),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.13),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.22),
+                width: 0.5,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.10),
+                  blurRadius: 24,
+                  offset: const Offset(0, 6),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // ── Clap ──────────────────────────────────────────────
+                GestureDetector(
+                  onTap: onClap,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        Icons.volunteer_activism_rounded,
-                        size: 18,
-                        color: entry.hasClapped ? AppColors.aqua : mutedColor,
+                        entry.hasClapped
+                            ? Icons.volunteer_activism_rounded
+                            : Icons.volunteer_activism_outlined,
+                        size: 20,
+                        color: ghostColor,
                       ),
                       const SizedBox(width: 6),
                       Text(
@@ -339,45 +374,50 @@ class _BottomBar extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: entry.hasClapped ? AppColors.aqua : mutedColor,
+                          color: ghostColor,
                         ),
                       ),
                     ],
                   ),
                 ),
-              ),
 
-              const SizedBox(width: 12),
+                // ── Hairline divider ───────────────────────────────────
+                Container(
+                  width: 0.5,
+                  height: 20,
+                  margin: const EdgeInsets.symmetric(horizontal: 20),
+                  color: ghostMuted,
+                ),
 
-              // Comments
-              GestureDetector(
-                onTap: onComment,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: commentsOpen
-                        ? AppColors.aqua.withOpacity(0.1)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: mutedColor.withOpacity(0.3)),
-                  ),
+                // ── Comments ───────────────────────────────────────────
+                GestureDetector(
+                  onTap: onComment,
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.chat_bubble_outline_rounded, size: 16, color: mutedColor),
+                      Icon(
+                        commentsOpen
+                            ? Icons.chat_bubble_rounded
+                            : Icons.chat_bubble_outline_rounded,
+                        size: 18,
+                        color: ghostColor,
+                      ),
                       const SizedBox(width: 6),
                       Text(
                         '${entry.commentCount}',
-                        style: GoogleFonts.inter(fontSize: 13, color: mutedColor),
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: ghostColor,
+                        ),
                       ),
                     ],
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        ],
+        ),
       ),
     );
   }
