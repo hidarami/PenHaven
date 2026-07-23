@@ -9,6 +9,7 @@ import '../../services/image_service.dart';
 import '../../services/permission_service.dart';
 import '../../theme/app_colors.dart';
 import 'rich_editor_controller.dart';
+import '../../theme/app_typography.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EDITOR CANVAS
@@ -1213,12 +1214,14 @@ class BlocksReadView extends StatelessWidget {
   final List<EditorBlock> blocks;
   final bool isDark;
   final String textAlignment;
+  final String fontName;
 
   const BlocksReadView({
     super.key,
     required this.blocks,
     required this.isDark,
     this.textAlignment = 'justify',
+    this.fontName = 'crimsonPro',
   });
 
   @override
@@ -1235,7 +1238,7 @@ class BlocksReadView extends StatelessWidget {
     if (block is TextBlock) {
       debugPrint('[BlocksReadView] TextBlock text: "${block.text}"');
       return _TextBlockReadView(
-          block: block, isDark: isDark, textAlignment: textAlignment);
+          block: block, isDark: isDark, textAlignment: textAlignment, fontName: fontName);
     } else if (block is ImageBlock) {
       return _ImageBlockWidget(block: block, isDark: isDark, isEditing: false);
     } else if (block is ImageGridBlock) {
@@ -1261,9 +1264,14 @@ class _TextBlockReadView extends StatelessWidget {
   final TextBlock block;
   final bool isDark;
   final String textAlignment;
+  final String fontName;
 
-  const _TextBlockReadView(
-      {required this.block, required this.isDark, required this.textAlignment});
+  const _TextBlockReadView({
+    required this.block,
+    required this.isDark,
+    required this.textAlignment,
+    this.fontName = 'crimsonPro',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1388,7 +1396,7 @@ class _TextBlockReadView extends StatelessWidget {
             color: color,
             height: 1.8);
       default:
-        return GoogleFonts.crimsonPro(fontSize: 18, color: color, height: 1.8);
+        return AppTypography.bodyTextFor(fontName, color, size: 18, height: 1.8);
     }
   }
 

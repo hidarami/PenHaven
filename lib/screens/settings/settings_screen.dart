@@ -13,6 +13,7 @@ import '../../theme/app_colors.dart';
 import 'settings_section.dart';
 import 'settings_tile.dart';
 import 'about_section.dart';
+import 'fonts_screen.dart';
 
 
 /// Settings screen — full-screen push, no back button (swipe left-to-right).
@@ -133,47 +134,24 @@ class SettingsScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
-              // ── APPEARANCE — FONT ─────────────────────────────────────────
+              // ── READING FONT ───────────────────────────────────────────────
               SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4, bottom: 10),
-                        child: Text('READING FONT', style: GoogleFonts.inter(
-                          fontSize: 10, fontWeight: FontWeight.w600, color: mutedColor, letterSpacing: 2.0,
-                        )),
+                child: SettingsSection(
+                  label: 'READING FONT',
+                  isDark: isDark,
+                  bg: bg,
+                  children: [
+                    SettingsNavTile(
+                      icon: Icons.font_download_outlined,
+                      label: AppTypography.fontDisplayNames[appState.preferredFont] ?? 'Crimson Pro',
+                      description: 'Choose how your journal entries feel to read.',
+                      isDark: isDark,
+                      bg: bg,
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const FontsScreen()),
                       ),
-                      SizedBox(
-                        height: 46,
-                        child: ListView(
-                          scrollDirection: Axis.horizontal,
-                          children: AppTypography.fontDisplayNames.entries.map((entry) {
-                            final isSelected = appState.preferredFont == entry.key;
-                            return GestureDetector(
-                              onTap: () => appState.setPreferredFont(entry.key),
-                              child: AnimatedContainer(
-                                duration: const Duration(milliseconds: 200),
-                                margin: const EdgeInsets.only(right: 8),
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                decoration: BoxDecoration(
-                                  color: isSelected ? AppColors.aqua.withOpacity(0.12) : (isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.04)),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: isSelected ? Border.all(color: AppColors.aqua.withOpacity(0.5)) : null,
-                                ),
-                                child: Text(
-                                  entry.value,
-                                  style: AppTypography.bodyTextFor(entry.key, isSelected ? AppColors.aqua : mutedColor, size: 14, height: 1),
-                                ),
-                              ),
-                            );
-                          }).toList(),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
 

@@ -7,6 +7,8 @@ import '../../theme/app_typography.dart';
 import '../../widgets/shared_widgets.dart';
 import '../editor/editor_canvas.dart';
 import '../../models/editor_block.dart';
+import 'package:provider/provider.dart';
+import '../../providers/app_state.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTRY CONTENT
@@ -62,6 +64,7 @@ class EntryContent extends StatelessWidget {
               blocks: deserializeBlocks(entry.blocksJson!),
               isDark: isDark,
               textAlignment: entry.textAlignment,
+              fontName: context.watch<AppState>().preferredFont,
             )
           else
             _InterleavedBody(entry: entry, isDark: isDark),

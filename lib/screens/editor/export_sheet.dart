@@ -799,7 +799,6 @@ class _EntryExportView extends StatelessWidget {
   final String headerText;
   final bool showFooter;
   final String footerText;
-  // Pages mode: when set, render only this text instead of full content
   final String? pageOverrideText;
   final int? pageNum;
   final int? totalPages;
@@ -821,305 +820,426 @@ class _EntryExportView extends StatelessWidget {
 
   bool get _isPagesMode => pageOverrideText != null;
 
+  // Export-specific palette — intentionally distinct from the app's reading view
+  Color get _outerBg => isDark ? const Color(0xFF09070404) : const Color(0xFFDDD5C8);
+  Color get _cardBg => isDark ? const Color(0xFF1D1712) : const Color(0xFFFFFEF9);
+  Color get _textColor => isDark ? const Color(0xFFEDE8DE) : const Color(0xFF1A100A);
+  Color get _mutedColor => isDark ? const Color(0xFF6E6254) : const Color(0xFF9A8D7C);
+  static const _accent = Color(0xFF1B8DAF);
+  static const _accentSoft = Color(0x261B8DAF);
+
   @override
   Widget build(BuildContext context) {
-    // Distinctive export colors — different enough from app to not look like screenshot
-    final bg = isDark ? const Color(0xFF16110C) : const Color(0xFFFBF7F1);
-    final cardBg = isDark ? const Color(0xFF1D1710) : const Color(0xFFFEFAF5);
-    final textColor =
-        isDark ? const Color(0xFFEEE8DF) : const Color(0xFF1C1208);
-    final mutedColor =
-        isDark ? const Color(0xFF7A6E62) : const Color(0xFF9A8D7E);
-    const aqua = ui.Color.fromARGB(255, 27, 141, 175);
-
     return Container(
       width: double.infinity,
       height: _isPagesMode ? 640 : null,
-      color: bg,
-      padding: const EdgeInsets.all(16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: cardBg,
-          borderRadius: BorderRadius.circular(6),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(isDark ? 0.35 : 0.09),
-              blurRadius: 24,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: _isPagesMode ? MainAxisSize.max : MainAxisSize.min,
-          children: [
-            // ── Top aqua accent bar ─────────────────────────────────────────────
-            Container(
-              height: 3.5,
-              decoration: const BoxDecoration(
-                color: aqua,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(6)),
+      color: _outerBg,
+      padding: const EdgeInsets.all(18),
+      child: Stack(
+        children: [
+          // Decorative large background letter — extremely faint
+          Positioned(
+            bottom: -8,
+            right: 6,
+            child: Text(
+              'F',
+              style: GoogleFonts.crimsonPro(
+                fontSize: 180,
+                fontWeight: FontWeight.w700,
+                color: _textColor.withOpacity(isDark ? 0.025 : 0.04),
+                height: 1,
               ),
             ),
+          ),
 
-            // ── Header (custom text) ────────────────────────────────────
-            if (showHeader && headerText.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(28, 18, 28, 0),
-                child: Row(
-                  children: [
-                    Container(width: 20, height: 1.5, color: aqua),
-                    const SizedBox(width: 8),
-                    Text(
-                      headerText.toUpperCase(),
-                      style: GoogleFonts.inter(
-                        fontSize: 9,
-                        letterSpacing: 2.5,
-                        fontWeight: FontWeight.w600,
-                        color: aqua,
-                      ),
-                    ),
-                  ],
+          // Card
+          Container(
+            decoration: BoxDecoration(
+              color: _cardBg,
+              borderRadius: BorderRadius.circular(3),
+              border: Border(left: BorderSide(color: _accent, width: 3.5)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.55 : 0.18),
+                  blurRadius: 32,
+                  offset: const Offset(6, 8),
                 ),
-              ),
-
-            // ── Header image ────────────────────────────────────────────
-            if (entry.hasHeaderImage &&
-                includeImages &&
-                File(entry.headerImage!).existsSync() &&
-                !_isPagesMode)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(0, 16, 0, 0),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.zero,
-                  child: Image.file(
-                    File(entry.headerImage!),
-                    width: double.infinity,
-                    height: 180,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                  ),
+                BoxShadow(
+                  color: Colors.black.withOpacity(isDark ? 0.3 : 0.08),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-              ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: _isPagesMode ? MainAxisSize.max : MainAxisSize.min,
+                children: [
+                  // Top accent rule
+                  Container(height: 2, color: _accent),
 
-            // ── Main content area ────────────────────────────────────────
-            if (_isPagesMode)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _contentTitle(textColor, mutedColor, aqua),
-                      Expanded(
-                        child: ClipRect(
-                          child: Align(
-                            alignment: Alignment.topLeft,
-                            child: _buildBody(textColor, mutedColor),
-                          ),
+                  if (_isPagesMode)
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 16, 20, 14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _EntryHeader(
+                              entry: entry,
+                              showDate: showDate,
+                              showHeader: showHeader,
+                              headerText: headerText,
+                              includeImages: includeImages,
+                              isPagesMode: _isPagesMode,
+                              textColor: _textColor,
+                              mutedColor: _mutedColor,
+                              accent: _accent,
+                              accentSoft: _accentSoft,
+                              isDark: isDark,
+                            ),
+                            Expanded(
+                              child: ClipRect(
+                                child: Align(
+                                  alignment: Alignment.topLeft,
+                                  child: _buildBody(_textColor, _mutedColor),
+                                ),
+                              ),
+                            ),
+                            _EntryFooter(
+                              showWatermark: showWatermark,
+                              showFooter: showFooter,
+                              footerText: footerText,
+                              pageNum: pageNum,
+                              totalPages: totalPages,
+                              mutedColor: _mutedColor,
+                              accent: _accent,
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      _contentFooter(textColor, mutedColor, aqua),
-                    ],
-                  ),
-                ),
-              )
-            else
-              Padding(
-                padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _contentTitle(textColor, mutedColor, aqua),
-                    _buildBody(textColor, mutedColor),
-                    const SizedBox(height: 20),
-                    _contentFooter(textColor, mutedColor, aqua),
-                  ],
-                ),
+                    )
+                  else
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _EntryHeader(
+                            entry: entry,
+                            showDate: showDate,
+                            showHeader: showHeader,
+                            headerText: headerText,
+                            includeImages: includeImages,
+                            isPagesMode: _isPagesMode,
+                            textColor: _textColor,
+                            mutedColor: _mutedColor,
+                            accent: _accent,
+                            accentSoft: _accentSoft,
+                            isDark: isDark,
+                          ),
+                          _buildBody(_textColor, _mutedColor),
+                          const SizedBox(height: 12),
+                          _EntryFooter(
+                            showWatermark: showWatermark,
+                            showFooter: showFooter,
+                            footerText: footerText,
+                            pageNum: pageNum,
+                            totalPages: totalPages,
+                            mutedColor: _mutedColor,
+                            accent: _accent,
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
-          ],
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _contentTitle(Color textColor, Color mutedColor, Color aqua) {
+  Widget _buildBody(Color textColor, Color mutedColor) {
+    if (_isPagesMode && pageOverrideText != null) {
+      final text = pageOverrideText!.trim();
+      if (text.isEmpty) return _EmptyContentIndicator(textColor: textColor, mutedColor: mutedColor);
+      return Text(
+        text,
+        style: GoogleFonts.crimsonPro(fontSize: 16, color: textColor, height: 1.85),
+      );
+    }
+
+    if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty) {
+      final blocks = deserializeBlocks(entry.blocksJson!);
+      final filtered = includeImages
+          ? blocks
+          : blocks.where((b) => b is! ImageBlock && b is! ImageGridBlock).toList();
+
+      final hasContent = filtered.any((b) {
+        if (b is TextBlock) return b.text.trim().isNotEmpty;
+        return true;
+      });
+      if (!hasContent) return _EmptyContentIndicator(textColor: textColor, mutedColor: mutedColor);
+
+      return BlocksReadView(blocks: filtered, isDark: isDark, textAlignment: 'left');
+    }
+
+    if (entry.content.trim().isEmpty && entry.images.isEmpty) {
+      return _EmptyContentIndicator(textColor: textColor, mutedColor: mutedColor);
+    }
+    return _LegacyBody(entry: entry, isDark: isDark, includeImages: includeImages);
+  }
+}
+
+// ── Export header ─────────────────────────────────────────────────────────────
+
+class _EntryHeader extends StatelessWidget {
+  final Entry entry;
+  final bool showDate;
+  final bool showHeader;
+  final String headerText;
+  final bool includeImages;
+  final bool isPagesMode;
+  final Color textColor;
+  final Color mutedColor;
+  final Color accent;
+  final Color accentSoft;
+  final bool isDark;
+
+  const _EntryHeader({
+    required this.entry,
+    required this.showDate,
+    required this.showHeader,
+    required this.headerText,
+    required this.includeImages,
+    required this.isPagesMode,
+    required this.textColor,
+    required this.mutedColor,
+    required this.accent,
+    required this.accentSoft,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Custom header label
+        if (showHeader && headerText.isNotEmpty) ...[
+          Row(
+            children: [
+              Container(width: 12, height: 1, color: accent),
+              const SizedBox(width: 6),
+              Text(
+                headerText.toUpperCase(),
+                style: GoogleFonts.inter(
+                  fontSize: 7.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 2.8,
+                  color: accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+        ],
+
+        // Header image (not in pages mode)
+        if (entry.hasHeaderImage &&
+            includeImages &&
+            !isPagesMode &&
+            File(entry.headerImage!).existsSync()) ...[
+          ClipRRect(
+            borderRadius: BorderRadius.zero,
+            child: Image.file(
+              File(entry.headerImage!),
+              width: double.infinity,
+              height: 150,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+            ),
+          ),
+          const SizedBox(height: 14),
+        ],
+
         // Title
         Text(
-          entry.title.isNotEmpty ? entry.title : 'Untitled',
+          entry.title.isEmpty ? 'Untitled' : entry.title,
           style: GoogleFonts.crimsonPro(
             fontSize: 22,
             fontWeight: FontWeight.w700,
             color: textColor,
-            height: 1.3,
+            height: 1.15,
+            letterSpacing: -0.2,
           ),
         ),
-        // Date (if enabled)
+
+        // Date
         if (showDate) ...[
-          const SizedBox(height: 6),
-          Text(
-            DateFormat('MMMM d, yyyy').format(entry.createdAt),
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: mutedColor,
-              letterSpacing: 0.5,
-            ),
+          const SizedBox(height: 5),
+          Row(
+            children: [
+              Container(width: 16, height: 1, color: mutedColor.withOpacity(0.35)),
+              const SizedBox(width: 6),
+              Text(
+                DateFormat('MMMM d, yyyy').format(entry.createdAt),
+                style: GoogleFonts.inter(
+                  fontSize: 9,
+                  color: mutedColor,
+                  fontWeight: FontWeight.w500,
+                  letterSpacing: 0.8,
+                ),
+              ),
+            ],
           ),
         ],
-        // Small divider
-        const SizedBox(height: 12),
-        Container(height: 1, color: mutedColor.withOpacity(0.2)),
-        const SizedBox(height: 12),
+
+        // Ornamental rule
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 11),
+          child: Row(
+            children: [
+              Expanded(child: Container(height: 0.5, color: mutedColor.withOpacity(0.2))),
+              Container(
+                margin: const EdgeInsets.symmetric(horizontal: 8),
+                width: 5,
+                height: 5,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: mutedColor.withOpacity(0.35), width: 1),
+                ),
+              ),
+              Expanded(child: Container(height: 0.5, color: mutedColor.withOpacity(0.2))),
+            ],
+          ),
+        ),
       ],
     );
   }
+}
 
-  Widget _contentFooter(Color textColor, Color mutedColor, Color aqua) {
+// ── Export footer ─────────────────────────────────────────────────────────────
+
+class _EntryFooter extends StatelessWidget {
+  final bool showWatermark;
+  final bool showFooter;
+  final String footerText;
+  final int? pageNum;
+  final int? totalPages;
+  final Color mutedColor;
+  final Color accent;
+
+  const _EntryFooter({
+    required this.showWatermark,
+    required this.showFooter,
+    required this.footerText,
+    required this.pageNum,
+    required this.totalPages,
+    required this.mutedColor,
+    required this.accent,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final hasPageNum = pageNum != null && totalPages != null;
+    final hasFooterText = showFooter && footerText.isNotEmpty;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Divider before footer
-        Container(height: 1, color: mutedColor.withOpacity(0.2)),
-        const SizedBox(height: 12),
+        Container(height: 0.5, color: mutedColor.withOpacity(0.18)),
+        const SizedBox(height: 8),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Footer text (if enabled)
-            if (showFooter && footerText.isNotEmpty)
+            // Footer text
+            if (hasFooterText)
               Expanded(
                 child: Text(
                   footerText,
                   style: GoogleFonts.inter(
-                    fontSize: 9,
-                    letterSpacing: 1.5,
+                    fontSize: 8,
+                    letterSpacing: 1.2,
                     fontWeight: FontWeight.w500,
-                    color: mutedColor,
+                    color: mutedColor.withOpacity(0.65),
                   ),
                 ),
-              ),
-            // Page number (pages mode only)
-            if (_isPagesMode && pageNum != null && totalPages != null)
-              Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: aqua.withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(3),
-                  ),
-                  child: Text(
-                    '$pageNum / $totalPages',
-                    style: GoogleFonts.inter(
-                      fontSize: 9,
-                      fontWeight: FontWeight.w600,
-                      color: aqua,
-                    ),
-                  ),
-                ),
-              ),
-            // Spacer when no footer text but page number exists
-            if (!showFooter || footerText.isEmpty)
+              )
+            else
               const Spacer(),
-            // Watermark
+
+            // Page number badge
+            if (hasPageNum) ...[
+              Container(
+                margin: const EdgeInsets.only(left: 8),
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  border: Border.all(color: accent.withOpacity(0.35), width: 0.8),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+                child: Text(
+                  '$pageNum / $totalPages',
+                  style: GoogleFonts.inter(
+                    fontSize: 7.5,
+                    fontWeight: FontWeight.w700,
+                    color: accent,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ],
+
+            // Flow brand mark
             if (showWatermark)
               Padding(
-                padding: const EdgeInsets.only(left: 8),
-                child: Text(
-                  'FLOW',
-                  style: GoogleFonts.inter(
-                    fontSize: 9,
-                    letterSpacing: 3,
-                    fontWeight: FontWeight.w600,
-                    color: mutedColor.withOpacity(0.4),
-                  ),
+                padding: const EdgeInsets.only(left: 10),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 14,
+                      height: 14,
+                      decoration: BoxDecoration(
+                        color: accent.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(3),
+                        border: Border.all(color: accent.withOpacity(0.3), width: 0.8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'F',
+                          style: GoogleFonts.crimsonPro(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: accent,
+                            height: 1,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 5),
+                    Text(
+                      'FLOW',
+                      style: GoogleFonts.inter(
+                        fontSize: 7,
+                        letterSpacing: 2.8,
+                        fontWeight: FontWeight.w700,
+                        color: mutedColor.withOpacity(0.45),
+                      ),
+                    ),
+                  ],
                 ),
               ),
           ],
         ),
       ],
     );
-  }
-
-  Widget _buildBody(Color textColor, Color mutedColor) {
-    // Debug logging
-    debugPrint('[ExportSheet] _buildBody called');
-    debugPrint(
-        '[ExportSheet] entry.blocksJson: ${entry.blocksJson != null ? "has value (${entry.blocksJson!.length} chars)" : "null"}');
-    debugPrint('[ExportSheet] entry.content length: ${entry.content.length}');
-    debugPrint('[ExportSheet] _isPagesMode: $_isPagesMode');
-
-    // Pages mode: show only this page's text
-    if (_isPagesMode && pageOverrideText != null) {
-      final text = pageOverrideText!.trim();
-      debugPrint('[ExportSheet] Pages mode text length: ${text.length}');
-      if (text.isEmpty) {
-        return _EmptyContentIndicator(
-            textColor: textColor, mutedColor: mutedColor);
-      }
-      return Text(
-        text,
-        style: GoogleFonts.crimsonPro(
-          fontSize: 17,
-          color: textColor,
-          height: 1.85,
-        ),
-      );
-    }
-
-    // Single mode: full content
-    if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty) {
-      debugPrint('[ExportSheet] Using blocks mode');
-      final blocks = deserializeBlocks(entry.blocksJson!);
-      debugPrint('[ExportSheet] Deserialized ${blocks.length} blocks');
-      final filtered = includeImages
-          ? blocks
-          : blocks
-              .where((b) => b is! ImageBlock && b is! ImageGridBlock)
-              .toList();
-      debugPrint('[ExportSheet] After filtering: ${filtered.length} blocks');
-
-      // Check if filtered blocks have any actual content
-      final hasContent = filtered.any((b) {
-        if (b is TextBlock) return b.text.trim().isNotEmpty;
-        if (b is ImageBlock) return true;
-        if (b is ImageGridBlock) return true;
-        if (b is CodeBlock) return b.code.trim().isNotEmpty;
-        if (b is YoutubeBlock) return true;
-        if (b is TweetBlock) return true;
-        if (b is DividerBlock) return true;
-        return false;
-      });
-
-      debugPrint('[ExportSheet] hasContent: $hasContent');
-
-      if (!hasContent) {
-        return _EmptyContentIndicator(
-            textColor: textColor, mutedColor: mutedColor);
-      }
-
-      return BlocksReadView(
-        blocks: filtered,
-        isDark: isDark,
-        textAlignment: 'left',
-      );
-    }
-
-    // Legacy mode - check if content is empty
-    debugPrint('[ExportSheet] Using legacy mode');
-    if (entry.content.trim().isEmpty && entry.images.isEmpty) {
-      debugPrint('[ExportSheet] Legacy mode: content is empty');
-      return _EmptyContentIndicator(
-          textColor: textColor, mutedColor: mutedColor);
-    }
-
-    debugPrint('[ExportSheet] Legacy mode: rendering content');
-    return _LegacyBody(
-        entry: entry, isDark: isDark, includeImages: includeImages);
   }
 }
 

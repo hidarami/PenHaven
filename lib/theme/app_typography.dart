@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
+
 // ─────────────────────────────────────────────────────────────────────────────
 // APP TYPOGRAPHY
 // All TextStyles used in Flow, using Google Fonts at runtime.
@@ -209,6 +210,26 @@ class AppTypography {
         return GoogleFonts.merriweather(fontSize: size, color: color, height: height);
       case 'playfairDisplay':
         return GoogleFonts.playfairDisplay(fontSize: size, color: color, height: height);
+      case 'ebGaramond':
+        return GoogleFonts.ebGaramond(fontSize: size, color: color, height: height);
+      case 'cormorantGaramond':
+        return GoogleFonts.cormorantGaramond(fontSize: size, color: color, height: height);
+      case 'libreBaskerville':
+        return GoogleFonts.libreBaskerville(fontSize: size, color: color, height: height);
+      case 'alegreya':
+        return GoogleFonts.alegreya(fontSize: size, color: color, height: height);
+      case 'spectral':
+        return GoogleFonts.spectral(fontSize: size, color: color, height: height);
+      case 'cardo':
+        return GoogleFonts.cardo(fontSize: size, color: color, height: height);
+      case 'literata':
+        return GoogleFonts.literata(fontSize: size, color: color, height: height);
+      case 'nunito':
+        return GoogleFonts.nunito(fontSize: size, color: color, height: height);
+      case 'jost':
+        return GoogleFonts.jost(fontSize: size, color: color, height: height);
+      case 'dmSans':
+        return GoogleFonts.dmSans(fontSize: size, color: color, height: height);
       case 'crimsonPro':
       default:
         return GoogleFonts.crimsonPro(fontSize: size, color: color, height: height);
@@ -217,10 +238,20 @@ class AppTypography {
 
   static const Map<String, String> fontDisplayNames = {
     'crimsonPro': 'Crimson Pro',
+    'ebGaramond': 'EB Garamond',
+    'cormorantGaramond': 'Cormorant',
+    'playfairDisplay': 'Playfair Display',
+    'alegreya': 'Alegreya',
+    'spectral': 'Spectral',
+    'cardo': 'Cardo',
     'sourceSerif4': 'Source Serif 4',
     'lora': 'Lora',
     'merriweather': 'Merriweather',
-    'playfairDisplay': 'Playfair Display',
+    'libreBaskerville': 'Libre Baskerville',
+    'literata': 'Literata',
+    'nunito': 'Nunito',
+    'jost': 'Jost',
+    'dmSans': 'DM Sans',
   };
 
   // ── Base theme text theme (used in ThemeData) ─────────────────────────────
