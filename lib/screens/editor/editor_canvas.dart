@@ -98,7 +98,9 @@ class EditorCanvasState extends State<EditorCanvas> {
     final block = _blocks[idx] as TextBlock;
 
     final addedLen = ctrl.text.length - block.text.length;
-    if (addedLen > 50 && !_markdownOfferPending && _hasMarkdownSyntax(ctrl.text)) {
+    if (addedLen > 50 &&
+        !_markdownOfferPending &&
+        _hasMarkdownSyntax(ctrl.text)) {
       _offerMarkdownConversion(blockId, ctrl.text);
     }
 
@@ -120,17 +122,24 @@ class EditorCanvasState extends State<EditorCanvas> {
   void _offerMarkdownConversion(String blockId, String text) {
     _markdownOfferPending = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) { _markdownOfferPending = false; return; }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Markdown detected — render as formatted blocks?'),
-          action: SnackBarAction(
-            label: 'Render',
-            onPressed: () => _convertMarkdownToBlocks(blockId, text),
-          ),
-          duration: const Duration(seconds: 5),
-        ),
-      ).closed.then((_) => _markdownOfferPending = false);
+      if (!mounted) {
+        _markdownOfferPending = false;
+        return;
+      }
+      ScaffoldMessenger.of(context)
+          .showSnackBar(
+            SnackBar(
+              content:
+                  const Text('Markdown detected — render as formatted blocks?'),
+              action: SnackBarAction(
+                label: 'Render',
+                onPressed: () => _convertMarkdownToBlocks(blockId, text),
+              ),
+              duration: const Duration(seconds: 5),
+            ),
+          )
+          .closed
+          .then((_) => _markdownOfferPending = false);
     });
   }
 
@@ -160,23 +169,37 @@ class EditorCanvasState extends State<EditorCanvas> {
 
     void flushText() {
       final t = currentText.toString().trim();
-      if (t.isNotEmpty) blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.text, text: t));
+      if (t.isNotEmpty)
+        blocks.add(
+            TextBlock(id: const Uuid().v4(), type: BlockType.text, text: t));
       currentText.clear();
     }
 
     for (final line in lines) {
       if (line.startsWith('# ')) {
         flushText();
-        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.heading1, text: line.substring(2)));
+        blocks.add(TextBlock(
+            id: const Uuid().v4(),
+            type: BlockType.heading1,
+            text: line.substring(2)));
       } else if (line.startsWith('## ')) {
         flushText();
-        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.heading2, text: line.substring(3)));
+        blocks.add(TextBlock(
+            id: const Uuid().v4(),
+            type: BlockType.heading2,
+            text: line.substring(3)));
       } else if (line.startsWith('### ')) {
         flushText();
-        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.heading3, text: line.substring(4)));
+        blocks.add(TextBlock(
+            id: const Uuid().v4(),
+            type: BlockType.heading3,
+            text: line.substring(4)));
       } else if (line.startsWith('> ')) {
         flushText();
-        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.quote, text: line.substring(2)));
+        blocks.add(TextBlock(
+            id: const Uuid().v4(),
+            type: BlockType.quote,
+            text: line.substring(2)));
       } else if (line.trim() == '---' || line.trim() == '***') {
         flushText();
         blocks.add(DividerBlock(id: const Uuid().v4()));
@@ -1200,6 +1223,7 @@ class BlocksReadView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    debugPrint('[BlocksReadView] Building with ${blocks.length} blocks');
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: blocks.map((b) => _buildBlock(b)).toList(),
@@ -1207,7 +1231,9 @@ class BlocksReadView extends StatelessWidget {
   }
 
   Widget _buildBlock(EditorBlock block) {
+    debugPrint('[BlocksReadView] Building block type: ${block.type}');
     if (block is TextBlock) {
+      debugPrint('[BlocksReadView] TextBlock text: "${block.text}"');
       return _TextBlockReadView(
           block: block, isDark: isDark, textAlignment: textAlignment);
     } else if (block is ImageBlock) {
@@ -1225,6 +1251,8 @@ class BlocksReadView extends StatelessWidget {
     } else if (block is DividerBlock) {
       return _DividerBlockWidget(isDark: isDark, isEditing: false);
     }
+    debugPrint(
+        '[BlocksReadView] Unknown block type, returning SizedBox.shrink');
     return const SizedBox.shrink();
   }
 }

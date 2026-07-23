@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -65,15 +66,32 @@ class LockService {
 
   Future<bool> authenticateWithBiometric() async {
     try {
-      return await _localAuth.authenticate(
+      final result = await _localAuth.authenticate(
         localizedReason: 'Unlock Flow',
         options: const AuthenticationOptions(
-          biometricOnly: true,
+          biometricOnly: false, // Allow side-mounted fingerprint sensors
           stickyAuth: true,
           useErrorDialogs: true,
         ),
       );
-    } on PlatformException {
+      debugPrint('[LockService] Biometric auth result: $result');
+      return result;
+    } on PlatformException catch (e) {
+      debugPrint(
+          '[LockService] Biometric auth failed: ${e.code} - ${e.message}');
+      // Log specific error codes for debugging
+      if (e.code == 'NotAvailable') {
+        debugPrint('[LockService] Biometric hardware not available');
+      } else if (e.code == 'NotEnrolled') {
+        debugPrint('[LockService] No biometrics enrolled on device');
+      } else if (e.code == 'LockedOut') {
+        debugPrint('[LockService] Biometric locked out (too many attempts)');
+      } else if (e.code == 'PermanentlyLockedOut') {
+        debugPrint('[LockService] Biometric permanently locked out');
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[LockService] Unexpected biometric error: $e');
       return false;
     }
   }

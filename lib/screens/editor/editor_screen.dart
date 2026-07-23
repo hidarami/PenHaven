@@ -204,6 +204,11 @@ class _EditorScreenState extends State<EditorScreen> {
 
   Future<void> _exportAsImage() async {
     if (!mounted) return;
+    // Flush pending autosave so blocksJson is current before export
+    try {
+      await _performSave();
+    } catch (_) {}
+    if (!mounted) return;
     final dark = context.read<AppState>().isDarkMode;
     await ExportSheet.show(context, _entry, dark);
   }

@@ -11,6 +11,7 @@ import 'package:pdf/widgets.dart' as pw;
 import 'package:share_plus/share_plus.dart';
 
 import '../models/entry.dart';
+import '../models/editor_block.dart';
 import '../theme/app_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -32,29 +33,40 @@ class ExportService {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> exportAsTxt(Entry entry) async {
-    final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(entry.createdAt);
-    final buffer = StringBuffer();
+    try {
+      final dateStr = DateFormat('EEEE, MMMM d, yyyy').format(entry.createdAt);
+      final buffer = StringBuffer();
 
-    buffer.writeln(entry.title);
-    buffer.writeln(dateStr);
-    buffer.writeln();
-    // Strip markdown syntax for plain text
-    buffer.writeln(_stripMarkdown(entry.content));
-
-    if (entry.formattedTimeSpent.isNotEmpty) {
+      buffer.writeln(entry.title.isEmpty ? 'Untitled' : entry.title);
+      buffer.writeln(dateStr);
       buffer.writeln();
-      buffer.writeln('Time spent: ${entry.formattedTimeSpent}');
+
+      String body;
+      if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty) {
+        body = plainTextFromBlocks(deserializeBlocks(entry.blocksJson!));
+      } else {
+        body = _stripMarkdown(entry.content);
+      }
+      if (body.trim().isNotEmpty) buffer.writeln(body);
+
+      if (entry.formattedTimeSpent.isNotEmpty) {
+        buffer.writeln();
+        buffer.writeln('Time spent: ${entry.formattedTimeSpent}');
+      }
+
+      final file = await _writeTempFile(
+        name: '${_sanitizeFilename(entry.title)}.txt',
+        content: buffer.toString(),
+      );
+
+      await Share.shareXFiles(
+        [XFile(file.path)],
+        subject: entry.title.isEmpty ? 'Flow Entry' : entry.title,
+      );
+    } catch (e) {
+      debugPrint('[ExportService] exportAsTxt error: $e');
+      rethrow;
     }
-
-    final file = await _writeTempFile(
-      name: '${_sanitizeFilename(entry.title)}.txt',
-      content: buffer.toString(),
-    );
-
-    await Share.shareXFiles(
-      [XFile(file.path)],
-      subject: entry.title,
-    );
   }
 
   String _stripMarkdown(String md) {
@@ -74,85 +86,86 @@ class ExportService {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> exportAsPdf(Entry entry) async {
-    final doc = pw.Document();
-    final dateStr = DateFormat('EEEE, MMMM d, yyyy • h:mm a')
-        .format(entry.createdAt);
+    try {
+      final doc = pw.Document();
+      final dateStr =
+          DateFormat('EEEE, MMMM d, yyyy • h:mm a').format(entry.createdAt);
 
-    // Load header image if exists
-    pw.MemoryImage? headerImg;
-    if (entry.hasHeaderImage) {
-      try {
-        final bytes = await File(entry.headerImage!).readAsBytes();
-        headerImg = pw.MemoryImage(bytes);
-      } catch (_) {}
-    }
+      pw.MemoryImage? headerImg;
+      if (entry.hasHeaderImage) {
+        try {
+          final imgFile = File(entry.headerImage!);
+          if (await imgFile.exists()) {
+            final bytes = await imgFile.readAsBytes();
+            headerImg = pw.MemoryImage(bytes);
+          }
+        } catch (_) {}
+      }
 
-    doc.addPage(
-      pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(48),
-        build: (context) => [
-          // Header image
-          if (headerImg != null) ...[
-            pw.ClipRRect(
-              horizontalRadius: 8,
-              verticalRadius: 8,
-              child: pw.Image(headerImg, height: 180, fit: pw.BoxFit.cover),
+      String bodyContent;
+      if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty) {
+        bodyContent = plainTextFromBlocks(deserializeBlocks(entry.blocksJson!));
+      } else {
+        bodyContent = _stripMarkdown(entry.content);
+      }
+
+      doc.addPage(
+        pw.MultiPage(
+          pageFormat: PdfPageFormat.a4,
+          margin: const pw.EdgeInsets.all(48),
+          build: (ctx) => [
+            if (headerImg != null) ...[
+              pw.ClipRRect(
+                horizontalRadius: 8,
+                verticalRadius: 8,
+                child: pw.Image(headerImg, height: 180, fit: pw.BoxFit.cover),
+              ),
+              pw.SizedBox(height: 24),
+            ],
+            pw.Text(
+              entry.title.isEmpty ? 'Untitled' : entry.title,
+              style: pw.TextStyle(fontSize: 28, fontWeight: pw.FontWeight.bold),
+            ),
+            pw.SizedBox(height: 6),
+            pw.Text(
+              dateStr,
+              style: pw.TextStyle(fontSize: 12, color: PdfColors.grey600),
             ),
             pw.SizedBox(height: 24),
-          ],
-          // Title
-          pw.Text(
-            entry.title.isEmpty ? 'Untitled' : entry.title,
-            style: pw.TextStyle(
-              fontSize: 28,
-              fontWeight: pw.FontWeight.bold,
-            ),
-          ),
-          pw.SizedBox(height: 6),
-          // Date
-          pw.Text(
-            dateStr,
-            style: pw.TextStyle(
-              fontSize: 12,
-              color: PdfColors.grey600,
-            ),
-          ),
-          pw.SizedBox(height: 24),
-          pw.Divider(color: PdfColors.grey300),
-          pw.SizedBox(height: 16),
-          // Body (stripped of markdown)
-          pw.Text(
-            _stripMarkdown(entry.content),
-            style: const pw.TextStyle(fontSize: 13, lineSpacing: 6),
-          ),
-          // Footer
-          if (entry.formattedTimeSpent.isNotEmpty) ...[
-            pw.SizedBox(height: 32),
-            pw.Divider(color: PdfColors.grey200),
-            pw.SizedBox(height: 8),
-            pw.Text(
-              'Time spent: ${entry.formattedTimeSpent}  •  Flow',
-              style: pw.TextStyle(
-                fontSize: 10,
-                color: PdfColors.grey500,
+            pw.Divider(color: PdfColors.grey300),
+            pw.SizedBox(height: 16),
+            if (bodyContent.trim().isNotEmpty)
+              pw.Text(
+                bodyContent,
+                style: pw.TextStyle(fontSize: 13, lineSpacing: 6),
               ),
-            ),
+            if (entry.formattedTimeSpent.isNotEmpty) ...[
+              pw.SizedBox(height: 32),
+              pw.Divider(color: PdfColors.grey200),
+              pw.SizedBox(height: 8),
+              pw.Text(
+                'Time spent: ${entry.formattedTimeSpent}  •  Flow',
+                style: pw.TextStyle(fontSize: 10, color: PdfColors.grey500),
+              ),
+            ],
           ],
-        ],
-      ),
-    );
+        ),
+      );
 
-    final bytes = await doc.save();
-    final file = await _writeTempFileBytes(
-      name: '${_sanitizeFilename(entry.title)}.pdf',
-      bytes: bytes,
-    );
+      final bytes = await doc.save();
+      final file = await _writeTempFileBytes(
+        name: '${_sanitizeFilename(entry.title)}.pdf',
+        bytes: bytes,
+      );
 
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'application/pdf')],
-      subject: entry.title,
-    );
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'application/pdf')],
+        subject: entry.title.isEmpty ? 'Flow Entry' : entry.title,
+      );
+    } catch (e) {
+      debugPrint('[ExportService] exportAsPdf error: $e');
+      rethrow;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -172,8 +185,7 @@ class ExportService {
       if (boundary == null) return;
 
       final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData =
-          await image.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
       if (byteData == null) return;
 
       final bytes = byteData.buffer.asUint8List();
@@ -299,10 +311,12 @@ class ExportService {
 
   String _sanitizeFilename(String raw) {
     final name = raw.isEmpty ? 'untitled' : raw;
-    return name
+    final cleaned = name
         .replaceAll(RegExp(r'[^\w\s-]'), '')
         .replaceAll(RegExp(r'\s+'), '_')
         .toLowerCase()
-        .substring(0, name.length.clamp(0, 40));
+        .trim();
+    final safe = cleaned.isEmpty ? 'untitled' : cleaned;
+    return safe.substring(0, safe.length.clamp(0, 40));
   }
 }

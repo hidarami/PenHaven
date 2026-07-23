@@ -182,39 +182,171 @@ class _ExportSheetState extends State<ExportSheet> {
     );
   }
 
-  /// Splits entry content into pages at paragraph boundaries.
+  // ── Pagination constants ───────────────────────────────────────────────────
+  // Page: 360×640px. Content padding: 28px each side → 304px content width.
+  // Crimson Pro 17px ≈ 9px avg char width → ~33 chars/line.
+  // Line height 17 × 1.85 ≈ 31.5px/line.
+  //
+  // First page usable lines: ~13  (header: title+date+divider ≈ 130px of 640)
+  // Continuation page lines: ~15  (small running header ≈ 46px)
+  static const int _kFirstPageLines = 13;
+  static const int _kContPageLines = 15;
+  static const int _kMinLinesBottom = 3; // orphan rule
+  static const int _kMinLinesTop = 3; // widow rule
+  static const double _kMinLastPageFill = 0.28;
+  static const int _kCharsPerLine = 33;
+
+  /// Estimates how many visual lines a text segment occupies.
+  int _estimateLines(String text) {
+    if (text.trim().isEmpty) return 0;
+    int total = 0;
+    for (final line in text.split('\n')) {
+      if (line.trim().isEmpty) {
+        total += 1;
+      } else {
+        total += (line.length / _kCharsPerLine).ceil().clamp(1, 999);
+      }
+    }
+    return total;
+  }
+
+  /// Splits [text] so the first part has at most [maxLines] lines.
+  /// Returns (firstPart, remainder). Splits at word boundaries.
+  (String, String) _splitAtLine(String text, int maxLines) {
+    if (maxLines <= 0) return ('', text);
+    final words = text.split(RegExp(r' +'));
+    final lines = <String>[];
+    var cur = '';
+    for (final word in words) {
+      if (word.isEmpty) continue;
+      if (cur.isEmpty) {
+        cur = word;
+      } else if (cur.length + 1 + word.length <= _kCharsPerLine) {
+        cur += ' $word';
+      } else {
+        lines.add(cur);
+        cur = word;
+      }
+    }
+    if (cur.isNotEmpty) lines.add(cur);
+
+    if (lines.length <= maxLines) return (text, '');
+    final first = lines.take(maxLines).join(' ');
+    final rest = lines.skip(maxLines).join(' ');
+    return (first.trim(), rest.trim());
+  }
+
+  /// Rebalances the last two pages when the last page is nearly empty.
+  List<String> _rebalancePages(List<String> pages) {
+    if (pages.length < 2) return pages;
+    final last = pages.last;
+    final lastLines = _estimateLines(last);
+    if (lastLines / _kContPageLines >= _kMinLastPageFill) return pages;
+
+    // Combine last two pages and re-split at ~60% / 40%
+    final prev = pages[pages.length - 2];
+    final combined = '$prev\n\n$last';
+    final combinedLines = _estimateLines(prev) + lastLines;
+    final targetFirst = (combinedLines * 0.62).round().clamp(
+          _kMinLinesTop,
+          _kContPageLines,
+        );
+
+    final segs = combined
+        .split(RegExp(r'\n{2,}'))
+        .where((s) => s.trim().isNotEmpty)
+        .toList();
+
+    final newFirst = <String>[];
+    final newSecond = <String>[];
+    int acc = 0;
+
+    for (final seg in segs) {
+      final sl = _estimateLines(seg);
+      if (acc < targetFirst) {
+        newFirst.add(seg);
+        acc += sl;
+      } else {
+        newSecond.add(seg);
+      }
+    }
+
+    if (newFirst.isEmpty || newSecond.isEmpty) return pages;
+
+    final result = List<String>.from(pages);
+    result[result.length - 2] = newFirst.join('\n\n');
+    result[result.length - 1] = newSecond.join('\n\n');
+    return result;
+  }
+
+  /// Semantically paginates content respecting block boundaries,
+  /// orphan/widow rules, and page rebalancing.
   List<String> _paginateContent() {
-    final content =
+    final raw =
         widget.entry.blocksJson != null && widget.entry.blocksJson!.isNotEmpty
             ? plainTextFromBlocks(deserializeBlocks(widget.entry.blocksJson!))
             : widget.entry.content;
 
-    if (content.trim().isEmpty) return [];
+    if (raw.trim().isEmpty) return [];
 
-    // Split at paragraph breaks
-    final paras = content
-        .split(RegExp(r'\n\n+'))
-        .where((p) => p.trim().isNotEmpty)
+    // Semantic segments: double-newline separated paragraphs.
+    // Single newlines (e.g. poetry) are kept as one segment.
+    final segs = raw
+        .split(RegExp(r'\n{2,}'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
         .toList();
 
-    if (paras.isEmpty) return [content];
+    if (segs.isEmpty) return [raw];
 
-    // ~480 chars per page for comfortable reading at font size 17
-    const targetChars = 480;
     final pages = <String>[];
-    var current = '';
+    final curSegs = <String>[];
+    int curLines = 0;
+    bool isFirst = true;
 
-    for (final para in paras) {
-      final candidate = current.isEmpty ? para : '$current\n\n$para';
-      if (candidate.length > targetChars && current.isNotEmpty) {
-        pages.add(current.trim());
-        current = para;
+    int budget() => isFirst ? _kFirstPageLines : _kContPageLines;
+
+    void commitPage() {
+      if (curSegs.isNotEmpty) {
+        pages.add(curSegs.join('\n\n'));
+        curSegs.clear();
+      }
+      curLines = 0;
+      isFirst = false;
+    }
+
+    for (final seg in segs) {
+      final sl = _estimateLines(seg);
+      if (sl == 0) continue;
+
+      final remaining = budget() - curLines;
+
+      if (curLines + sl <= budget()) {
+        // Fits on current page
+        curSegs.add(seg);
+        curLines += sl;
+      } else if (remaining >= _kMinLinesBottom &&
+          sl > remaining &&
+          (sl - remaining) >= _kMinLinesTop) {
+        // Try splitting this segment at the line boundary
+        final (first, rest) = _splitAtLine(seg, remaining);
+        if (first.trim().isNotEmpty) curSegs.add(first.trim());
+        commitPage();
+        if (rest.trim().isNotEmpty) {
+          curSegs.add(rest.trim());
+          curLines = _estimateLines(rest);
+        }
       } else {
-        current = candidate;
+        // Segment doesn't fit and can't be split cleanly — move to next page
+        commitPage();
+        curSegs.add(seg);
+        curLines = sl;
       }
     }
-    if (current.trim().isNotEmpty) pages.add(current.trim());
-    return pages;
+
+    commitPage();
+
+    return _rebalancePages(pages);
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -590,10 +722,26 @@ class _ExportSheetState extends State<ExportSheet> {
                     label: 'Export as PDF',
                     sub: 'Paginated document',
                     color: mutedColor,
-                    onTap: () {
-                      Navigator.pop(context);
-                      ExportService.instance.exportAsPdf(widget.entry);
-                    },
+                    loading: _exporting,
+                    onTap: _exporting
+                        ? null
+                        : () async {
+                            setState(() => _exporting = true);
+                            try {
+                              await ExportService.instance
+                                  .exportAsPdf(widget.entry);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'PDF export failed. Please try again.')),
+                                );
+                              }
+                            } finally {
+                              if (mounted) setState(() => _exporting = false);
+                            }
+                          },
                     isDark: widget.isDark,
                   ),
                   const SizedBox(height: 10),
@@ -602,10 +750,26 @@ class _ExportSheetState extends State<ExportSheet> {
                     label: 'Export as TXT',
                     sub: 'Plain text, no formatting',
                     color: mutedColor,
-                    onTap: () {
-                      Navigator.pop(context);
-                      ExportService.instance.exportAsTxt(widget.entry);
-                    },
+                    loading: _exporting,
+                    onTap: _exporting
+                        ? null
+                        : () async {
+                            setState(() => _exporting = true);
+                            try {
+                              await ExportService.instance
+                                  .exportAsTxt(widget.entry);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text(
+                                          'TXT export failed. Please try again.')),
+                                );
+                              }
+                            } finally {
+                              if (mounted) setState(() => _exporting = false);
+                            }
+                          },
                     isDark: widget.isDark,
                   ),
 
@@ -666,10 +830,11 @@ class _EntryExportView extends StatelessWidget {
         isDark ? const Color(0xFFEEE8DF) : const Color(0xFF1C1208);
     final mutedColor =
         isDark ? const Color(0xFF7A6E62) : const Color(0xFF9A8D7E);
-    const aqua = Color(0xFF7BA591);
+    const aqua = ui.Color.fromARGB(255, 27, 141, 175);
 
     return Container(
       width: double.infinity,
+      height: _isPagesMode ? 640 : null,
       color: bg,
       padding: const EdgeInsets.all(16),
       child: Container(
@@ -738,113 +903,120 @@ class _EntryExportView extends StatelessWidget {
               ),
 
             // ── Main content area ───────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Title — only on first page or single mode
-                  if (!_isPagesMode || pageNum == 1) ...[
-                    Text(
-                      entry.title.isEmpty ? 'Untitled' : entry.title,
-                      style: GoogleFonts.crimsonPro(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                        height: 1.1,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                    if (showDate) ...[
-                      const SizedBox(height: 7),
-                      Text(
-                        DateFormat('MMMM d, yyyy')
-                            .format(entry.createdAt)
-                            .toUpperCase(),
-                        style: GoogleFonts.inter(
-                          fontSize: 9.5,
-                          letterSpacing: 2.0,
-                          fontWeight: FontWeight.w500,
-                          color: mutedColor,
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 16),
-                    Container(height: 0.5, color: aqua.withOpacity(0.35)),
-                    const SizedBox(height: 18),
-                  ] else ...[
-                    // Subsequent pages: just a small continuation indicator
-                    Row(children: [
-                      Container(
-                          width: 20, height: 1.5, color: aqua.withOpacity(0.4)),
-                      const SizedBox(width: 8),
-                      Text(
-                        entry.title.isEmpty ? 'Untitled' : entry.title,
-                        style: GoogleFonts.inter(
-                          fontSize: 9,
-                          letterSpacing: 1.5,
-                          fontWeight: FontWeight.w500,
-                          color: mutedColor,
-                        ),
-                      ),
-                    ]),
-                    const SizedBox(height: 16),
-                  ],
-
-                  // ── Body Content ──────────────────────────────────────
-                  _buildBody(textColor, mutedColor),
-
-                  // ── Footer ────────────────────────────────────────────
-                  const SizedBox(height: 20),
-                  Container(height: 0.5, color: mutedColor.withOpacity(0.18)),
-                  const SizedBox(height: 10),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 22, 28, 26),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Left: footer text or page number
-                      if (_isPagesMode && totalPages != null)
+                      // Title — only on first page or single mode
+                      if (!_isPagesMode || pageNum == 1) ...[
                         Text(
-                          '${pageNum ?? 1} / $totalPages',
-                          style: GoogleFonts.inter(
-                            fontSize: 9,
-                            color: mutedColor.withOpacity(0.7),
-                            letterSpacing: 0.5,
+                          entry.title.isEmpty ? 'Untitled' : entry.title,
+                          style: GoogleFonts.crimsonPro(
+                            fontSize: 34,
+                            fontWeight: FontWeight.w700,
+                            color: textColor,
+                            height: 1.1,
+                            letterSpacing: -0.3,
                           ),
-                        )
-                      else if (showFooter && footerText.isNotEmpty)
-                        Text(
-                          footerText,
-                          style: GoogleFonts.inter(
-                              fontSize: 9.5, color: mutedColor),
-                        )
-                      else
-                        const SizedBox.shrink(),
-
-                      // Right: Flow watermark
-                      if (showWatermark)
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                                width: 12,
-                                height: 1.5,
-                                color: aqua.withOpacity(0.7)),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Flow',
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                color: mutedColor,
-                                letterSpacing: 2.5,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
                         ),
+                        if (showDate) ...[
+                          const SizedBox(height: 7),
+                          Text(
+                            DateFormat('MMMM d, yyyy')
+                                .format(entry.createdAt)
+                                .toUpperCase(),
+                            style: GoogleFonts.inter(
+                              fontSize: 9.5,
+                              letterSpacing: 2.0,
+                              fontWeight: FontWeight.w500,
+                              color: mutedColor,
+                            ),
+                          ),
+                        ],
+                        const SizedBox(height: 16),
+                        Container(height: 0.5, color: aqua.withOpacity(0.35)),
+                        const SizedBox(height: 18),
+                      ] else ...[
+                        // Subsequent pages: just a small continuation indicator
+                        Row(children: [
+                          Container(
+                              width: 20,
+                              height: 1.5,
+                              color: aqua.withOpacity(0.4)),
+                          const SizedBox(width: 8),
+                          Text(
+                            entry.title.isEmpty ? 'Untitled' : entry.title,
+                            style: GoogleFonts.inter(
+                              fontSize: 9,
+                              letterSpacing: 1.5,
+                              fontWeight: FontWeight.w500,
+                              color: mutedColor,
+                            ),
+                          ),
+                        ]),
+                        const SizedBox(height: 16),
+                      ],
+
+                      // ── Body Content ──────────────────────────────────────────
+                      Expanded(child: _buildBody(textColor, mutedColor)),
+
+                      // ── Footer ────────────────────────────────────────────
+                      const SizedBox(height: 20),
+                      Container(
+                          height: 0.5, color: mutedColor.withOpacity(0.18)),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Left: footer text or page number
+                          if (_isPagesMode && totalPages != null)
+                            Text(
+                              '${pageNum ?? 1} / $totalPages',
+                              style: GoogleFonts.inter(
+                                fontSize: 9,
+                                color: mutedColor.withOpacity(0.7),
+                                letterSpacing: 0.5,
+                              ),
+                            )
+                          else if (showFooter && footerText.isNotEmpty)
+                            Text(
+                              footerText,
+                              style: GoogleFonts.inter(
+                                  fontSize: 9.5, color: mutedColor),
+                            )
+                          else
+                            const SizedBox.shrink(),
+
+                          // Right: Flow watermark
+                          if (showWatermark)
+                            Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                    width: 12,
+                                    height: 1.5,
+                                    color: aqua.withOpacity(0.7)),
+                                const SizedBox(width: 5),
+                                Text(
+                                  'Flow',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 10,
+                                    color: mutedColor,
+                                    letterSpacing: 2.5,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
+                      ),
                     ],
                   ),
-                ],
+                ),
               ),
             ),
           ],
@@ -854,10 +1026,23 @@ class _EntryExportView extends StatelessWidget {
   }
 
   Widget _buildBody(Color textColor, Color mutedColor) {
+    // Debug logging
+    debugPrint('[ExportSheet] _buildBody called');
+    debugPrint(
+        '[ExportSheet] entry.blocksJson: ${entry.blocksJson != null ? "has value (${entry.blocksJson!.length} chars)" : "null"}');
+    debugPrint('[ExportSheet] entry.content length: ${entry.content.length}');
+    debugPrint('[ExportSheet] _isPagesMode: $_isPagesMode');
+
     // Pages mode: show only this page's text
     if (_isPagesMode && pageOverrideText != null) {
+      final text = pageOverrideText!.trim();
+      debugPrint('[ExportSheet] Pages mode text length: ${text.length}');
+      if (text.isEmpty) {
+        return _EmptyContentIndicator(
+            textColor: textColor, mutedColor: mutedColor);
+      }
       return Text(
-        pageOverrideText!,
+        text,
         style: GoogleFonts.crimsonPro(
           fontSize: 17,
           color: textColor,
@@ -868,12 +1053,35 @@ class _EntryExportView extends StatelessWidget {
 
     // Single mode: full content
     if (entry.blocksJson != null && entry.blocksJson!.isNotEmpty) {
+      debugPrint('[ExportSheet] Using blocks mode');
       final blocks = deserializeBlocks(entry.blocksJson!);
+      debugPrint('[ExportSheet] Deserialized ${blocks.length} blocks');
       final filtered = includeImages
           ? blocks
           : blocks
               .where((b) => b is! ImageBlock && b is! ImageGridBlock)
               .toList();
+      debugPrint('[ExportSheet] After filtering: ${filtered.length} blocks');
+
+      // Check if filtered blocks have any actual content
+      final hasContent = filtered.any((b) {
+        if (b is TextBlock) return b.text.trim().isNotEmpty;
+        if (b is ImageBlock) return true;
+        if (b is ImageGridBlock) return true;
+        if (b is CodeBlock) return b.code.trim().isNotEmpty;
+        if (b is YoutubeBlock) return true;
+        if (b is TweetBlock) return true;
+        if (b is DividerBlock) return true;
+        return false;
+      });
+
+      debugPrint('[ExportSheet] hasContent: $hasContent');
+
+      if (!hasContent) {
+        return _EmptyContentIndicator(
+            textColor: textColor, mutedColor: mutedColor);
+      }
+
       return BlocksReadView(
         blocks: filtered,
         isDark: isDark,
@@ -881,8 +1089,56 @@ class _EntryExportView extends StatelessWidget {
       );
     }
 
+    // Legacy mode - check if content is empty
+    debugPrint('[ExportSheet] Using legacy mode');
+    if (entry.content.trim().isEmpty && entry.images.isEmpty) {
+      debugPrint('[ExportSheet] Legacy mode: content is empty');
+      return _EmptyContentIndicator(
+          textColor: textColor, mutedColor: mutedColor);
+    }
+
+    debugPrint('[ExportSheet] Legacy mode: rendering content');
     return _LegacyBody(
         entry: entry, isDark: isDark, includeImages: includeImages);
+  }
+}
+
+// ── Empty content indicator ───────────────────────────────────────────────────────
+
+class _EmptyContentIndicator extends StatelessWidget {
+  final Color textColor;
+  final Color mutedColor;
+
+  const _EmptyContentIndicator({
+    required this.textColor,
+    required this.mutedColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 48),
+        child: Column(
+          children: [
+            Icon(
+              Icons.edit_note_outlined,
+              size: 48,
+              color: mutedColor.withOpacity(0.4),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'No content to export',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                color: mutedColor,
+                fontStyle: FontStyle.italic,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
