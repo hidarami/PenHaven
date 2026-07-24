@@ -9,6 +9,7 @@ class PublishedEntry {
   final bool isAnonymous;
   final String? displayName;
   final String? headerImage;
+  final String? category;
   int clapCount;
   int commentCount;
   final DateTime createdAt;
@@ -24,6 +25,7 @@ class PublishedEntry {
     this.isAnonymous = false,
     this.displayName,
     this.headerImage,
+    this.category,
     this.clapCount = 0,
     this.commentCount = 0,
     DateTime? createdAt,
@@ -56,7 +58,8 @@ class PublishedEntry {
         'is_anonymous': isAnonymous,
         'display_name': isAnonymous ? null : displayName,
         'header_image': headerImage,
-        'clap_count': clapCount,
+      'category': category,
+      'clap_count': clapCount,
         'comment_count': commentCount,
         'created_at': createdAt.toIso8601String(),
       };
@@ -70,6 +73,7 @@ class PublishedEntry {
         isAnonymous: map['is_anonymous'] as bool? ?? false,
         displayName: map['display_name'] as String?,
         headerImage: map['header_image'] as String?,
+        category: map['category'] as String?,
         clapCount: (map['clap_count'] as int?) ?? 0,
         commentCount: (map['comment_count'] as int?) ?? 0,
         createdAt: map['created_at'] != null

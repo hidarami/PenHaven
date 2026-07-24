@@ -81,12 +81,14 @@ class CommunityState extends ChangeNotifier {
     required Entry entry,
     bool isAnonymous = false,
     String? displayName,
+    String? category,
   }) async {
     try {
       await SupabaseService.instance.publishEntry(
         entry: entry,
         isAnonymous: isAnonymous,
         displayName: displayName,
+        category: category,
       );
       await loadFeed(refresh: true);
       await loadMyPosts();

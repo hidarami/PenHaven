@@ -318,6 +318,7 @@ class SupabaseService {
     required Entry entry,
     bool isAnonymous = false,
     String? displayName,
+    String? category,
   }) async {
     if (!isAuthenticated) throw Exception('Not authenticated');
     final map = {
@@ -329,6 +330,7 @@ class SupabaseService {
       'is_anonymous': isAnonymous,
       'display_name': isAnonymous ? null : displayName,
       'header_image': entry.headerImage,
+      'category': category,
     };
     await _client?.from('published_entries').upsert(map);
   }

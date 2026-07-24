@@ -224,21 +224,25 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                 // Status bar + nav row
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: EdgeInsets.fromLTRB(8, topPad + 8, 16, 0),
-                    child: Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(Icons.chevron_left_rounded,
-                              size: 28, color: mutedColor),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                        const Spacer(),
-                        // Share button
-                        Icon(Icons.ios_share_outlined,
-                            size: 20, color: mutedColor),
-                      ],
+                      padding: EdgeInsets.fromLTRB(4, topPad + 4, 8, 0),
+                      child: Row(
+                        children: [
+                          IconButton(
+                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: mutedColor),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            icon: Icon(Icons.bookmark_border_rounded, size: 22, color: mutedColor),
+                            onPressed: () {},
+                          ),
+                          IconButton(
+                            icon: Icon(Icons.more_horiz, size: 22, color: mutedColor),
+                            onPressed: () {},
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
                 ),
 
                 // ── Title — editorial large format ────────────────────────
@@ -429,52 +433,75 @@ class _ActionPill extends StatelessWidget {
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.14),
             borderRadius: BorderRadius.circular(36),
-            border: Border.all(
-              color: Colors.white.withOpacity(0.25),
-              width: 0.5,
-            ),
+            border: Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.12),
-                blurRadius: 28,
-                offset: const Offset(0, 6),
-              ),
+              BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 28, offset: const Offset(0, 6)),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // ── Clap button ────────────────────────────────────────────
+              // ── Appreciate ─────────────────────────────────────────────
               GestureDetector(
                 onTap: onClap,
-                child: AnimatedScale(
-                  scale: hasClapped ? 1.15 : 1.0,
+                child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  decoration: BoxDecoration(
+                    color: hasClapped ? const Color(0xFFE87FA0).withOpacity(0.15) : Colors.transparent,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
                         child: Icon(
-                          hasClapped
-                              ? Icons.volunteer_activism_rounded
-                              : Icons.volunteer_activism_outlined,
+                          hasClapped ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                           key: ValueKey(hasClapped),
-                          size: 20,
-                          color: hasClapped
-                              ? const Color(0xFFFFD700)
-                              : Colors.white.withOpacity(0.9),
+                          size: 18,
+                          color: hasClapped ? const Color(0xFFE87FA0) : Colors.white.withOpacity(0.9),
                         ),
                       ),
                       const SizedBox(width: 7),
                       Text(
-                        _formatCount(clapCount),
+                        hasClapped ? 'Appreciated' : 'Appreciate',
                         style: GoogleFonts.inter(
-                          fontSize: 14,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: hasClapped ? const Color(0xFFE87FA0) : Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Divider
+              Container(width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
+
+              // ── Comments ────────────────────────────────────────────────
+              GestureDetector(
+                onTap: onComment,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        commentsOpen ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
+                        size: 17,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        '$commentCount',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: Colors.white.withOpacity(0.9),
                         ),
@@ -484,38 +511,13 @@ class _ActionPill extends StatelessWidget {
                 ),
               ),
 
-              // Hairline divider
-              Container(
-                width: 0.5,
-                height: 22,
-                margin: const EdgeInsets.symmetric(horizontal: 22),
-                color: Colors.white.withOpacity(0.35),
-              ),
+              // Divider
+              Container(width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
 
-              // ── Comment button ──────────────────────────────────────────
-              GestureDetector(
-                onTap: onComment,
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      commentsOpen
-                          ? Icons.chat_bubble_rounded
-                          : Icons.chat_bubble_outline_rounded,
-                      size: 18,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                    const SizedBox(width: 7),
-                    Text(
-                      _formatCount(commentCount),
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
-                ),
+              // ── Share ───────────────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Icon(Icons.ios_share_outlined, size: 17, color: Colors.white.withOpacity(0.9)),
               ),
             ],
           ),
