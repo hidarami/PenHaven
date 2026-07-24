@@ -176,7 +176,8 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   void _handleShare() {
     HapticFeedback.lightImpact();
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Share link copied — deep-link not yet wired.')),
+      const SnackBar(
+          content: Text('Share link copied — deep-link not yet wired.')),
     );
   }
 
@@ -198,11 +199,21 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
             mainAxisSize: MainAxisSize.min,
             children: [
               const SizedBox(height: 12),
-              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: mutedColor.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+              Center(
+                  child: Container(
+                      width: 36,
+                      height: 4,
+                      decoration: BoxDecoration(
+                          color: mutedColor.withOpacity(0.3),
+                          borderRadius: BorderRadius.circular(2)))),
               const SizedBox(height: 14),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Text('Reading Font', style: GoogleFonts.crimsonPro(fontSize: 22, fontWeight: FontWeight.w700, color: textColor)),
+                child: Text('Reading Font',
+                    style: GoogleFonts.crimsonPro(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: textColor)),
               ),
               const SizedBox(height: 8),
               Flexible(
@@ -212,11 +223,20 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                   itemBuilder: (_, i) {
                     final key = fonts[i].key;
                     final name = fonts[i].value;
-                    final current = _viewerFontName ?? ctx.read<AppState>().preferredFont;
+                    final current =
+                        _viewerFontName ?? ctx.read<AppState>().preferredFont;
                     return ListTile(
-                      title: Text(name, style: AppTypography.bodyTextFor(key, textColor, size: 16, height: 1.5)),
-                      trailing: current == key ? const Icon(Icons.check_rounded, color: AppColors.aqua) : null,
-                      onTap: () { setState(() => _viewerFontName = key); Navigator.pop(_); },
+                      title: Text(name,
+                          style: AppTypography.bodyTextFor(key, textColor,
+                              size: 16, height: 1.5)),
+                      trailing: current == key
+                          ? const Icon(Icons.check_rounded,
+                              color: AppColors.aqua)
+                          : null,
+                      onTap: () {
+                        setState(() => _viewerFontName = key);
+                        Navigator.pop(_);
+                      },
                     );
                   },
                 ),
@@ -256,7 +276,8 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
             // Delete (owner only)
             if (_entry.isOwner)
               ListTile(
-                leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                leading:
+                    const Icon(Icons.delete_outline, color: AppColors.danger),
                 title: const Text('Delete from Sanctuary',
                     style: TextStyle(color: AppColors.danger)),
                 onTap: () async {
@@ -297,18 +318,21 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
             // Brightness (only when local image present)
             if (localImageExists)
               ListTile(
-                leading: Icon(Icons.brightness_medium_outlined, color: mutedColor),
+                leading:
+                    Icon(Icons.brightness_medium_outlined, color: mutedColor),
                 title: Text('Adjust image brightness',
                     style: TextStyle(color: textColor)),
                 onTap: () {
                   Navigator.pop(_);
-                  setState(() => _showBrightnessSlider = !_showBrightnessSlider);
+                  setState(
+                      () => _showBrightnessSlider = !_showBrightnessSlider);
                 },
               ),
 
             ListTile(
               leading: Icon(Icons.share_outlined, color: mutedColor),
-              title: Text('Share this entry', style: TextStyle(color: textColor)),
+              title:
+                  Text('Share this entry', style: TextStyle(color: textColor)),
               onTap: () {
                 Navigator.pop(_);
                 _handleShare();
@@ -376,8 +400,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                     communityState.setFeatured(_entry.id,
                         duration: opt.duration);
                     ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(
-                          content: Text('Featured for ${opt.label} ✓')),
+                      SnackBar(content: Text('Featured for ${opt.label} ✓')),
                     );
                   },
                 ),
@@ -427,218 +450,241 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
         backgroundColor: bg,
         body: Stack(
           children: [
-          // ── Reading progress bar ──────────────────────────────────────
-          Positioned(
-            top: 0,
-            left: 0,
-            child: Container(
-              height: 2.5,
-              width: MediaQuery.of(context).size.width * _readProgress,
-              color: AppColors.aqua.withOpacity(0.7),
+            // ── Reading progress bar ──────────────────────────────────────
+            Positioned(
+              top: 0,
+              left: 0,
+              child: Container(
+                height: 2.5,
+                width: MediaQuery.of(context).size.width * _readProgress,
+                color: AppColors.aqua.withOpacity(0.7),
+              ),
             ),
-          ),
 
-          // ── Main content (header image lives INSIDE the scroll) ───────────
-          SingleChildScrollView(
-            controller: _scrollCtrl,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // ── Header image — full-bleed at top of scroll ──────────────
-                if (hasHeaderImage)
-                  Builder(builder: (_) {
-                    final file = File(_entry.headerImage!);
-                    if (!file.existsSync()) {
-                      return SizedBox(height: topPad + 64);
-                    }
-                    // ColorFiltered lets the brightness slider affect the image
-                    return ColorFiltered(
-                      colorFilter: ColorFilter.matrix([
-                        _imageBrightness, 0, 0, 0, 0,
-                        0, _imageBrightness, 0, 0, 0,
-                        0, 0, _imageBrightness, 0, 0,
-                        0, 0, 0, 1, 0,
-                      ]),
-                      child: Image.file(
-                        file,
-                        width: double.infinity,
-                        height: 260,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            SizedBox(height: topPad + 64),
+            // ── Main content (header image lives INSIDE the scroll) ───────────
+            SingleChildScrollView(
+              controller: _scrollCtrl,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // ── Header image — full-bleed at top of scroll ──────────────
+                  if (hasHeaderImage)
+                    Builder(builder: (_) {
+                      final file = File(_entry.headerImage!);
+                      if (!file.existsSync()) {
+                        return SizedBox(height: topPad + 64);
+                      }
+                      // ColorFiltered lets the brightness slider affect the image
+                      return ColorFiltered(
+                        colorFilter: ColorFilter.matrix([
+                          _imageBrightness,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          _imageBrightness,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          _imageBrightness,
+                          0,
+                          0,
+                          0,
+                          0,
+                          0,
+                          1,
+                          0,
+                        ]),
+                        child: Image.file(
+                          file,
+                          width: double.infinity,
+                          height: 260,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              SizedBox(height: topPad + 64),
+                        ),
+                      );
+                    })
+                  else
+                    // Status-bar spacer when there is no header image
+                    SizedBox(height: topPad + 60),
+
+                  // Title
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                    child: Text(
+                      _entry.title.isEmpty ? 'Untitled' : _entry.title,
+                      style: GoogleFonts.crimsonPro(
+                        fontSize: 34,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                        height: 1.15,
+                        letterSpacing: -0.3,
                       ),
-                    );
-                  })
-                else
-                  // Status-bar spacer when there is no header image
-                  SizedBox(height: topPad + 60),
-
-                // Title
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                  child: Text(
-                    _entry.title.isEmpty ? 'Untitled' : _entry.title,
-                    style: GoogleFonts.crimsonPro(
-                      fontSize: 34,
-                      fontWeight: FontWeight.w700,
-                      color: textColor,
-                      height: 1.15,
-                      letterSpacing: -0.3,
                     ),
                   ),
-                ),
 
-                // Author row
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+                  // Author row
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+                    child: Row(
+                      children: [
+                        _AvatarCircle(name: _entry.authorLabel, size: 38),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _entry.authorLabel,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: textColor,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                '${_readTime(_entry.content)}  ·  ${_formatDate(_entry.createdAt)}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: mutedColor,
+                                  letterSpacing: 0.1,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Thin divider
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                    child: Container(height: 0.5, color: divColor),
+                  ),
+
+                  // Body content
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(24, 24, 24, bottomPad + 100),
+                    child: _buildBody(dark, fontName),
+                  ),
+
+                  // Comments section
+                  if (_commentsOpen)
+                    _CommentsSection(
+                      comments: _comments,
+                      loading: _commentsLoading,
+                      controller: _commentCtrl,
+                      isAnon: _commentAnon,
+                      submitting: _submittingComment,
+                      isDark: dark,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      onAnonChanged: (v) => setState(() => _commentAnon = v),
+                      onSubmit: _submitComment,
+                    ),
+
+                  SizedBox(height: bottomPad + 80),
+                ],
+              ),
+            ),
+
+            // ── Glassmorphic nav row — top-right only (swipe right to go back) ──
+            Positioned(
+              top: topPad + 8,
+              right: 14,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _NavIconButton(
+                    icon: _isBookmarked
+                        ? Icons.bookmark_rounded
+                        : Icons.bookmark_border_rounded,
+                    active: _isBookmarked,
+                    onTap: _handleBookmark,
+                  ),
+                  const SizedBox(width: 8),
+                  _NavIconButton(
+                    icon: Icons.text_fields_rounded,
+                    onTap: () => _showFontPicker(context),
+                  ),
+                  const SizedBox(width: 8),
+                  _NavIconButton(
+                    icon: Icons.more_horiz,
+                    onTap: () => _showMoreMenu(context),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Brightness slider ─────────────────────────────────────────
+            if (_showBrightnessSlider && hasHeaderImage)
+              Positioned(
+                top: topPad + 50,
+                left: 16,
+                right: 16,
+                child: Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.55),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   child: Row(
                     children: [
-                      _AvatarCircle(name: _entry.authorLabel, size: 38),
-                      const SizedBox(width: 12),
+                      const Icon(Icons.brightness_low_rounded,
+                          size: 16, color: Colors.white70),
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              _entry.authorLabel,
-                              style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: textColor,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              '${_readTime(_entry.content)}  ·  ${_formatDate(_entry.createdAt)}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: mutedColor,
-                                letterSpacing: 0.1,
-                              ),
-                            ),
-                          ],
+                        child: Slider(
+                          value: _imageBrightness,
+                          min: 0.3,
+                          max: 1.7,
+                          onChanged: (v) =>
+                              setState(() => _imageBrightness = v),
+                          activeColor: Colors.white,
+                          inactiveColor: Colors.white30,
                         ),
                       ),
+                      const Icon(Icons.brightness_high_rounded,
+                          size: 16, color: Colors.white70),
                     ],
                   ),
                 ),
+              ),
 
-                // Thin divider
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                  child: Container(height: 0.5, color: divColor),
-                ),
-
-                // Body content
-                Padding(
-                  padding: EdgeInsets.fromLTRB(24, 24, 24, bottomPad + 100),
-                  child: _buildBody(dark, fontName),
-                ),
-
-                // Comments section
-                if (_commentsOpen)
-                  _CommentsSection(
-                    comments: _comments,
-                    loading: _commentsLoading,
-                    controller: _commentCtrl,
-                    isAnon: _commentAnon,
-                    submitting: _submittingComment,
-                    isDark: dark,
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                    onAnonChanged: (v) => setState(() => _commentAnon = v),
-                    onSubmit: _submitComment,
-                  ),
-
-                SizedBox(height: bottomPad + 80),
-              ],
-            ),
-          ),
-
-          // ── Glassmorphic nav row — top-right only (swipe right to go back) ──
-          Positioned(
-            top: topPad + 8,
-            right: 14,
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _NavIconButton(
-                  icon: _isBookmarked
-                      ? Icons.bookmark_rounded
-                      : Icons.bookmark_border_rounded,
-                  active: _isBookmarked,
-                  onTap: _handleBookmark,
-                ),
-                const SizedBox(width: 8),
-                _NavIconButton(
-                  icon: Icons.text_fields_rounded,
-                  onTap: () => _showFontPicker(context),
-                ),
-                const SizedBox(width: 8),
-                _NavIconButton(
-                  icon: Icons.more_horiz,
-                  onTap: () => _showMoreMenu(context),
-                ),
-              ],
-            ),
-          ),
-
-          // ── Brightness slider ─────────────────────────────────────────
-          if (_showBrightnessSlider && hasHeaderImage)
+            // ── Glassmorphic action pill ──────────────────────────────────
             Positioned(
-              top: topPad + 50,
-              left: 16,
-              right: 16,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.55),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.brightness_low_rounded, size: 16, color: Colors.white70),
-                    Expanded(
-                      child: Slider(
-                        value: _imageBrightness, min: 0.3, max: 1.7,
-                        onChanged: (v) => setState(() => _imageBrightness = v),
-                        activeColor: Colors.white,
-                        inactiveColor: Colors.white30,
-                      ),
+              bottom: bottomPad + 28,
+              left: 0,
+              right: 0,
+              child: AnimatedOpacity(
+                opacity: _pillVisible ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeOut,
+                child: IgnorePointer(
+                  ignoring: !_pillVisible,
+                  child: Center(
+                    child: _ActionPill(
+                      entry: _entry,
+                      hasClapped: _hasClapped,
+                      clapCount: _clapCount,
+                      commentCount: _commentCount,
+                      commentsOpen: _commentsOpen,
+                      onClap: _handleClap,
+                      onComment: _toggleComments,
+                      onShare: _handleShare,
                     ),
-                    const Icon(Icons.brightness_high_rounded, size: 16, color: Colors.white70),
-                  ],
-                ),
-              ),
-            ),
-
-          // ── Glassmorphic action pill ──────────────────────────────────
-          Positioned(
-            bottom: bottomPad + 28,
-            left: 0,
-            right: 0,
-            child: AnimatedOpacity(
-              opacity: _pillVisible ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOut,
-              child: IgnorePointer(
-                ignoring: !_pillVisible,
-                child: Center(
-                  child: _ActionPill(
-                    entry: _entry,
-                    hasClapped: _hasClapped,
-                    clapCount: _clapCount,
-                    commentCount: _commentCount,
-                    commentsOpen: _commentsOpen,
-                    onClap: _handleClap,
-                    onComment: _toggleComments,
-                    onShare: _handleShare,
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -693,9 +739,13 @@ class _ActionPill extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.14),
             borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
+            border:
+                Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
             boxShadow: [
-              BoxShadow(color: Colors.black.withOpacity(0.12), blurRadius: 28, offset: const Offset(0, 6)),
+              BoxShadow(
+                  color: Colors.black.withOpacity(0.12),
+                  blurRadius: 28,
+                  offset: const Offset(0, 6)),
             ],
           ),
           child: Row(
@@ -706,9 +756,12 @@ class _ActionPill extends StatelessWidget {
                 onTap: onClap,
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: hasClapped ? const Color(0xFFE87FA0).withOpacity(0.15) : Colors.transparent,
+                    color: hasClapped
+                        ? const Color(0xFFE87FA0).withOpacity(0.15)
+                        : Colors.transparent,
                     borderRadius: BorderRadius.circular(28),
                   ),
                   child: Row(
@@ -717,10 +770,14 @@ class _ActionPill extends StatelessWidget {
                       AnimatedSwitcher(
                         duration: const Duration(milliseconds: 200),
                         child: Icon(
-                          hasClapped ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                          hasClapped
+                              ? Icons.favorite_rounded
+                              : Icons.favorite_border_rounded,
                           key: ValueKey(hasClapped),
                           size: 18,
-                          color: hasClapped ? const Color(0xFFE87FA0) : Colors.white.withOpacity(0.9),
+                          color: hasClapped
+                              ? const Color(0xFFE87FA0)
+                              : Colors.white.withOpacity(0.9),
                         ),
                       ),
                       const SizedBox(width: 7),
@@ -729,7 +786,9 @@ class _ActionPill extends StatelessWidget {
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: hasClapped ? const Color(0xFFE87FA0) : Colors.white.withOpacity(0.9),
+                          color: hasClapped
+                              ? const Color(0xFFE87FA0)
+                              : Colors.white.withOpacity(0.9),
                         ),
                       ),
                     ],
@@ -738,18 +797,22 @@ class _ActionPill extends StatelessWidget {
               ),
 
               // Divider
-              Container(width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
+              Container(
+                  width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
 
               // ── Comments ────────────────────────────────────────────────
               GestureDetector(
                 onTap: onComment,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
-                        commentsOpen ? Icons.chat_bubble_rounded : Icons.chat_bubble_outline_rounded,
+                        commentsOpen
+                            ? Icons.chat_bubble_rounded
+                            : Icons.chat_bubble_outline_rounded,
                         size: 17,
                         color: Colors.white.withOpacity(0.9),
                       ),
@@ -768,14 +831,17 @@ class _ActionPill extends StatelessWidget {
               ),
 
               // Divider
-              Container(width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
+              Container(
+                  width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
 
               // ── Share ───────────────────────────────────────────────────
               GestureDetector(
                 onTap: onShare,
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Icon(Icons.ios_share_outlined, size: 17, color: Colors.white.withOpacity(0.9)),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Icon(Icons.ios_share_outlined,
+                      size: 17, color: Colors.white.withOpacity(0.9)),
                 ),
               ),
             ],
@@ -843,9 +909,14 @@ class _AvatarCircle extends StatelessWidget {
 
   Color _color(String n) {
     const colors = [
-      Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A),
-      Color(0xFF9472D4), Color(0xFFE87FA0), Color(0xFFD44A28),
-      Color(0xFF5A8A5C), Color(0xFF1B9B8D),
+      Color(0xFF7BA591),
+      Color(0xFF5B8DB8),
+      Color(0xFFD4820A),
+      Color(0xFF9472D4),
+      Color(0xFFE87FA0),
+      Color(0xFFD44A28),
+      Color(0xFF5A8A5C),
+      Color(0xFF1B9B8D),
     ];
     final hash = n.codeUnits.fold(0, (a, b) => a + b);
     return colors[hash % colors.length];
@@ -938,7 +1009,8 @@ class _CommentsSection extends StatelessWidget {
                   controller: controller,
                   maxLines: 3,
                   minLines: 1,
-                  style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.5),
+                  style: GoogleFonts.inter(
+                      fontSize: 14, color: textColor, height: 1.5),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
@@ -963,14 +1035,18 @@ class _CommentsSection extends StatelessWidget {
                             height: 16,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(4),
-                              color: isAnon ? AppColors.aqua : Colors.transparent,
+                              color:
+                                  isAnon ? AppColors.aqua : Colors.transparent,
                               border: Border.all(
-                                color: isAnon ? AppColors.aqua : mutedColor.withOpacity(0.5),
+                                color: isAnon
+                                    ? AppColors.aqua
+                                    : mutedColor.withOpacity(0.5),
                                 width: 1.5,
                               ),
                             ),
                             child: isAnon
-                                ? const Icon(Icons.check, size: 11, color: Colors.white)
+                                ? const Icon(Icons.check,
+                                    size: 11, color: Colors.white)
                                 : null,
                           ),
                           const SizedBox(width: 6),
@@ -1098,8 +1174,7 @@ class _CommentCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       _ago(comment.createdAt),
-                      style: GoogleFonts.inter(
-                          fontSize: 11, color: mutedColor),
+                      style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
                     ),
                   ],
                 ),
