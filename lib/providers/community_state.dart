@@ -145,6 +145,16 @@ class CommunityState extends ChangeNotifier {
 
     try {
       _myPosts = await SupabaseService.instance.getMyPublishedEntries();
+      final userId = SupabaseService.instance.userId;
+      if (userId != null && _myPosts.isNotEmpty) {
+        final clappedIds = await SupabaseService.instance.getClappedEntryIds(
+          _myPosts.map((e) => e.id).toList(),
+        );
+        for (final e in _myPosts) {
+          e.hasClapped = clappedIds.contains(e.id);
+          e.isOwner = true;
+        }
+      }
     } catch (e) {
       debugPrint('[CommunityState] loadMyPosts: $e');
     }
@@ -176,13 +186,24 @@ class CommunityState extends ChangeNotifier {
   }
 
   Future<void> toggleClap(String entryId) async {
-    final idx = _feed.indexWhere((e) => e.id == entryId);
-    if (idx == -1) return;
+    final feedIdx = _feed.indexWhere((e) => e.id == entryId);
+    final myIdx = _myPosts.indexWhere((e) => e.id == entryId);
+    if (feedIdx == -1 && myIdx == -1) return;
 
-    final wasClapped = _feed[idx].hasClapped;
-    _feed[idx].hasClapped = !wasClapped;
-    _feed[idx].clapCount =
-        (_feed[idx].clapCount + (wasClapped ? -1 : 1)).clamp(0, 999999);
+    // Use feed entry as source of truth for clap state
+    final target = feedIdx != -1 ? _feed[feedIdx] : _myPosts[myIdx];
+    final wasClapped = target.hasClapped;
+
+    if (feedIdx != -1) {
+      _feed[feedIdx].hasClapped = !wasClapped;
+      _feed[feedIdx].clapCount =
+          (_feed[feedIdx].clapCount + (wasClapped ? -1 : 1)).clamp(0, 999999);
+    }
+    if (myIdx != -1) {
+      _myPosts[myIdx].hasClapped = !wasClapped;
+      _myPosts[myIdx].clapCount =
+          (_myPosts[myIdx].clapCount + (wasClapped ? -1 : 1)).clamp(0, 999999);
+    }
     notifyListeners();
 
     try {
@@ -193,9 +214,16 @@ class CommunityState extends ChangeNotifier {
       }
     } catch (e) {
       // Revert on failure
-      _feed[idx].hasClapped = wasClapped;
-      _feed[idx].clapCount =
-          (_feed[idx].clapCount + (wasClapped ? 1 : -1)).clamp(0, 999999);
+      if (feedIdx != -1) {
+        _feed[feedIdx].hasClapped = wasClapped;
+        _feed[feedIdx].clapCount =
+            (_feed[feedIdx].clapCount + (wasClapped ? 1 : -1)).clamp(0, 999999);
+      }
+      if (myIdx != -1) {
+        _myPosts[myIdx].hasClapped = wasClapped;
+        _myPosts[myIdx].clapCount =
+            (_myPosts[myIdx].clapCount + (wasClapped ? 1 : -1)).clamp(0, 999999);
+      }
       notifyListeners();
     }
   }

@@ -5,6 +5,8 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
+import '../../services/image_service.dart';
+import '../../services/permission_service.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // STORY FIRST TIME
@@ -60,11 +62,18 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
       if (mounted) setState(() => _editing = false);
       return;
     }
+
+    // Prompt for optional cover before creating
+    String? coverPath;
+    if (mounted) coverPath = await _showCoverPrompt();
+    if (!mounted) return;
+
     setState(() => _creating = true);
     try {
       await context.read<AppState>().createStory(
             title: title,
             description: _descController.text.trim(),
+            coverImage: coverPath,
           );
     } catch (e) {
       if (!mounted) return;
@@ -73,6 +82,105 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
         SnackBar(content: Text('Failed to create story: $e')),
       );
     }
+  }
+
+  Future<String?> _showCoverPrompt() async {
+    final dark = context.read<AppState>().isDarkMode;
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = AppColors.readableText(bg);
+    final mutedColor = AppColors.readableMuted(bg);
+
+    final pick = await showModalBottomSheet<bool>(
+      context: context,
+      backgroundColor: bg,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36, height: 4,
+                  decoration: BoxDecoration(
+                      color: mutedColor.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2)),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Add a cover image?',
+                  style: GoogleFonts.crimsonPro(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: textColor)),
+              const SizedBox(height: 4),
+              Text(
+                'Your story will look beautiful either way.',
+                style: GoogleFonts.inter(fontSize: 13, color: mutedColor),
+              ),
+              const SizedBox(height: 20),
+              Row(
+                children: [
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(_, false),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                              color: mutedColor.withOpacity(0.3)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text('Skip',
+                              style: GoogleFonts.inter(
+                                  fontSize: 14, color: mutedColor)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(_, true),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        decoration: BoxDecoration(
+                          color: AppColors.aqua.withOpacity(0.1),
+                          border: Border.all(
+                              color: AppColors.aqua.withOpacity(0.4)),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text('Add Cover',
+                              style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.aqua)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (pick != true || !mounted) return null;
+    final ok = await PermissionService.instance.ensurePhotos(context);
+    if (!ok || !mounted) return null;
+    return ImageService.instance.pickAndSave(
+      context: context,
+      allowCrop: true,
+      cropAspectRatioX: 3,
+      cropAspectRatioY: 2,
+    );
   }
 
   @override

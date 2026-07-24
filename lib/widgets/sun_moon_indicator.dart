@@ -287,20 +287,23 @@ class _RainPainter extends CustomPainter {
         radius: const Radius.circular(9), clockwise: false);
     canvas.drawPath(cloudPath, cloudPaint);
 
-    // 5 angled rain streaks — fast, visible, continuous
-    const xOff = [-8.0, -4.0, 0.0, 4.0, 8.0];
-    const delays = [0.0, 0.2, 0.4, 0.6, 0.8];
+    // 3 rain streaks — each with own speed/length to feel like random droplets
+    final streakData = [
+      (xOff: -7.0, speed: 1.2, delay: 0.0, len: 5.0, width: 1.4),
+      (xOff: 0.0, speed: 1.8, delay: 0.15, len: 7.0, width: 1.8),
+      (xOff: 7.0, speed: 1.0, delay: 0.5, len: 4.0, width: 1.2),
+    ];
 
-    for (int i = 0; i < 5; i++) {
-      final phase = (progress * 1.4 + delays[i]) % 1.0;
+    for (final s in streakData) {
+      final phase = (progress * s.speed + s.delay) % 1.0;
       final y = center.dy + 2.0 + phase * 16.0;
       final opacity = math.sin(phase * math.pi).clamp(0.15, 1.0);
       canvas.drawLine(
-        Offset(center.dx + xOff[i], y),
-        Offset(center.dx + xOff[i] + 1.5, y + 6.0),
+        Offset(center.dx + s.xOff, y),
+        Offset(center.dx + s.xOff + 1.5, y + s.len),
         Paint()
           ..color = color.withOpacity(opacity * 0.95)
-          ..strokeWidth = 1.6
+          ..strokeWidth = s.width
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke,
       );
@@ -637,19 +640,25 @@ class _ThunderstormPainter extends CustomPainter {
         radius: const Radius.circular(9), clockwise: false);
     canvas.drawPath(cloudPath, cloudPaint);
 
-    // 5 heavy rain streaks (faster than normal rain)
-    const xOff = [-7.5, -3.5, 0.5, 4.0, 8.0];
-    const delays = [0.0, 0.2, 0.4, 0.6, 0.8];
-    for (int i = 0; i < 5; i++) {
-      final phase = (progress * 1.6 + delays[i]) % 1.0;
+    // 5 heavy rain streaks — each with own speed/length for natural droplet feel
+    final streakData = [
+      (xOff: -8.0, speed: 1.3, delay: 0.0, len: 5.5, width: 1.5),
+      (xOff: -4.0, speed: 1.9, delay: 0.1, len: 7.5, width: 2.0),
+      (xOff: 0.5, speed: 1.1, delay: 0.35, len: 4.5, width: 1.3),
+      (xOff: 4.5, speed: 1.6, delay: 0.55, len: 6.5, width: 1.7),
+      (xOff: 8.5, speed: 0.9, delay: 0.75, len: 5.0, width: 1.4),
+    ];
+
+    for (final s in streakData) {
+      final phase = (progress * s.speed + s.delay) % 1.0;
       final y = center.dy + 2.0 + phase * 15.0;
       final op = math.sin(phase * math.pi).clamp(0.1, 1.0);
       canvas.drawLine(
-        Offset(center.dx + xOff[i], y),
-        Offset(center.dx + xOff[i] + 2.0, y + 6.5),
+        Offset(center.dx + s.xOff, y),
+        Offset(center.dx + s.xOff + 2.0, y + s.len),
         Paint()
           ..color = color.withOpacity(op * 0.95)
-          ..strokeWidth = 1.7
+          ..strokeWidth = s.width
           ..strokeCap = StrokeCap.round
           ..style = PaintingStyle.stroke,
       );
@@ -658,7 +667,6 @@ class _ThunderstormPainter extends CustomPainter {
     // Lightning bolt — flashes when pulse > 0.62 (~once per 3s cycle)
     if (pulse > 0.62) {
       final flash = ((pulse - 0.62) / 0.38).clamp(0.0, 1.0);
-
       final boltPath = Path()
         ..moveTo(center.dx + 2, center.dy - 1)
         ..lineTo(center.dx - 2, center.dy + 4)

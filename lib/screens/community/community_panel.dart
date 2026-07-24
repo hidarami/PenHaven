@@ -277,6 +277,7 @@ class _CommunityPanelState extends State<CommunityPanel>
     final mutedColor = AppColors.readableMuted(bg);
     final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
     final topPadding = MediaQuery.of(context).padding.top;
+    final accentColor = context.watch<AtmosphereState>().accentColor;
     final communityState = context.watch<CommunityState>();
     final displayName = communityState.profileDisplayName;
     final profileImagePath = communityState.profileImagePath;
@@ -377,9 +378,9 @@ class _CommunityPanelState extends State<CommunityPanel>
                 Tab(text: 'Recent'),
                 Tab(text: 'Mine')
               ],
-              labelColor: AppColors.aqua,
+              labelColor: accentColor,
               unselectedLabelColor: mutedColor,
-              indicatorColor: AppColors.aqua,
+              indicatorColor: accentColor,
               indicatorSize: TabBarIndicatorSize.label,
               dividerColor: Colors.transparent,
             ),
@@ -393,6 +394,7 @@ class _CommunityPanelState extends State<CommunityPanel>
               controller: _tabController,
               children: [
                 _ForYouTab(
+                  accentColor: accentColor,
                   isDark: dark,
                   textColor: textColor,
                   mutedColor: mutedColor,
@@ -403,12 +405,14 @@ class _CommunityPanelState extends State<CommunityPanel>
                   onPublish: _openPublishSheet,
                 ),
                 _RecentTab(
+                  accentColor: accentColor,
                   isDark: dark,
                   textColor: textColor,
                   mutedColor: mutedColor,
                   onPublish: _openPublishSheet,
                 ),
                 _MyPostsTab(
+                  accentColor: accentColor,
                   isDark: dark,
                   textColor: textColor,
                   mutedColor: mutedColor,
@@ -479,6 +483,7 @@ class _ProfileAvatar extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ForYouTab extends StatelessWidget {
+  final Color accentColor;
   final bool isDark;
   final Color textColor;
   final Color mutedColor;
@@ -488,6 +493,7 @@ class _ForYouTab extends StatelessWidget {
   final VoidCallback onPublish;
 
   const _ForYouTab({
+    required this.accentColor,
     required this.isDark,
     required this.textColor,
     required this.mutedColor,
@@ -1094,12 +1100,14 @@ class _CompactEntryCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _RecentTab extends StatelessWidget {
+  final Color accentColor;
   final bool isDark;
   final Color textColor;
   final Color mutedColor;
   final VoidCallback onPublish;
 
   const _RecentTab({
+    required this.accentColor,
     required this.isDark,
     required this.textColor,
     required this.mutedColor,
@@ -1389,12 +1397,14 @@ class _FeedEntryCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _MyPostsTab extends StatelessWidget {
+  final Color accentColor;
   final bool isDark;
   final Color textColor;
   final Color mutedColor;
   final VoidCallback onAuthRequired;
 
   const _MyPostsTab({
+    required this.accentColor,
     required this.isDark,
     required this.textColor,
     required this.mutedColor,

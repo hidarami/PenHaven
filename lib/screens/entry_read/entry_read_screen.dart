@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../models/entry.dart';
 import '../../atmosphere/atmosphere_overlay.dart';
@@ -260,32 +261,39 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
       right: 0,
       child: Center(
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(36),
           child: BackdropFilter(
             filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.13),
-                borderRadius: BorderRadius.circular(32),
+                color: Colors.white.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(36),
                 border: Border.all(
                     color: Colors.white.withOpacity(0.25), width: 0.5),
                 boxShadow: [
                   BoxShadow(
-                      color: Colors.black.withOpacity(0.10),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4)),
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 28,
+                      offset: const Offset(0, 6)),
                 ],
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // ── Clap button ──────────────────────────────────────
+                  // ── Appreciate ─────────────────────────────────────────
                   GestureDetector(
                     onTap: () => _handleClap(context),
-                    child: Padding(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 10),
+                          horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _hasClapped
+                            ? const Color(0xFFE87FA0).withOpacity(0.15)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.circular(28),
+                      ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -293,22 +301,24 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                             duration: const Duration(milliseconds: 200),
                             child: Icon(
                               _hasClapped
-                                  ? Icons.volunteer_activism_rounded
-                                  : Icons.volunteer_activism_outlined,
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
                               key: ValueKey(_hasClapped),
-                              size: 17,
+                              size: 18,
                               color: _hasClapped
-                                  ? const Color(0xFFFFD700)
+                                  ? const Color(0xFFE87FA0)
                                   : Colors.white.withOpacity(0.9),
                             ),
                           ),
-                          const SizedBox(width: 5),
+                          const SizedBox(width: 7),
                           Text(
-                            '$_clapCount',
+                            _hasClapped ? 'Appreciated' : 'Appreciate',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.9),
+                              color: _hasClapped
+                                  ? const Color(0xFFE87FA0)
+                                  : Colors.white.withOpacity(0.9),
                             ),
                           ),
                         ],
@@ -318,20 +328,20 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                   // Divider
                   Container(
                       width: 0.5,
-                      height: 16,
-                      color: Colors.white.withOpacity(0.35)),
-                  // ── Comment button ───────────────────────────────────
+                      height: 22,
+                      color: Colors.white.withOpacity(0.3)),
+                  // ── Comments ────────────────────────────────────────────
                   GestureDetector(
                     onTap: () => _showComments(context),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 18, vertical: 10),
+                          horizontal: 16, vertical: 10),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(Icons.chat_bubble_outline_rounded,
-                              size: 15, color: Colors.white.withOpacity(0.9)),
-                          const SizedBox(width: 5),
+                              size: 17, color: Colors.white.withOpacity(0.9)),
+                          const SizedBox(width: 6),
                           Text(
                             '$_commentCount',
                             style: GoogleFonts.inter(
@@ -347,26 +357,22 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                   // Divider
                   Container(
                       width: 0.5,
-                      height: 16,
-                      color: Colors.white.withOpacity(0.35)),
-                  // Published label
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.public_rounded,
-                            size: 13, color: Colors.white.withOpacity(0.7)),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Published',
-                          style: GoogleFonts.inter(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withOpacity(0.7)),
-                        ),
-                      ],
+                      height: 22,
+                      color: Colors.white.withOpacity(0.3)),
+                  // ── Share ───────────────────────────────────────────────
+                  GestureDetector(
+                    onTap: () {
+                      HapticFeedback.lightImpact();
+                      Share.share(
+                        _pub!.title.isEmpty ? 'Sanctuary' : _pub!.title,
+                        subject: _pub!.title.isEmpty ? 'Sanctuary' : _pub!.title,
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 10),
+                      child: Icon(Icons.ios_share_outlined,
+                          size: 17, color: Colors.white.withOpacity(0.9)),
                     ),
                   ),
                 ],

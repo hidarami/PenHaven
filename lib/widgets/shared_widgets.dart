@@ -1,4 +1,6 @@
 import 'dart:io';
+import '../services/image_service.dart';
+import '../services/permission_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_markdown/flutter_markdown.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -77,10 +79,10 @@ class StoryCreateDialog extends StatefulWidget {
 
   /// Show the dialog and return the created story title + description.
   /// Returns null if user cancels.
-  static Future<({String title, String description})?> show(
+  static Future<({String title, String description, String? coverImage})?> show(
     BuildContext context,
   ) {
-    return showDialog<({String title, String description})>(
+    return showDialog<({String title, String description, String? coverImage})>(
       context: context,
       barrierDismissible: true,
       builder: (_) => const StoryCreateDialog(),
@@ -95,6 +97,7 @@ class _StoryCreateDialogState extends State<StoryCreateDialog> {
   final _titleController = TextEditingController();
   final _descController = TextEditingController();
   bool _canSubmit = false;
+  String? _coverImagePath;
 
   @override
   void initState() {
@@ -117,6 +120,7 @@ class _StoryCreateDialogState extends State<StoryCreateDialog> {
     Navigator.of(context).pop((
       title: _titleController.text.trim(),
       description: _descController.text.trim(),
+      coverImage: _coverImagePath,
     ));
   }
 
@@ -148,6 +152,12 @@ class _StoryCreateDialogState extends State<StoryCreateDialog> {
               hintText: 'Description (optional)',
               textInputAction: TextInputAction.done,
               onSubmitted: (_) => _submit(),
+            ),
+            const SizedBox(height: 16),
+            _CoverPickerRow(
+              path: _coverImagePath,
+              onPicked: (p) => setState(() => _coverImagePath = p),
+              onRemoved: () => setState(() => _coverImagePath = null),
             ),
             const SizedBox(height: 24),
             Row(
@@ -324,6 +334,78 @@ class FlowMarkdownBody extends StatelessWidget {
           color: dark ? AppColors.dividerDark : AppColors.dividerLight,
           width: 0.5,
         ),
+      ),
+    );
+  }
+}
+
+// ── Cover picker for StoryCreateDialog ───────────────────────────────────────
+
+class _CoverPickerRow extends StatelessWidget {
+  final String? path;
+  final ValueChanged<String> onPicked;
+  final VoidCallback onRemoved;
+
+  const _CoverPickerRow({
+    required this.path,
+    required this.onPicked,
+    required this.onRemoved,
+  });
+
+  Future<void> _pick(BuildContext context) async {
+    final ok = await PermissionService.instance.ensurePhotos(context);
+    if (!ok || !context.mounted) return;
+    final p = await ImageService.instance.pickAndSave(
+      context: context,
+      allowCrop: true,
+      cropAspectRatioX: 3,
+      cropAspectRatioY: 2,
+    );
+    if (p != null) onPicked(p);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = context.watch<AppState>().isDarkMode;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+    final hasImage =
+        path != null && path!.isNotEmpty && File(path!).existsSync();
+
+    if (hasImage) {
+      return Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: Image.file(File(path!),
+                width: 60, height: 38, fit: BoxFit.cover),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text('Cover added',
+                style:
+                    GoogleFonts.inter(fontSize: 13, color: mutedColor)),
+          ),
+          GestureDetector(
+            onTap: onRemoved,
+            child: Icon(Icons.close_rounded, size: 16, color: mutedColor),
+          ),
+        ],
+      );
+    }
+
+    return GestureDetector(
+      onTap: () => _pick(context),
+      child: Row(
+        children: [
+          Icon(Icons.add_photo_alternate_outlined,
+              size: 18, color: mutedColor.withOpacity(0.7)),
+          const SizedBox(width: 8),
+          Text(
+            'Add cover image (optional)',
+            style: GoogleFonts.inter(
+                fontSize: 13, color: mutedColor.withOpacity(0.8)),
+          ),
+        ],
       ),
     );
   }
