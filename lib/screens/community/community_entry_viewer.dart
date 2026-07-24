@@ -231,36 +231,159 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
 
   void _showMoreMenu(BuildContext ctx) {
     final dark = ctx.read<AppState>().isDarkMode;
+    final communityState = ctx.read<CommunityState>();
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+    final isFeatured = communityState.featuredEntryId == _entry.id;
+    final featuredLabel = communityState.featuredUntilLabel;
+    // Check if this entry has a local header image
+    final localImageExists = _entry.headerImage != null &&
+        _entry.headerImage!.isNotEmpty &&
+        File(_entry.headerImage!).existsSync();
+
     showModalBottomSheet<void>(
       context: ctx,
+      backgroundColor: bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
       builder: (_) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(height: 8),
+            // Delete (owner only)
             if (_entry.isOwner)
               ListTile(
                 leading: const Icon(Icons.delete_outline, color: AppColors.danger),
-                title: const Text('Delete from Sanctuary', style: TextStyle(color: AppColors.danger)),
+                title: const Text('Delete from Sanctuary',
+                    style: TextStyle(color: AppColors.danger)),
                 onTap: () async {
                   Navigator.pop(_);
                   await ctx.read<CommunityState>().deletePost(_entry.id);
                   if (mounted) Navigator.of(ctx).pop();
                 },
               ),
+
+            // Feature / Unfeature
             ListTile(
-              leading: Icon(Icons.brightness_medium_outlined, color: mutedColor),
-              title: const Text('Adjust image brightness'),
-              onTap: () { Navigator.pop(_); setState(() => _showBrightnessSlider = !_showBrightnessSlider); },
+              leading: Icon(
+                isFeatured ? Icons.star_rounded : Icons.star_outline_rounded,
+                color: isFeatured ? Colors.amber : mutedColor,
+              ),
+              title: Text(
+                isFeatured ? 'Remove from Featured' : 'Feature this entry',
+                style: TextStyle(color: textColor),
+              ),
+              subtitle: isFeatured && featuredLabel != null
+                  ? Text(featuredLabel,
+                      style: TextStyle(color: mutedColor, fontSize: 12))
+                  : Text('Pin to "Featured Reflection" section',
+                      style: TextStyle(color: mutedColor, fontSize: 12)),
+              onTap: () {
+                Navigator.pop(_);
+                if (isFeatured) {
+                  communityState.clearFeatured();
+                  ScaffoldMessenger.of(ctx).showSnackBar(
+                    const SnackBar(content: Text('Featured entry cleared.')),
+                  );
+                } else {
+                  _showFeatureDurationPicker(ctx, communityState);
+                }
+              },
             ),
+
+            // Brightness (only when local image present)
+            if (localImageExists)
+              ListTile(
+                leading: Icon(Icons.brightness_medium_outlined, color: mutedColor),
+                title: Text('Adjust image brightness',
+                    style: TextStyle(color: textColor)),
+                onTap: () {
+                  Navigator.pop(_);
+                  setState(() => _showBrightnessSlider = !_showBrightnessSlider);
+                },
+              ),
+
             ListTile(
               leading: Icon(Icons.share_outlined, color: mutedColor),
-              title: const Text('Share this entry'),
-              onTap: () { Navigator.pop(_); _handleShare(); },
+              title: Text('Share this entry', style: TextStyle(color: textColor)),
+              onTap: () {
+                Navigator.pop(_);
+                _handleShare();
+              },
             ),
             const SizedBox(height: 8),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Duration picker for featuring an entry.
+  void _showFeatureDurationPicker(
+      BuildContext ctx, CommunityState communityState) {
+    final dark = ctx.read<AppState>().isDarkMode;
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = dark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    showModalBottomSheet<void>(
+      context: ctx,
+      backgroundColor: bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Feature for how long?',
+                style: GoogleFonts.crimsonPro(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: textColor,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Pins this entry to the "Featured Reflection" card.',
+                style: GoogleFonts.inter(fontSize: 13, color: mutedColor),
+              ),
+              const SizedBox(height: 14),
+              for (final opt in [
+                (label: '24 hours', duration: const Duration(hours: 24)),
+                (label: '3 days', duration: const Duration(days: 3)),
+                (label: '7 days', duration: const Duration(days: 7)),
+                (label: '30 days', duration: const Duration(days: 30)),
+              ])
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.star_rounded,
+                      color: Colors.amber, size: 20),
+                  title: Text(opt.label,
+                      style: GoogleFonts.inter(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: textColor)),
+                  onTap: () {
+                    Navigator.pop(_);
+                    communityState.setFeatured(_entry.id,
+                        duration: opt.duration);
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(
+                          content: Text('Featured for ${opt.label} ✓')),
+                    );
+                  },
+                ),
+              const SizedBox(height: 8),
+            ],
+          ),
         ),
       ),
     );
@@ -295,10 +418,15 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
         File(_entry.headerImage!).existsSync();
     const imageH = 280.0;
 
-    return Scaffold(
-      backgroundColor: bg,
-      body: Stack(
-        children: [
+    return GestureDetector(
+      onHorizontalDragEnd: (d) {
+        // Right swipe to go back — no visible back button in this view
+        if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+      },
+      child: Scaffold(
+        backgroundColor: bg,
+        body: Stack(
+          children: [
           // ── Reading progress bar ──────────────────────────────────────
           Positioned(
             top: 0,
@@ -310,29 +438,41 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
             ),
           ),
 
-          // ── Header image (local path, shows for author) ───────────
-          if (_entry.headerImage != null && _entry.headerImage!.isNotEmpty)
-            Builder(builder: (context) {
-              final file = File(_entry.headerImage!);
-              if (!file.existsSync()) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Image.file(
-                  file,
-                  width: double.infinity,
-                  height: 220,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                ),
-              );
-            }),
-
-          // ── Main content ──────────────────────────────────────────
+          // ── Main content (header image lives INSIDE the scroll) ───────────
           SingleChildScrollView(
             controller: _scrollCtrl,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // ── Header image — full-bleed at top of scroll ──────────────
+                if (hasHeaderImage)
+                  Builder(builder: (_) {
+                    final file = File(_entry.headerImage!);
+                    if (!file.existsSync()) {
+                      return SizedBox(height: topPad + 64);
+                    }
+                    // ColorFiltered lets the brightness slider affect the image
+                    return ColorFiltered(
+                      colorFilter: ColorFilter.matrix([
+                        _imageBrightness, 0, 0, 0, 0,
+                        0, _imageBrightness, 0, 0, 0,
+                        0, 0, _imageBrightness, 0, 0,
+                        0, 0, 0, 1, 0,
+                      ]),
+                      child: Image.file(
+                        file,
+                        width: double.infinity,
+                        height: 260,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) =>
+                            SizedBox(height: topPad + 64),
+                      ),
+                    );
+                  })
+                else
+                  // Status-bar spacer when there is no header image
+                  SizedBox(height: topPad + 60),
+
                 // Title
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
@@ -415,18 +555,30 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
             ),
           ),
 
-          // ── Nav buttons overlaid ──────────────────────────────────────
+          // ── Glassmorphic nav row — top-right only (swipe right to go back) ──
           Positioned(
-            top: topPad + 4,
-            left: 4,
-            right: 8,
+            top: topPad + 8,
+            right: 14,
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                _NavIconButton(icon: Icons.arrow_back_ios_new_rounded, hasImage: hasHeaderImage, mutedColor: mutedColor, onTap: () => Navigator.of(context).pop()),
-                const Spacer(),
-                _NavIconButton(icon: _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, hasImage: hasHeaderImage, mutedColor: mutedColor, active: _isBookmarked, onTap: _handleBookmark),
-                _NavIconButton(icon: Icons.text_fields_rounded, hasImage: hasHeaderImage, mutedColor: mutedColor, onTap: () => _showFontPicker(context)),
-                _NavIconButton(icon: Icons.more_horiz, hasImage: hasHeaderImage, mutedColor: mutedColor, onTap: () => _showMoreMenu(context)),
+                _NavIconButton(
+                  icon: _isBookmarked
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  active: _isBookmarked,
+                  onTap: _handleBookmark,
+                ),
+                const SizedBox(width: 8),
+                _NavIconButton(
+                  icon: Icons.text_fields_rounded,
+                  onTap: () => _showFontPicker(context),
+                ),
+                const SizedBox(width: 8),
+                _NavIconButton(
+                  icon: Icons.more_horiz,
+                  onTap: () => _showMoreMenu(context),
+                ),
               ],
             ),
           ),
@@ -639,40 +791,44 @@ class _ActionPill extends StatelessWidget {
   }
 }
 
-// ── Overlaid nav icon button ──────────────────────────────────────────────────
+// ── Glassmorphic nav icon button — swipe right to go back, no back button ──────
 
 class _NavIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
-  final bool hasImage;
-  final Color mutedColor;
   final bool active;
 
   const _NavIconButton({
     required this.icon,
     required this.onTap,
-    required this.hasImage,
-    required this.mutedColor,
     this.active = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    final color = hasImage
-        ? (active ? AppColors.aqua : Colors.white)
-        : (active ? AppColors.aqua : mutedColor);
+    // Active state uses theme accent; inactive uses white over blurred bg
+    final accentColor = context.watch<AtmosphereState>().accentColor;
+    final iconColor = active ? accentColor : Colors.white;
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 40,
-        height: 40,
-        decoration: hasImage
-            ? BoxDecoration(
-                color: Colors.black.withOpacity(0.28),
-                shape: BoxShape.circle,
-              )
-            : null,
-        child: Icon(icon, size: 20, color: color),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: Colors.black.withOpacity(0.28),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: Colors.white.withOpacity(0.22),
+                width: 0.5,
+              ),
+            ),
+            child: Icon(icon, size: 15, color: iconColor),
+          ),
+        ),
       ),
     );
   }

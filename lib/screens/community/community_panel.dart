@@ -159,6 +159,7 @@ class _CommunityPanelState extends State<CommunityPanel>
     _initialized = true;
     final state = context.read<CommunityState>();
     await state.loadProfile();
+    await state.loadFeatured(); // Load pinned featured entry state
     await state.loadFeed();
     if (SupabaseService.instance.isAuthenticated) {
       await state.loadMyPosts();
@@ -470,8 +471,22 @@ class _ForYouTab extends StatelessWidget {
         : feed.where((e) =>
             (e.category ?? '').toLowerCase() == selectedCategory.toLowerCase()).toList();
 
-    final featured = filtered.isNotEmpty ? filtered.first : null;
-    final recentItems = filtered.length > 1 ? filtered.skip(1).take(8).toList() : <PublishedEntry>[];
+    // Use pinned featured entry if still valid; otherwise fall back to first
+    final featuredId = state.featuredEntryId;
+    PublishedEntry? featured;
+    List<PublishedEntry> recentItems;
+    if (featuredId != null) {
+      try {
+        featured = filtered.firstWhere((e) => e.id == featuredId);
+        recentItems = filtered.where((e) => e.id != featuredId).take(8).toList();
+      } catch (_) {
+        featured = filtered.isNotEmpty ? filtered.first : null;
+        recentItems = filtered.length > 1 ? filtered.skip(1).take(8).toList() : <PublishedEntry>[];
+      }
+    } else {
+      featured = filtered.isNotEmpty ? filtered.first : null;
+      recentItems = filtered.length > 1 ? filtered.skip(1).take(8).toList() : <PublishedEntry>[];
+    }
 
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
@@ -539,7 +554,7 @@ class _ForYouTab extends StatelessWidget {
                 child: _FeaturedCard(
                   entry: featured,
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: featured)),
+                    MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: featured!)),
                   ),
                 ),
               ),
@@ -685,7 +700,7 @@ class _FeaturedCard extends StatelessWidget {
     final authorColor = _avatarColor(author);
     final authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
 
-    final cardH = (MediaQuery.of(context).size.width - 48) * 9 / 16;
+    final cardH = ((MediaQuery.of(context).size.width - 48) * 11 / 16).clamp(220.0, 340.0);
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -694,6 +709,7 @@ class _FeaturedCard extends StatelessWidget {
           height: cardH,
           child: Stack(
             fit: StackFit.expand,
+            clipBehavior: Clip.hardEdge,
             children: [
               // Background
               hasImage
@@ -719,7 +735,7 @@ class _FeaturedCard extends StatelessWidget {
 
               // Content
               Padding(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,

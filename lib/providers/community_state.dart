@@ -48,6 +48,56 @@ class CommunityState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Featured entry management ──────────────────────────────────────────────
+  String? _featuredEntryId;
+  DateTime? _featuredUntil;
+
+  /// Returns pinned featured entry ID only if it hasn't expired.
+  String? get featuredEntryId {
+    if (_featuredEntryId == null || _featuredUntil == null) return null;
+    return _featuredUntil!.isAfter(DateTime.now()) ? _featuredEntryId : null;
+  }
+
+  /// Human-readable label for how long featured entry has remaining.
+  String? get featuredUntilLabel {
+    if (featuredEntryId == null || _featuredUntil == null) return null;
+    final diff = _featuredUntil!.difference(DateTime.now());
+    if (diff.inDays > 1) return '${diff.inDays}d remaining';
+    if (diff.inHours > 0) return '${diff.inHours}h remaining';
+    return 'Expiring soon';
+  }
+
+  Future<void> loadFeatured() async {
+    final prefs = await SharedPreferences.getInstance();
+    _featuredEntryId = prefs.getString('featuredEntryId');
+    final untilMs = prefs.getInt('featuredEntryUntil');
+    _featuredUntil = untilMs != null
+        ? DateTime.fromMillisecondsSinceEpoch(untilMs)
+        : null;
+    notifyListeners();
+  }
+
+  /// Pins [entryId] as the featured reflection for [duration] (default 7 days).
+  Future<void> setFeatured(String entryId,
+      {Duration duration = const Duration(days: 7)}) async {
+    final until = DateTime.now().add(duration);
+    _featuredEntryId = entryId;
+    _featuredUntil = until;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('featuredEntryId', entryId);
+    await prefs.setInt('featuredEntryUntil', until.millisecondsSinceEpoch);
+    notifyListeners();
+  }
+
+  Future<void> clearFeatured() async {
+    _featuredEntryId = null;
+    _featuredUntil = null;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('featuredEntryId');
+    await prefs.remove('featuredEntryUntil');
+    notifyListeners();
+  }
+
   Future<void> loadFeed({bool refresh = false}) async {
     if (_feedLoading) return;
     if (refresh) {
