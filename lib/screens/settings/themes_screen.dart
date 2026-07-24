@@ -170,9 +170,7 @@ class _ThemeCard extends StatelessWidget {
           color: cardBg,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: isSelected
-                ? accent.withOpacity(0.55)
-                : Colors.transparent,
+            color: isSelected ? accent.withOpacity(0.55) : Colors.transparent,
             width: 1.5,
           ),
         ),
@@ -191,8 +189,7 @@ class _ThemeCard extends StatelessWidget {
             ),
 
             // Light / dark swatch pair with accent dot
-            _BgSwatchPair(
-                bgLight: bgLight, bgDark: bgDark, accent: accent),
+            _BgSwatchPair(bgLight: bgLight, bgDark: bgDark, accent: accent),
 
             const SizedBox(width: 14),
 
@@ -265,8 +262,7 @@ class _BgSwatchPair extends StatelessWidget {
         width: 54,
         height: 44,
         decoration: BoxDecoration(
-          border: Border.all(
-              color: Colors.black.withOpacity(0.1), width: 0.5),
+          border: Border.all(color: Colors.black.withOpacity(0.1), width: 0.5),
           borderRadius: BorderRadius.circular(9),
         ),
         child: Stack(

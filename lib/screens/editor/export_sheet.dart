@@ -821,10 +821,14 @@ class _EntryExportView extends StatelessWidget {
   bool get _isPagesMode => pageOverrideText != null;
 
   // Export-specific palette — intentionally distinct from the app's reading view
-  Color get _outerBg => isDark ? const Color(0xFF09070404) : const Color(0xFFDDD5C8);
-  Color get _cardBg => isDark ? const Color(0xFF1D1712) : const Color(0xFFFFFEF9);
-  Color get _textColor => isDark ? const Color(0xFFEDE8DE) : const Color(0xFF1A100A);
-  Color get _mutedColor => isDark ? const Color(0xFF6E6254) : const Color(0xFF9A8D7C);
+  Color get _outerBg =>
+      isDark ? const Color(0xFF09070404) : const Color(0xFFDDD5C8);
+  Color get _cardBg =>
+      isDark ? const Color(0xFF1D1712) : const Color(0xFFFFFEF9);
+  Color get _textColor =>
+      isDark ? const Color(0xFFEDE8DE) : const Color(0xFF1A100A);
+  Color get _mutedColor =>
+      isDark ? const Color(0xFF6E6254) : const Color(0xFF9A8D7C);
   static const _accent = Color(0xFF1B8DAF);
   static const _accentSoft = Color(0x261B8DAF);
 
@@ -875,7 +879,8 @@ class _EntryExportView extends StatelessWidget {
               borderRadius: BorderRadius.circular(3),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: _isPagesMode ? MainAxisSize.max : MainAxisSize.min,
+                mainAxisSize:
+                    _isPagesMode ? MainAxisSize.max : MainAxisSize.min,
                 children: [
                   // Top accent rule
                   Container(height: 2, color: _accent),
@@ -967,10 +972,13 @@ class _EntryExportView extends StatelessWidget {
   Widget _buildBody(Color textColor, Color mutedColor) {
     if (_isPagesMode && pageOverrideText != null) {
       final text = pageOverrideText!.trim();
-      if (text.isEmpty) return _EmptyContentIndicator(textColor: textColor, mutedColor: mutedColor);
+      if (text.isEmpty)
+        return _EmptyContentIndicator(
+            textColor: textColor, mutedColor: mutedColor);
       return Text(
         text,
-        style: GoogleFonts.crimsonPro(fontSize: 16, color: textColor, height: 1.85),
+        style: GoogleFonts.crimsonPro(
+            fontSize: 16, color: textColor, height: 1.85),
       );
     }
 
@@ -978,21 +986,28 @@ class _EntryExportView extends StatelessWidget {
       final blocks = deserializeBlocks(entry.blocksJson!);
       final filtered = includeImages
           ? blocks
-          : blocks.where((b) => b is! ImageBlock && b is! ImageGridBlock).toList();
+          : blocks
+              .where((b) => b is! ImageBlock && b is! ImageGridBlock)
+              .toList();
 
       final hasContent = filtered.any((b) {
         if (b is TextBlock) return b.text.trim().isNotEmpty;
         return true;
       });
-      if (!hasContent) return _EmptyContentIndicator(textColor: textColor, mutedColor: mutedColor);
+      if (!hasContent)
+        return _EmptyContentIndicator(
+            textColor: textColor, mutedColor: mutedColor);
 
-      return BlocksReadView(blocks: filtered, isDark: isDark, textAlignment: 'left');
+      return BlocksReadView(
+          blocks: filtered, isDark: isDark, textAlignment: 'left');
     }
 
     if (entry.content.trim().isEmpty && entry.images.isEmpty) {
-      return _EmptyContentIndicator(textColor: textColor, mutedColor: mutedColor);
+      return _EmptyContentIndicator(
+          textColor: textColor, mutedColor: mutedColor);
     }
-    return _LegacyBody(entry: entry, isDark: isDark, includeImages: includeImages);
+    return _LegacyBody(
+        entry: entry, isDark: isDark, includeImages: includeImages);
   }
 }
 
@@ -1085,7 +1100,8 @@ class _EntryHeader extends StatelessWidget {
           const SizedBox(height: 5),
           Row(
             children: [
-              Container(width: 16, height: 1, color: mutedColor.withOpacity(0.35)),
+              Container(
+                  width: 16, height: 1, color: mutedColor.withOpacity(0.35)),
               const SizedBox(width: 6),
               Text(
                 DateFormat('MMMM d, yyyy').format(entry.createdAt),
@@ -1105,17 +1121,22 @@ class _EntryHeader extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 11),
           child: Row(
             children: [
-              Expanded(child: Container(height: 0.5, color: mutedColor.withOpacity(0.2))),
+              Expanded(
+                  child: Container(
+                      height: 0.5, color: mutedColor.withOpacity(0.2))),
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 8),
                 width: 5,
                 height: 5,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: mutedColor.withOpacity(0.35), width: 1),
+                  border:
+                      Border.all(color: mutedColor.withOpacity(0.35), width: 1),
                 ),
               ),
-              Expanded(child: Container(height: 0.5, color: mutedColor.withOpacity(0.2))),
+              Expanded(
+                  child: Container(
+                      height: 0.5, color: mutedColor.withOpacity(0.2))),
             ],
           ),
         ),
@@ -1180,7 +1201,8 @@ class _EntryFooter extends StatelessWidget {
                 margin: const EdgeInsets.only(left: 8),
                 padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                 decoration: BoxDecoration(
-                  border: Border.all(color: accent.withOpacity(0.35), width: 0.8),
+                  border:
+                      Border.all(color: accent.withOpacity(0.35), width: 0.8),
                   borderRadius: BorderRadius.circular(2),
                 ),
                 child: Text(
@@ -1209,7 +1231,8 @@ class _EntryFooter extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: accent.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(3),
-                        border: Border.all(color: accent.withOpacity(0.3), width: 0.8),
+                        border: Border.all(
+                            color: accent.withOpacity(0.3), width: 0.8),
                       ),
                       child: Center(
                         child: Text(

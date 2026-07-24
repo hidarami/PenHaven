@@ -43,7 +43,10 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
   void _onDigit(String d) {
     if (_input.length >= 4) return;
-    setState(() { _input += d; _error = false; });
+    setState(() {
+      _input += d;
+      _error = false;
+    });
     if (_input.length == 4) _onComplete();
   }
 
@@ -57,13 +60,24 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
       // Verify current PIN (change mode)
       final ok = await LockService.instance.verifyPin(_input);
       if (ok) {
-        setState(() { _step = 1; _input = ''; _error = false; });
+        setState(() {
+          _step = 1;
+          _input = '';
+          _error = false;
+        });
       } else {
-        setState(() { _error = true; _input = ''; });
+        setState(() {
+          _error = true;
+          _input = '';
+        });
       }
     } else if (_step == 1) {
       // Store first entry, go to confirm
-      setState(() { _first = _input; _input = ''; _step = 2; });
+      setState(() {
+        _first = _input;
+        _input = '';
+        _step = 2;
+      });
     } else if (_step == 2) {
       // Confirm
       if (_input == _first) {
@@ -71,7 +85,10 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
         await LockService.instance.setBiometricEnabled(_bioEnabled);
         if (mounted) {
           context.read<AppState>().setLockEnabled(true);
-          setState(() { _recoveryCode = code; _step = 3; });
+          setState(() {
+            _recoveryCode = code;
+            _step = 3;
+          });
         }
       } else {
         setState(() {
@@ -99,7 +116,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     final accent = context.watch<AtmosphereState>().accentColor;
 
     if (_step == 3 && _recoveryCode != null) {
-      return _RecoveryCodeDisplay(code: _recoveryCode!, onDone: _done, accentColor: accent);
+      return _RecoveryCodeDisplay(
+          code: _recoveryCode!, onDone: _done, accentColor: accent);
     }
 
     final headings = {
@@ -128,14 +146,18 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
             ),
             const Spacer(),
 
-            Text(headings[_step]!, style: GoogleFonts.crimsonPro(
-              fontSize: 30, fontWeight: FontWeight.w700,
-              color: AppColors.textDark,
-            )),
+            Text(headings[_step]!,
+                style: GoogleFonts.crimsonPro(
+                  fontSize: 30,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textDark,
+                )),
             const SizedBox(height: 8),
-            Text(subtitles[_step]!, style: GoogleFonts.inter(
-              fontSize: 13, color: AppColors.mutedDark,
-            )),
+            Text(subtitles[_step]!,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: AppColors.mutedDark,
+                )),
 
             const SizedBox(height: 44),
 
@@ -146,7 +168,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                 return AnimatedContainer(
                   duration: const Duration(milliseconds: 120),
                   margin: const EdgeInsets.symmetric(horizontal: 12),
-                  width: 13, height: 13,
+                  width: 13,
+                  height: 13,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     color: i < _input.length
@@ -163,7 +186,9 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   ? Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
-                        _step == 0 ? 'Incorrect PIN.' : "PINs don't match. Try again.",
+                        _step == 0
+                            ? 'Incorrect PIN.'
+                            : "PINs don't match. Try again.",
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: AppColors.danger.withOpacity(0.85),
@@ -175,7 +200,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
             const SizedBox(height: 24),
 
-            LockNumpad(onDigit: _onDigit, onDelete: _onDelete, accentColor: accent),
+            LockNumpad(
+                onDigit: _onDigit, onDelete: _onDelete, accentColor: accent),
 
             // Biometric option (only on first-entry step)
             if (_bioAvailable && _step == 1) ...[
@@ -187,7 +213,8 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                   children: [
                     AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      width: 20, height: 20,
+                      width: 20,
+                      height: 20,
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(5),
                         color: _bioEnabled ? accent : Colors.transparent,
@@ -197,13 +224,14 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
                         ),
                       ),
                       child: _bioEnabled
-                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          ? const Icon(Icons.check,
+                              size: 14, color: Colors.white)
                           : null,
                     ),
                     const SizedBox(width: 8),
                     Text('Also allow biometric unlock',
                         style: GoogleFonts.inter(
-                          fontSize: 13, color: AppColors.mutedDark)),
+                            fontSize: 13, color: AppColors.mutedDark)),
                   ],
                 ),
               ),
@@ -245,7 +273,8 @@ class _RecoveryCodeDisplay extends StatelessWidget {
               const SizedBox(height: 18),
               Text('Save this recovery code',
                   style: GoogleFonts.crimsonPro(
-                    fontSize: 30, fontWeight: FontWeight.w700,
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
                   )),
               const SizedBox(height: 10),
@@ -253,24 +282,30 @@ class _RecoveryCodeDisplay extends StatelessWidget {
                 'If you ever forget your PIN, this code is the only way back in. '
                 'Write it somewhere safe — it will not be shown again.',
                 style: GoogleFonts.inter(
-                  fontSize: 14, color: AppColors.mutedDark, height: 1.55,
+                  fontSize: 14,
+                  color: AppColors.mutedDark,
+                  height: 1.55,
                 ),
               ),
               const SizedBox(height: 36),
               Center(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 22),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 36, vertical: 22),
                   decoration: BoxDecoration(
                     color: Colors.white.withOpacity(0.07),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: accentColor.withOpacity(0.35), width: 1.5,
+                      color: accentColor.withOpacity(0.35),
+                      width: 1.5,
                     ),
                   ),
                   child: Text(code,
                       style: GoogleFonts.jetBrainsMono(
-                        fontSize: 30, color: accentColor,
-                        letterSpacing: 5, fontWeight: FontWeight.w600,
+                        fontSize: 30,
+                        color: accentColor,
+                        letterSpacing: 5,
+                        fontWeight: FontWeight.w600,
                       )),
                 ),
               ),
@@ -290,7 +325,7 @@ class _RecoveryCodeDisplay extends StatelessWidget {
                   ),
                   child: Text("I've written it down",
                       style: GoogleFonts.inter(
-                        fontSize: 15, fontWeight: FontWeight.w600)),
+                          fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
               const Spacer(flex: 2),

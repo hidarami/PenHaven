@@ -179,7 +179,8 @@ class _MilestoneOverlayState extends State<MilestoneOverlay>
     return Consumer<EditorState>(
       builder: (context, editor, _) {
         // Animate in when milestone changes
-        if (editor.showMilestone && editor.milestoneWords != _lastShownMilestone) {
+        if (editor.showMilestone &&
+            editor.milestoneWords != _lastShownMilestone) {
           _lastShownMilestone = editor.milestoneWords;
           _ctrl.forward(from: 0);
           Future.delayed(const Duration(milliseconds: 2200), () {

@@ -280,8 +280,8 @@ class NeumorphicInput extends StatelessWidget {
                   ),
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: hintStyle ??
-                    TextStyle(color: mutedColor, fontSize: 15),
+                hintStyle:
+                    hintStyle ?? TextStyle(color: mutedColor, fontSize: 15),
                 border: InputBorder.none,
                 contentPadding: const EdgeInsets.symmetric(
                   horizontal: 12,

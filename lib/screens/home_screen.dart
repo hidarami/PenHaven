@@ -90,21 +90,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               controller: _pageController,
               physics: const BouncingScrollPhysics(),
               children: [
-                const LibraryPanel(),    // Panel 0 — leftmost
-                const StoryPanel(),      // Panel 1 — HOME (default)
-                const CommunityPanel(),  // Panel 2 — rightmost
+                const LibraryPanel(), // Panel 0 — leftmost
+                const StoryPanel(), // Panel 1 — HOME (default)
+                const CommunityPanel(), // Panel 2 — rightmost
               ],
             ),
 
             // ── Atmosphere visual overlay (glow painters) ──────────────────
-        const AtmosphereOverlay(),
+            const AtmosphereOverlay(),
 
-        // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
-        const AtmosphereImageLayer(),
-        
+            // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
+            const AtmosphereImageLayer(),
 
-        // ── 3PM dust mote easter egg ───────────────────────────────────
-        const DustMoteOverlay(),
+            // ── 3PM dust mote easter egg ───────────────────────────────────
+            const DustMoteOverlay(),
 
             // ── Persistent UI: Sun/Moon + Menu button ──────────────────────
             HomePersistentUI(onMenuTap: _openMenu),

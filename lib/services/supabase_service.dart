@@ -27,7 +27,8 @@ class SupabaseService {
 
   // ── Replace these with your project credentials ───────────────────────────
   static const String _supabaseUrl = 'https://vjmzileqdrhxiklxqftv.supabase.co';
-  static const String _supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqbXppbGVxZHJoeGlrbHhxZnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MjM2NTMsImV4cCI6MjEwMDI5OTY1M30.4DLkLbMfJ67JeJGwjoJ9lXlIGMWAE_N0hEQD4Lm1HQo';
+  static const String _supabaseAnonKey =
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqbXppbGVxZHJoeGlrbHhxZnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MjM2NTMsImV4cCI6MjEwMDI5OTY1M30.4DLkLbMfJ67JeJGwjoJ9lXlIGMWAE_N0hEQD4Lm1HQo';
   // ─────────────────────────────────────────────────────────────────────────
 
   static Future<void> initialize() async {
@@ -209,9 +210,13 @@ class SupabaseService {
   Future<void> deleteStory(String id) async {
     if (!isAuthenticated) return;
     try {
-      await _client?.from('stories').update({
-        'isDeleted': 1,
-      }).eq('id', id).eq('user_id', userId!);
+      await _client
+          ?.from('stories')
+          .update({
+            'isDeleted': 1,
+          })
+          .eq('id', id)
+          .eq('user_id', userId!);
     } catch (e) {
       debugPrint('[Supabase] deleteStory: $e');
     }
@@ -285,9 +290,13 @@ class SupabaseService {
   Future<void> archiveTodo(String id) async {
     if (!isAuthenticated) return;
     try {
-      await _client?.from('todos').update({
-        'isArchived': 1,
-      }).eq('id', id).eq('user_id', userId!);
+      await _client
+          ?.from('todos')
+          .update({
+            'isArchived': 1,
+          })
+          .eq('id', id)
+          .eq('user_id', userId!);
     } catch (e) {
       debugPrint('[Supabase] archiveTodo: $e');
     }
@@ -382,7 +391,8 @@ class SupabaseService {
         'entry_id': entryId,
         'user_id': userId,
       });
-      await _client?.rpc('increment_clap_count', params: {'p_entry_id': entryId});
+      await _client
+          ?.rpc('increment_clap_count', params: {'p_entry_id': entryId});
     } catch (e) {
       debugPrint('[Supabase] clapEntry: $e');
     }
@@ -396,7 +406,8 @@ class SupabaseService {
           .delete()
           .eq('entry_id', entryId)
           .eq('user_id', userId!);
-      await _client?.rpc('decrement_clap_count', params: {'p_entry_id': entryId});
+      await _client
+          ?.rpc('decrement_clap_count', params: {'p_entry_id': entryId});
     } catch (e) {
       debugPrint('[Supabase] removeClap: $e');
     }
@@ -451,7 +462,8 @@ class SupabaseService {
         'is_anonymous': isAnonymous,
         'display_name': isAnonymous ? null : displayName,
       });
-      await _client?.rpc('increment_comment_count', params: {'p_entry_id': entryId});
+      await _client
+          ?.rpc('increment_comment_count', params: {'p_entry_id': entryId});
       return true;
     } catch (e) {
       debugPrint('[Supabase] addCommunityComment: $e');
@@ -459,7 +471,7 @@ class SupabaseService {
     }
   }
 
-/// Fetches a single published entry by its local entry ID.
+  /// Fetches a single published entry by its local entry ID.
   /// Returns null if the entry has not been published or on error.
   Future<PublishedEntry?> getPublishedEntry(String entryId) async {
     try {
@@ -494,5 +506,3 @@ class SupabaseService {
     }
   }
 }
-
-

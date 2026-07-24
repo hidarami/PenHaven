@@ -19,10 +19,29 @@ import 'atmosphere_state.dart';
 // ── Comfort Engine keywords ────────────────────────────────────────────────
 // Requires 3+ matches to trigger (per Master Specification §5).
 const List<String> _comfortTriggerWords = [
-  'lonely', 'grief', 'tired', 'empty', 'broken', 'sad', 'pain',
-  'loss', 'alone', 'hurt', 'dark', 'hopeless', 'numb', 'heavy',
-  'weary', 'overwhelmed', 'desperate', 'scared', 'afraid', 'anxious',
-  'worthless', 'defeated', 'forgotten',
+  'lonely',
+  'grief',
+  'tired',
+  'empty',
+  'broken',
+  'sad',
+  'pain',
+  'loss',
+  'alone',
+  'hurt',
+  'dark',
+  'hopeless',
+  'numb',
+  'heavy',
+  'weary',
+  'overwhelmed',
+  'desperate',
+  'scared',
+  'afraid',
+  'anxious',
+  'worthless',
+  'defeated',
+  'forgotten',
 ];
 
 const int _comfortThreshold = 3;
@@ -150,11 +169,8 @@ class EditorState extends ChangeNotifier {
       return;
     }
     // Split on whitespace; filter empty strings
-    _wordCount = content
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty)
-        .length;
+    _wordCount =
+        content.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
   }
 
 // ─────────────────────────────────────────────────────────────────────────

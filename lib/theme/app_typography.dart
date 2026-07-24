@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // APP TYPOGRAPHY
 // All TextStyles used in Flow, using Google Fonts at runtime.
@@ -184,7 +183,8 @@ class AppTypography {
 
   // ── JetBrains Mono (Monospace — code blocks) ──────────────────────────────
 
-  static TextStyle codeBlock(Color color, Color bg) => GoogleFonts.jetBrainsMono(
+  static TextStyle codeBlock(Color color, Color bg) =>
+      GoogleFonts.jetBrainsMono(
         fontSize: 13,
         fontWeight: FontWeight.w400,
         color: color,
@@ -200,30 +200,40 @@ class AppTypography {
 
 // ── Switchable body font ───────────────────────────────────────────────────
   // Used for entry body text when user selects a different reading font.
-  static TextStyle bodyTextFor(String fontName, Color color, {double size = 18, double height = 1.8}) {
+  static TextStyle bodyTextFor(String fontName, Color color,
+      {double size = 18, double height = 1.8}) {
     switch (fontName) {
       case 'sourceSerif4':
-        return GoogleFonts.sourceSerif4(fontSize: size, color: color, height: height);
+        return GoogleFonts.sourceSerif4(
+            fontSize: size, color: color, height: height);
       case 'lora':
         return GoogleFonts.lora(fontSize: size, color: color, height: height);
       case 'merriweather':
-        return GoogleFonts.merriweather(fontSize: size, color: color, height: height);
+        return GoogleFonts.merriweather(
+            fontSize: size, color: color, height: height);
       case 'playfairDisplay':
-        return GoogleFonts.playfairDisplay(fontSize: size, color: color, height: height);
+        return GoogleFonts.playfairDisplay(
+            fontSize: size, color: color, height: height);
       case 'ebGaramond':
-        return GoogleFonts.ebGaramond(fontSize: size, color: color, height: height);
+        return GoogleFonts.ebGaramond(
+            fontSize: size, color: color, height: height);
       case 'cormorantGaramond':
-        return GoogleFonts.cormorantGaramond(fontSize: size, color: color, height: height);
+        return GoogleFonts.cormorantGaramond(
+            fontSize: size, color: color, height: height);
       case 'libreBaskerville':
-        return GoogleFonts.libreBaskerville(fontSize: size, color: color, height: height);
+        return GoogleFonts.libreBaskerville(
+            fontSize: size, color: color, height: height);
       case 'alegreya':
-        return GoogleFonts.alegreya(fontSize: size, color: color, height: height);
+        return GoogleFonts.alegreya(
+            fontSize: size, color: color, height: height);
       case 'spectral':
-        return GoogleFonts.spectral(fontSize: size, color: color, height: height);
+        return GoogleFonts.spectral(
+            fontSize: size, color: color, height: height);
       case 'cardo':
         return GoogleFonts.cardo(fontSize: size, color: color, height: height);
       case 'literata':
-        return GoogleFonts.literata(fontSize: size, color: color, height: height);
+        return GoogleFonts.literata(
+            fontSize: size, color: color, height: height);
       case 'nunito':
         return GoogleFonts.nunito(fontSize: size, color: color, height: height);
       case 'jost':
@@ -232,7 +242,8 @@ class AppTypography {
         return GoogleFonts.dmSans(fontSize: size, color: color, height: height);
       case 'crimsonPro':
       default:
-        return GoogleFonts.crimsonPro(fontSize: size, color: color, height: height);
+        return GoogleFonts.crimsonPro(
+            fontSize: size, color: color, height: height);
     }
   }
 

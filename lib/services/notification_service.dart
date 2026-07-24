@@ -45,8 +45,7 @@ class NotificationService {
         tz.setLocalLocation(tz.local);
       } catch (_) {}
 
-      const androidInit =
-          AndroidInitializationSettings('@mipmap/ic_launcher');
+      const androidInit = AndroidInitializationSettings('@mipmap/ic_launcher');
       const iosInit = DarwinInitializationSettings(
         requestAlertPermission: false,
         requestBadgePermission: false,
@@ -58,10 +57,10 @@ class NotificationService {
       );
 
       if (Platform.isAndroid) {
-      await _plugin
-          .resolvePlatformSpecificImplementation<
-              AndroidFlutterLocalNotificationsPlugin>()
-          ?.createNotificationChannel(_androidChannel);
+        await _plugin
+            .resolvePlatformSpecificImplementation<
+                AndroidFlutterLocalNotificationsPlugin>()
+            ?.createNotificationChannel(_androidChannel);
       }
 
       _initialized = true;
@@ -107,9 +106,7 @@ class NotificationService {
 
   Future<void> showTimeCapsuleReady(String preview) async {
     if (!_initialized) await init();
-    final body = preview.length > 70
-        ? '${preview.substring(0, 70)}…'
-        : preview;
+    final body = preview.length > 70 ? '${preview.substring(0, 70)}…' : preview;
     try {
       await _plugin.show(
           _capsuleReadyId, '⏳ Time Capsule Ready', body, _details);

@@ -96,8 +96,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                     label: 'S',
                     strikeLabel: true,
                     color: muted,
-                    isActive:
-                        ctrl?.selectionHas(strikethrough: true) ?? false,
+                    isActive: ctrl?.selectionHas(strikethrough: true) ?? false,
                     onTap: () {
                       widget.canvas.focusedController?.toggleStrikethrough();
                       setState(() {});
@@ -201,8 +200,9 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                   _ToolbarIconButton(
                     icon: Icons.play_circle_outline_rounded,
                     color: muted,
-                    onTap: () => _showUrlDialog(context, 'YouTube URL',
-                        'https://youtube.com/watch?v=', (url) {
+                    onTap: () => _showUrlDialog(
+                        context, 'YouTube URL', 'https://youtube.com/watch?v=',
+                        (url) {
                       if (widget.canvas.focusedBlockId != null) {
                         widget.canvas.insertYoutubeBlock(
                             widget.canvas.focusedBlockId!, url);
@@ -212,8 +212,8 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                   _ToolbarIconButton(
                     icon: Icons.link_rounded,
                     color: muted,
-                    onTap: () => _showUrlDialog(context, 'X / Twitter URL',
-                        'https://x.com/', (url) {
+                    onTap: () => _showUrlDialog(
+                        context, 'X / Twitter URL', 'https://x.com/', (url) {
                       if (widget.canvas.focusedBlockId != null) {
                         widget.canvas.insertTweetBlock(
                             widget.canvas.focusedBlockId!, url);
@@ -253,8 +253,8 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
     final id = widget.canvas.focusedBlockId;
     if (id == null) return false;
     final blocks = widget.canvas.blocks;
-    final block = blocks.firstWhere((b) => b.id == id,
-        orElse: () => TextBlock.empty());
+    final block =
+        blocks.firstWhere((b) => b.id == id, orElse: () => TextBlock.empty());
     return block is TextBlock && block.type == type;
   }
 
@@ -264,7 +264,9 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
 
     if (type == BlockType.quote) {
       final ctrl = widget.canvas.focusedController;
-      if (ctrl != null && !ctrl.selection.isCollapsed && ctrl.selection.isValid) {
+      if (ctrl != null &&
+          !ctrl.selection.isCollapsed &&
+          ctrl.selection.isValid) {
         _extractSelectionAsType(id, ctrl, BlockType.quote);
         return;
       }
@@ -309,8 +311,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
         if (mounted) {
           widget.canvas.insertBlockAfter(
             quoteBlock.id,
-            TextBlock(
-                id: const Uuid().v4(), type: BlockType.text, text: after),
+            TextBlock(id: const Uuid().v4(), type: BlockType.text, text: after),
           );
           setState(() {});
         }
@@ -353,8 +354,7 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               final url = ctrl.text.trim();
@@ -598,8 +598,7 @@ class _LinkButton extends StatelessWidget {
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration:
-              const InputDecoration(hintText: 'https://...'),
+          decoration: const InputDecoration(hintText: 'https://...'),
           keyboardType: TextInputType.url,
         ),
         actions: [

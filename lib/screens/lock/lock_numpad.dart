@@ -32,7 +32,8 @@ class LockNumpad extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
               SizedBox(
-                width: 76, height: 76,
+                width: 76,
+                height: 76,
                 child: onBiometric != null
                     ? NumpadKey(
                         onTap: onBiometric!,
@@ -55,11 +56,11 @@ class LockNumpad extends StatelessWidget {
   }
 
   Widget _row(List<String> digits) => Row(
-    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-    children: digits
-        .map((d) => NumpadKey(label: d, onTap: () => onDigit(d)))
-        .toList(),
-  );
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+        children: digits
+            .map((d) => NumpadKey(label: d, onTap: () => onDigit(d)))
+            .toList(),
+      );
 }
 
 class NumpadKey extends StatefulWidget {
@@ -88,7 +89,8 @@ class _NumpadKeyState extends State<NumpadKey> {
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 80),
-        width: 76, height: 76,
+        width: 76,
+        height: 76,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _pressed

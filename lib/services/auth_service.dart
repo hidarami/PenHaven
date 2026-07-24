@@ -62,7 +62,7 @@ class AuthService {
         localizedReason: reason,
         options: const AuthenticationOptions(
           biometricOnly: false, // Allow PIN fallback
-          stickyAuth: true,     // Keep prompt alive if user leaves app
+          stickyAuth: true, // Keep prompt alive if user leaves app
           useErrorDialogs: true,
         ),
       );

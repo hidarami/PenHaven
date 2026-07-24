@@ -71,9 +71,8 @@ class CommunityState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _featuredEntryId = prefs.getString('featuredEntryId');
     final untilMs = prefs.getInt('featuredEntryUntil');
-    _featuredUntil = untilMs != null
-        ? DateTime.fromMillisecondsSinceEpoch(untilMs)
-        : null;
+    _featuredUntil =
+        untilMs != null ? DateTime.fromMillisecondsSinceEpoch(untilMs) : null;
     notifyListeners();
   }
 
@@ -182,7 +181,8 @@ class CommunityState extends ChangeNotifier {
 
     final wasClapped = _feed[idx].hasClapped;
     _feed[idx].hasClapped = !wasClapped;
-    _feed[idx].clapCount = (_feed[idx].clapCount + (wasClapped ? -1 : 1)).clamp(0, 999999);
+    _feed[idx].clapCount =
+        (_feed[idx].clapCount + (wasClapped ? -1 : 1)).clamp(0, 999999);
     notifyListeners();
 
     try {
@@ -194,7 +194,8 @@ class CommunityState extends ChangeNotifier {
     } catch (e) {
       // Revert on failure
       _feed[idx].hasClapped = wasClapped;
-      _feed[idx].clapCount = (_feed[idx].clapCount + (wasClapped ? 1 : -1)).clamp(0, 999999);
+      _feed[idx].clapCount =
+          (_feed[idx].clapCount + (wasClapped ? 1 : -1)).clamp(0, 999999);
       notifyListeners();
     }
   }

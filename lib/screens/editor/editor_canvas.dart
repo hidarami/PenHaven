@@ -190,11 +190,13 @@ class EditorCanvasState extends State<EditorCanvas> {
 
     // Order matters: ** before * to avoid partial match
     collect(RegExp(r'\*\*(.+?)\*\*'), FormatAttrs(bold: true));
-    collect(RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)'), FormatAttrs(italic: true));
+    collect(RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)'),
+        FormatAttrs(italic: true));
     collect(RegExp(r'//(.+?)//'), FormatAttrs(italic: true));
     collect(RegExp(r'__(.+?)__'), FormatAttrs(underline: true));
     collect(RegExp(r'~~(.+?)~~'), FormatAttrs(strikethrough: true));
-    collect(RegExp(r'==(.+?)=='), FormatAttrs(highlight: const Color(0xFFFFFF00)));
+    collect(
+        RegExp(r'==(.+?)=='), FormatAttrs(highlight: const Color(0xFFFFFF00)));
 
     rawMatches.sort((a, b) => a.$1.compareTo(b.$1));
 
@@ -224,14 +226,19 @@ class EditorCanvasState extends State<EditorCanvas> {
       final t = currentText.toString().trim();
       if (t.isNotEmpty) {
         final (clean, fmts) = _parseInlineMarkdown(t);
-        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.text, text: clean, formats: fmts));
+        blocks.add(TextBlock(
+            id: const Uuid().v4(),
+            type: BlockType.text,
+            text: clean,
+            formats: fmts));
       }
       currentText.clear();
     }
 
     TextBlock inlineBlock(String raw, BlockType type) {
       final (clean, fmts) = _parseInlineMarkdown(raw);
-      return TextBlock(id: const Uuid().v4(), type: type, text: clean, formats: fmts);
+      return TextBlock(
+          id: const Uuid().v4(), type: type, text: clean, formats: fmts);
     }
 
     for (final line in lines) {
@@ -250,14 +257,23 @@ class EditorCanvasState extends State<EditorCanvas> {
       } else if (line.trim() == '---' || line.trim() == '***') {
         flushText();
         blocks.add(DividerBlock(id: const Uuid().v4()));
-      } else if (line.startsWith('- [ ] ') || line.startsWith('- [x] ') || line.startsWith('- [X] ')) {
+      } else if (line.startsWith('- [ ] ') ||
+          line.startsWith('- [x] ') ||
+          line.startsWith('- [X] ')) {
         flushText();
         final isChecked = !line.startsWith('- [ ] ');
-        blocks.add(ChecklistBlock(id: const Uuid().v4(), text: line.substring(6), isChecked: isChecked));
+        blocks.add(ChecklistBlock(
+            id: const Uuid().v4(),
+            text: line.substring(6),
+            isChecked: isChecked));
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
         flushText();
         final (clean, fmts) = _parseInlineMarkdown(line.substring(2));
-        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.bulletList, text: clean, formats: fmts));
+        blocks.add(TextBlock(
+            id: const Uuid().v4(),
+            type: BlockType.bulletList,
+            text: clean,
+            formats: fmts));
       } else {
         if (currentText.isNotEmpty) currentText.write('\n');
         currentText.write(line);
@@ -512,7 +528,8 @@ class EditorCanvasState extends State<EditorCanvas> {
         isDark: widget.isDark,
         isEditing: true,
         autoFocus: _pendingFocus.remove(block.id),
-        onToggle: (isChecked) => updateBlock(block.copyWith(isChecked: isChecked)),
+        onToggle: (isChecked) =>
+            updateBlock(block.copyWith(isChecked: isChecked)),
         onTextChanged: (text) => updateBlock(block.copyWith(text: text)),
         onRemove: () => removeBlock(block.id),
         onEnterAtEnd: () => insertChecklistBlock(block.id),
@@ -535,7 +552,8 @@ class EditorCanvasState extends State<EditorCanvas> {
         onEnterAtEnd: () {
           // Continue bullet list on Enter; otherwise plain text
           if (block.type == BlockType.bulletList) {
-            insertBlockAfter(block.id, TextBlock.empty(type: BlockType.bulletList));
+            insertBlockAfter(
+                block.id, TextBlock.empty(type: BlockType.bulletList));
           } else {
             insertBlockAfter(block.id, TextBlock.empty());
           }
@@ -739,7 +757,8 @@ class _TextBlockWidget extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.only(top: 3, right: 10),
               child: Text('•',
-                  style: AppTypography.bodyTextFor(fontName, textColor, size: 18, height: 1.8)),
+                  style: AppTypography.bodyTextFor(fontName, textColor,
+                      size: 18, height: 1.8)),
             ),
             Expanded(child: field),
           ],
@@ -782,7 +801,8 @@ class _TextBlockWidget extends StatelessWidget {
             color: color,
             height: 1.8);
       default:
-        return AppTypography.bodyTextFor(fontName, color, size: 18, height: 1.8);
+        return AppTypography.bodyTextFor(fontName, color,
+            size: 18, height: 1.8);
     }
   }
 
@@ -1300,7 +1320,8 @@ class _ChecklistBlockWidgetState extends State<_ChecklistBlockWidget> {
   void didUpdateWidget(_ChecklistBlockWidget old) {
     super.didUpdateWidget(old);
     // Sync text if parent changed it (e.g. restore from version)
-    if (old.block.text != widget.block.text && _ctrl.text != widget.block.text) {
+    if (old.block.text != widget.block.text &&
+        _ctrl.text != widget.block.text) {
       _ctrl.text = widget.block.text;
     }
   }
@@ -1315,7 +1336,8 @@ class _ChecklistBlockWidgetState extends State<_ChecklistBlockWidget> {
   @override
   Widget build(BuildContext context) {
     final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final mutedColor =
+        widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final checked = widget.block.isChecked;
     final fade = widget.block.shouldFade;
 
@@ -1339,12 +1361,14 @@ class _ChecklistBlockWidgetState extends State<_ChecklistBlockWidget> {
                   borderRadius: BorderRadius.circular(5),
                   color: checked ? AppColors.aqua : Colors.transparent,
                   border: Border.all(
-                    color: checked ? AppColors.aqua : mutedColor.withOpacity(0.5),
+                    color:
+                        checked ? AppColors.aqua : mutedColor.withOpacity(0.5),
                     width: 1.5,
                   ),
                 ),
                 child: checked
-                    ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                    ? const Icon(Icons.check_rounded,
+                        size: 13, color: Colors.white)
                     : null,
               ),
             ),
@@ -1358,7 +1382,8 @@ class _ChecklistBlockWidgetState extends State<_ChecklistBlockWidget> {
                       textInputAction: TextInputAction.done,
                       style: GoogleFonts.inter(
                         fontSize: 16,
-                        color: checked ? mutedColor.withOpacity(0.5) : textColor,
+                        color:
+                            checked ? mutedColor.withOpacity(0.5) : textColor,
                         decoration: checked ? TextDecoration.lineThrough : null,
                         decorationColor: mutedColor,
                         height: 1.5,
@@ -1384,7 +1409,8 @@ class _ChecklistBlockWidgetState extends State<_ChecklistBlockWidget> {
                       widget.block.text,
                       style: GoogleFonts.inter(
                         fontSize: 16,
-                        color: checked ? mutedColor.withOpacity(0.5) : textColor,
+                        color:
+                            checked ? mutedColor.withOpacity(0.5) : textColor,
                         decoration: checked ? TextDecoration.lineThrough : null,
                         decorationColor: mutedColor,
                         height: 1.5,
@@ -1433,7 +1459,8 @@ class _ChecklistReadViewState extends State<_ChecklistReadView> {
   @override
   Widget build(BuildContext context) {
     final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final mutedColor =
+        widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 3),
@@ -1451,12 +1478,14 @@ class _ChecklistReadViewState extends State<_ChecklistReadView> {
                 borderRadius: BorderRadius.circular(5),
                 color: _checked ? AppColors.aqua : Colors.transparent,
                 border: Border.all(
-                  color: _checked ? AppColors.aqua : mutedColor.withOpacity(0.5),
+                  color:
+                      _checked ? AppColors.aqua : mutedColor.withOpacity(0.5),
                   width: 1.5,
                 ),
               ),
               child: _checked
-                  ? const Icon(Icons.check_rounded, size: 13, color: Colors.white)
+                  ? const Icon(Icons.check_rounded,
+                      size: 13, color: Colors.white)
                   : null,
             ),
           ),
@@ -1569,7 +1598,10 @@ class BlocksReadView extends StatelessWidget {
     } else if (block is TextBlock) {
       debugPrint('[BlocksReadView] TextBlock text: "${block.text}"');
       return _TextBlockReadView(
-          block: block, isDark: isDark, textAlignment: textAlignment, fontName: fontName);
+          block: block,
+          isDark: isDark,
+          textAlignment: textAlignment,
+          fontName: fontName);
     } else if (block is ImageBlock) {
       return _ImageBlockWidget(block: block, isDark: isDark, isEditing: false);
     } else if (block is ImageGridBlock) {
@@ -1619,11 +1651,11 @@ class _TextBlockReadView extends StatelessWidget {
           children: [
             Padding(
               padding: const EdgeInsets.only(top: 3, right: 10),
-              child: Text('•',
-                  style: _styleForType(BlockType.text, textColor)),
+              child: Text('•', style: _styleForType(BlockType.text, textColor)),
             ),
             Expanded(
-              child: Text.rich(span, textAlign: _alignFromString(textAlignment)),
+              child:
+                  Text.rich(span, textAlign: _alignFromString(textAlignment)),
             ),
           ],
         ),
@@ -1747,7 +1779,8 @@ class _TextBlockReadView extends StatelessWidget {
             color: color,
             height: 1.8);
       default:
-        return AppTypography.bodyTextFor(fontName, color, size: 18, height: 1.8);
+        return AppTypography.bodyTextFor(fontName, color,
+            size: 18, height: 1.8);
     }
   }
 

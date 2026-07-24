@@ -85,8 +85,7 @@ class WeatherService {
         '&units=metric',
       );
 
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 8));
+      final response = await http.get(uri).timeout(const Duration(seconds: 8));
 
       if (response.statusCode != 200) return null;
 
@@ -145,8 +144,7 @@ class WeatherService {
       final uri = Uri.parse(
         '$_baseUrl?lat=0&lon=0&appid=$apiKey&units=metric',
       );
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 6));
+      final response = await http.get(uri).timeout(const Duration(seconds: 6));
       // OWM returns 200 even for 0,0 (middle of Atlantic) with a valid key
       return response.statusCode == 200;
     } catch (_) {

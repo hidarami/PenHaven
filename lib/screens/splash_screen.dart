@@ -243,7 +243,7 @@ class _LiquidFlowText extends StatelessWidget {
             wavePhase: wavePhase,
           ),
           // Solid aqua fill — full opacity version of the app's accent blue
-        child: Text('Flow', style: _style(const Color(0xFF207BD5))),
+          child: Text('Flow', style: _style(const Color(0xFF207BD5))),
         ),
 
         // Layer 3: Faint water shimmer line at the wave surface
@@ -277,8 +277,7 @@ class _WaveRiseClipper extends CustomClipper<Path> {
     // Edge cases
     if (fillProgress <= 0) return Path();
     if (fillProgress >= 1) {
-      return Path()
-        ..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
+      return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     }
 
     // Y coordinate of wave surface (0=top, size.height=bottom)

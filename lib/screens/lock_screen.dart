@@ -32,7 +32,7 @@ class _LockScreenState extends State<LockScreen> {
   bool _pinError = false;
   String? _statusMessage;
   bool _bioAvailable = false; // hardware present + enrolled
-  bool _bioEnabled = false;   // user opted in during PIN setup
+  bool _bioEnabled = false; // user opted in during PIN setup
 
   @override
   void initState() {
@@ -139,7 +139,8 @@ class _LockScreenState extends State<LockScreen> {
         onDigit: _onDigit,
         onDelete: _onDelete,
         showBiometric: _bioAvailable && _bioEnabled,
-        onBiometric: (_bioAvailable && _bioEnabled) ? _tryBiometricUnlock : null,
+        onBiometric:
+            (_bioAvailable && _bioEnabled) ? _tryBiometricUnlock : null,
         accentColor: accent,
       );
     }
@@ -371,7 +372,8 @@ class _PinEntryView extends StatelessWidget {
 
             const SizedBox(height: 24),
 
-            LockNumpad(onDigit: onDigit, onDelete: onDelete, accentColor: accentColor),
+            LockNumpad(
+                onDigit: onDigit, onDelete: onDelete, accentColor: accentColor),
 
             // ── Biometric retry (shown when bio is configured) ─────────────
             if (showBiometric && onBiometric != null) ...[

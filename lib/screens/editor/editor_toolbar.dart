@@ -59,9 +59,8 @@ class EditorToolbar extends StatelessWidget {
     final sel = ctrl.selection;
     final pos = sel.isValid ? sel.start : ctrl.text.length;
 
-    final newText = ctrl.text.substring(0, pos) +
-        syntax +
-        ctrl.text.substring(pos);
+    final newText =
+        ctrl.text.substring(0, pos) + syntax + ctrl.text.substring(pos);
     ctrl.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: pos + syntax.length),
@@ -95,8 +94,7 @@ class EditorToolbar extends StatelessWidget {
     final dark = context.watch<AppState>().isDarkMode;
     final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
-    final dividerColor =
-        dark ? AppColors.dividerDark : AppColors.dividerLight;
+    final dividerColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
     final bottomPadding = MediaQuery.of(context).padding.bottom;
 
     return Container(

@@ -35,7 +35,8 @@ class _SearchScreenState extends State<SearchScreen> {
   void initState() {
     super.initState();
     _loadEntries();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _focusNode.requestFocus());
+    WidgetsBinding.instance
+        .addPostFrameCallback((_) => _focusNode.requestFocus());
   }
 
   @override
@@ -47,14 +48,21 @@ class _SearchScreenState extends State<SearchScreen> {
 
   Future<void> _loadEntries() async {
     final entries = await EntryDao.instance.getAll();
-    if (mounted) setState(() { _allEntries = entries; _loading = false; });
+    if (mounted)
+      setState(() {
+        _allEntries = entries;
+        _loading = false;
+      });
   }
 
   void _onQueryChanged(String q) {
     final query = q.toLowerCase().trim();
     setState(() {
       _query = query;
-      if (query.isEmpty) { _results = []; return; }
+      if (query.isEmpty) {
+        _results = [];
+        return;
+      }
       _results = _allEntries
           .where((e) =>
               e.title.toLowerCase().contains(query) ||
@@ -88,31 +96,42 @@ class _SearchScreenState extends State<SearchScreen> {
                   children: [
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      child: Icon(Icons.chevron_left_rounded, size: 28, color: mutedColor),
+                      child: Icon(Icons.chevron_left_rounded,
+                          size: 28, color: mutedColor),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Container(
                         height: 44,
                         decoration: BoxDecoration(
-                          color: dark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.05),
+                          color: dark
+                              ? Colors.white.withOpacity(0.07)
+                              : Colors.black.withOpacity(0.05),
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: TextField(
                           controller: _controller,
                           focusNode: _focusNode,
                           onChanged: _onQueryChanged,
-                          style: GoogleFonts.inter(fontSize: 15, color: textColor),
+                          style:
+                              GoogleFonts.inter(fontSize: 15, color: textColor),
                           decoration: InputDecoration(
                             border: InputBorder.none,
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 14, vertical: 12),
                             hintText: 'Search your entries...',
-                            hintStyle: GoogleFonts.inter(fontSize: 15, color: mutedColor),
-                            prefixIcon: Icon(Icons.search_rounded, size: 18, color: mutedColor),
+                            hintStyle: GoogleFonts.inter(
+                                fontSize: 15, color: mutedColor),
+                            prefixIcon: Icon(Icons.search_rounded,
+                                size: 18, color: mutedColor),
                             suffixIcon: _query.isNotEmpty
                                 ? GestureDetector(
-                                    onTap: () { _controller.clear(); _onQueryChanged(''); },
-                                    child: Icon(Icons.close_rounded, size: 16, color: mutedColor),
+                                    onTap: () {
+                                      _controller.clear();
+                                      _onQueryChanged('');
+                                    },
+                                    child: Icon(Icons.close_rounded,
+                                        size: 16, color: mutedColor),
                                   )
                                 : null,
                           ),
@@ -133,7 +152,8 @@ class _SearchScreenState extends State<SearchScreen> {
                             ? _NoResults(query: _query, mutedColor: mutedColor)
                             : ListView.builder(
                                 physics: const BouncingScrollPhysics(),
-                                padding: const EdgeInsets.fromLTRB(16, 4, 16, 48),
+                                padding:
+                                    const EdgeInsets.fromLTRB(16, 4, 16, 48),
                                 itemCount: _results.length,
                                 itemBuilder: (ctx, i) => _ResultTile(
                                   result: _results[i],
@@ -141,7 +161,9 @@ class _SearchScreenState extends State<SearchScreen> {
                                   mutedColor: mutedColor,
                                   isDark: dark,
                                   onTap: () => Navigator.of(context).push(
-                                    MaterialPageRoute(builder: (_) => EntryReadScreen(entry: _results[i].entry)),
+                                    MaterialPageRoute(
+                                        builder: (_) => EntryReadScreen(
+                                            entry: _results[i].entry)),
                                   ),
                                 ),
                               ),
@@ -197,7 +219,9 @@ class _ResultTile extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 10),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: isDark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03),
+          color: isDark
+              ? Colors.white.withOpacity(0.04)
+              : Colors.black.withOpacity(0.03),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -205,7 +229,8 @@ class _ResultTile extends StatelessWidget {
           children: [
             Text(
               result.entry.title.isEmpty ? 'Untitled' : result.entry.title,
-              style: GoogleFonts.crimsonPro(fontSize: 18, fontWeight: FontWeight.w700, color: textColor),
+              style: GoogleFonts.crimsonPro(
+                  fontSize: 18, fontWeight: FontWeight.w700, color: textColor),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
@@ -213,7 +238,8 @@ class _ResultTile extends StatelessWidget {
               const SizedBox(height: 4),
               Text(
                 result.snippet,
-                style: GoogleFonts.inter(fontSize: 13, color: mutedColor, height: 1.5),
+                style: GoogleFonts.inter(
+                    fontSize: 13, color: mutedColor, height: 1.5),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -221,7 +247,8 @@ class _ResultTile extends StatelessWidget {
             const SizedBox(height: 6),
             Text(
               DateFormat('MMM d, yyyy').format(result.entry.createdAt),
-              style: GoogleFonts.inter(fontSize: 11, color: mutedColor.withOpacity(0.6)),
+              style: GoogleFonts.inter(
+                  fontSize: 11, color: mutedColor.withOpacity(0.6)),
             ),
           ],
         ),
@@ -236,17 +263,21 @@ class _SearchHint extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(Icons.search_rounded, size: 52, color: mutedColor.withOpacity(0.25)),
-        const SizedBox(height: 14),
-        Text('Search your entries.', style: GoogleFonts.crimsonPro(
-          fontSize: 18, fontStyle: FontStyle.italic, color: mutedColor.withOpacity(0.55),
-        )),
-      ],
-    ),
-  );
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.search_rounded,
+                size: 52, color: mutedColor.withOpacity(0.25)),
+            const SizedBox(height: 14),
+            Text('Search your entries.',
+                style: GoogleFonts.crimsonPro(
+                  fontSize: 18,
+                  fontStyle: FontStyle.italic,
+                  color: mutedColor.withOpacity(0.55),
+                )),
+          ],
+        ),
+      );
 }
 
 class _NoResults extends StatelessWidget {
@@ -256,13 +287,17 @@ class _NoResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(32),
-      child: Text(
-        'Nothing found for\n"$query"',
-        textAlign: TextAlign.center,
-        style: GoogleFonts.crimsonPro(fontSize: 18, fontStyle: FontStyle.italic, color: mutedColor.withOpacity(0.55), height: 1.6),
-      ),
-    ),
-  );
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Text(
+            'Nothing found for\n"$query"',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.crimsonPro(
+                fontSize: 18,
+                fontStyle: FontStyle.italic,
+                color: mutedColor.withOpacity(0.55),
+                height: 1.6),
+          ),
+        ),
+      );
 }

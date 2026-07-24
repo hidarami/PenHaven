@@ -16,15 +16,23 @@ class FontsScreen extends StatelessWidget {
   const FontsScreen({super.key});
 
   static const _serifFonts = [
-    'crimsonPro', 'ebGaramond', 'cormorantGaramond', 'playfairDisplay',
-    'alegreya', 'spectral', 'cardo', 'sourceSerif4', 'lora',
-    'merriweather', 'libreBaskerville', 'literata',
+    'crimsonPro',
+    'ebGaramond',
+    'cormorantGaramond',
+    'playfairDisplay',
+    'alegreya',
+    'spectral',
+    'cardo',
+    'sourceSerif4',
+    'lora',
+    'merriweather',
+    'libreBaskerville',
+    'literata',
   ];
 
   static const _sansFonts = ['nunito', 'jost', 'dmSans'];
 
-  static const _sampleText =
-      'The light shifted at 3pm,\nand I began to write.';
+  static const _sampleText = 'The light shifted at 3pm,\nand I began to write.';
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +61,8 @@ class FontsScreen extends StatelessWidget {
                   children: [
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
-                      child: Icon(Icons.chevron_left_rounded, size: 28, color: mutedColor),
+                      child: Icon(Icons.chevron_left_rounded,
+                          size: 28, color: mutedColor),
                     ),
                     const SizedBox(width: 4),
                     Text(
@@ -71,7 +80,8 @@ class FontsScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(52, 4, 20, 16),
                 child: Text(
                   'Affects how entries look when reading. ${AppTypography.fontDisplayNames[appState.preferredFont]} is selected.',
-                  style: GoogleFonts.inter(fontSize: 12, color: mutedColor, height: 1.4),
+                  style: GoogleFonts.inter(
+                      fontSize: 12, color: mutedColor, height: 1.4),
                 ),
               ),
               Divider(color: divColor, height: 1, thickness: 0.5),
@@ -85,7 +95,8 @@ class FontsScreen extends StatelessWidget {
                     _SectionHeader(label: 'SERIF', mutedColor: mutedColor),
                     ..._serifFonts.map((key) => _FontCard(
                           fontKey: key,
-                          displayName: AppTypography.fontDisplayNames[key] ?? key,
+                          displayName:
+                              AppTypography.fontDisplayNames[key] ?? key,
                           sampleText: _sampleText,
                           isSelected: appState.preferredFont == key,
                           isDark: isDark,
@@ -97,7 +108,8 @@ class FontsScreen extends StatelessWidget {
                     _SectionHeader(label: 'SANS-SERIF', mutedColor: mutedColor),
                     ..._sansFonts.map((key) => _FontCard(
                           fontKey: key,
-                          displayName: AppTypography.fontDisplayNames[key] ?? key,
+                          displayName:
+                              AppTypography.fontDisplayNames[key] ?? key,
                           sampleText: _sampleText,
                           isSelected: appState.preferredFont == key,
                           isDark: isDark,
@@ -232,9 +244,8 @@ class _FontCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: isSelected ? AppColors.aqua : Colors.transparent,
                 border: Border.all(
-                  color: isSelected
-                      ? AppColors.aqua
-                      : mutedColor.withOpacity(0.3),
+                  color:
+                      isSelected ? AppColors.aqua : mutedColor.withOpacity(0.3),
                   width: 1.5,
                 ),
               ),

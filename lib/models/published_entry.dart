@@ -34,8 +34,9 @@ class PublishedEntry {
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
 
-  String get authorLabel =>
-      isAnonymous ? 'Anonymous' : (displayName?.isNotEmpty == true ? displayName! : 'A Writer');
+  String get authorLabel => isAnonymous
+      ? 'Anonymous'
+      : (displayName?.isNotEmpty == true ? displayName! : 'A Writer');
 
   String preview([int length = 140]) {
     final plain = content
@@ -58,8 +59,8 @@ class PublishedEntry {
         'is_anonymous': isAnonymous,
         'display_name': isAnonymous ? null : displayName,
         'header_image': headerImage,
-      'category': category,
-      'clap_count': clapCount,
+        'category': category,
+        'clap_count': clapCount,
         'comment_count': commentCount,
         'created_at': createdAt.toIso8601String(),
       };

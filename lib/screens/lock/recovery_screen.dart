@@ -20,11 +20,17 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
   bool _busy = false;
 
   @override
-  void dispose() { _ctrl.dispose(); super.dispose(); }
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _verify() async {
     if (_ctrl.text.trim().isEmpty || _busy) return;
-    setState(() { _busy = true; _error = null; });
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
     final ok = await LockService.instance.verifyRecovery(_ctrl.text.trim());
     if (!mounted) return;
     if (ok) {
@@ -36,7 +42,10 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
         ),
       );
     } else {
-      setState(() { _error = 'Incorrect recovery code.'; _busy = false; });
+      setState(() {
+        _error = 'Incorrect recovery code.';
+        _busy = false;
+      });
     }
   }
 
@@ -60,14 +69,17 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
               const Spacer(),
               Text('Forgot PIN',
                   style: GoogleFonts.crimsonPro(
-                    fontSize: 34, fontWeight: FontWeight.w700,
+                    fontSize: 34,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.textDark,
                   )),
               const SizedBox(height: 10),
               Text(
                 'Enter the 6-digit recovery code you saved when you set up your PIN.',
                 style: GoogleFonts.inter(
-                  fontSize: 14, color: AppColors.mutedDark, height: 1.5,
+                  fontSize: 14,
+                  color: AppColors.mutedDark,
+                  height: 1.5,
                 ),
               ),
               const SizedBox(height: 32),
@@ -81,13 +93,17 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                   textAlign: TextAlign.center,
                   textCapitalization: TextCapitalization.characters,
                   style: GoogleFonts.jetBrainsMono(
-                    fontSize: 24, color: AppColors.textDark, letterSpacing: 5,
+                    fontSize: 24,
+                    color: AppColors.textDark,
+                    letterSpacing: 5,
                   ),
                   decoration: InputDecoration(
                     border: InputBorder.none,
                     hintText: 'XXX-XXX',
                     hintStyle: GoogleFonts.jetBrainsMono(
-                      fontSize: 24, color: AppColors.mutedDark, letterSpacing: 5,
+                      fontSize: 24,
+                      color: AppColors.mutedDark,
+                      letterSpacing: 5,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
                         horizontal: 16, vertical: 18),
@@ -97,9 +113,11 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
               ),
               if (_error != null) ...[
                 const SizedBox(height: 8),
-                Text(_error!, style: GoogleFonts.inter(
-                  fontSize: 12, color: AppColors.danger.withOpacity(0.85),
-                )),
+                Text(_error!,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.danger.withOpacity(0.85),
+                    )),
               ],
               const SizedBox(height: 24),
               SizedBox(
@@ -111,15 +129,18 @@ class _RecoveryScreenState extends State<RecoveryScreen> {
                     foregroundColor: accent,
                     padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
+                        borderRadius: BorderRadius.circular(12)),
                     elevation: 0,
                   ),
                   child: _busy
-                      ? SizedBox(width: 20, height: 20,
+                      ? SizedBox(
+                          width: 20,
+                          height: 20,
                           child: CircularProgressIndicator(
                               strokeWidth: 2, color: accent))
-                      : Text('Verify Code', style: GoogleFonts.inter(
-                          fontSize: 15, fontWeight: FontWeight.w600)),
+                      : Text('Verify Code',
+                          style: GoogleFonts.inter(
+                              fontSize: 15, fontWeight: FontWeight.w600)),
                 ),
               ),
               const Spacer(flex: 2),

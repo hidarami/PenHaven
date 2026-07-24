@@ -20,7 +20,14 @@ import 'community_entry_viewer.dart';
 // ── Category constants ────────────────────────────────────────────────────────
 
 const _kCategories = [
-  'All', 'Faith', 'Identity', 'Philosophy', 'Dreams', 'Society', 'Personal', 'Reflections',
+  'All',
+  'Faith',
+  'Identity',
+  'Philosophy',
+  'Dreams',
+  'Society',
+  'Personal',
+  'Reflections',
 ];
 
 const _kCategoryIcons = <String, IconData>{
@@ -36,21 +43,31 @@ const _kCategoryIcons = <String, IconData>{
 
 Color _categoryColor(String? cat) {
   switch ((cat ?? '').toLowerCase()) {
-    case 'faith': case 'religion': return const Color(0xFF4A8A70);
-    case 'identity': return const Color(0xFF5B8DB8);
-    case 'philosophy': return const Color(0xFFD4820A);
-    case 'dreams': return const Color(0xFF6A5AB8);
-    case 'society': return const Color(0xFFD44A28);
-    case 'personal': return const Color(0xFFE87FA0);
-    case 'reflections': return const Color(0xFF9472D4);
-    default: return AppColors.aqua;
+    case 'faith':
+    case 'religion':
+      return const Color(0xFF4A8A70);
+    case 'identity':
+      return const Color(0xFF5B8DB8);
+    case 'philosophy':
+      return const Color(0xFFD4820A);
+    case 'dreams':
+      return const Color(0xFF6A5AB8);
+    case 'society':
+      return const Color(0xFFD44A28);
+    case 'personal':
+      return const Color(0xFFE87FA0);
+    case 'reflections':
+      return const Color(0xFF9472D4);
+    default:
+      return AppColors.aqua;
   }
 }
 
 List<Color> _entryGradient(PublishedEntry entry) {
   final cat = (entry.category ?? '').toLowerCase();
   switch (cat) {
-    case 'faith': case 'religion':
+    case 'faith':
+    case 'religion':
       return [const Color(0xFF0D2415), const Color(0xFF1A4028)];
     case 'identity':
       return [const Color(0xFF0D1530), const Color(0xFF1A2550)];
@@ -71,14 +88,16 @@ List<Color> _entryGradient(PublishedEntry entry) {
         [const Color(0xFF0D2018), const Color(0xFF1A3A28)],
         [const Color(0xFF201A0D), const Color(0xFF403520)],
       ];
-      final idx = (entry.title.length + entry.authorLabel.length) % gradients.length;
+      final idx =
+          (entry.title.length + entry.authorLabel.length) % gradients.length;
       return [gradients[idx][0], gradients[idx][1]];
   }
 }
 
 String _readTime(String content) {
   if (content.isEmpty) return '1 min read';
-  final words = content.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+  final words =
+      content.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
   return '${(words / 200).ceil().clamp(1, 99)} min read';
 }
 
@@ -101,9 +120,14 @@ String _relativeDate(DateTime dt) {
 
 Color _avatarColor(String n) {
   const colors = [
-    Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A),
-    Color(0xFF9472D4), Color(0xFFE87FA0), Color(0xFFD44A28),
-    Color(0xFF5A8A5C), Color(0xFF1B9B8D),
+    Color(0xFF7BA591),
+    Color(0xFF5B8DB8),
+    Color(0xFFD4820A),
+    Color(0xFF9472D4),
+    Color(0xFFE87FA0),
+    Color(0xFFD44A28),
+    Color(0xFF5A8A5C),
+    Color(0xFF1B9B8D),
   ];
   final hash = n.codeUnits.fold(0, (a, b) => a + b);
   return colors[hash % colors.length];
@@ -180,14 +204,15 @@ class _CommunityPanelState extends State<CommunityPanel>
         onPublish: (entry, isAnon, displayName, category) async {
           Navigator.pop(context);
           final ok = await context.read<CommunityState>().publishEntry(
-            entry: entry,
-            isAnonymous: isAnon,
-            displayName: displayName,
-            category: category,
-          );
+                entry: entry,
+                isAnonymous: isAnon,
+                displayName: displayName,
+                category: category,
+              );
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-              content: Text(ok ? 'Published to community.' : 'Failed to publish.'),
+              content:
+                  Text(ok ? 'Published to community.' : 'Failed to publish.'),
             ));
             if (ok) _tabController.animateTo(1);
           }
@@ -255,7 +280,8 @@ class _CommunityPanelState extends State<CommunityPanel>
     final isAuth = SupabaseService.instance.isAuthenticated;
 
     if (!SupabaseService.instance.isSupabaseConfigured) {
-      return _SetupRequired(isDark: dark, mutedColor: mutedColor, textColor: textColor);
+      return _SetupRequired(
+          isDark: dark, mutedColor: mutedColor, textColor: textColor);
     }
 
     final username = displayName ??
@@ -290,11 +316,13 @@ class _CommunityPanelState extends State<CommunityPanel>
                       const SizedBox(height: 3),
                       Text(
                         '${_greetingText()}, $username.',
-                        style: GoogleFonts.inter(fontSize: 13, color: mutedColor),
+                        style:
+                            GoogleFonts.inter(fontSize: 13, color: mutedColor),
                       ),
                       Text(
                         'What would you like to read today?',
-                        style: GoogleFonts.inter(fontSize: 12, color: mutedColor.withOpacity(0.65)),
+                        style: GoogleFonts.inter(
+                            fontSize: 12, color: mutedColor.withOpacity(0.65)),
                       ),
                     ],
                   ),
@@ -310,10 +338,13 @@ class _CommunityPanelState extends State<CommunityPanel>
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: dark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.05),
+                          color: dark
+                              ? Colors.white.withOpacity(0.07)
+                              : Colors.black.withOpacity(0.05),
                           shape: BoxShape.circle,
                         ),
-                        child: Icon(Icons.edit_outlined, size: 16, color: mutedColor),
+                        child: Icon(Icons.edit_outlined,
+                            size: 16, color: mutedColor),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -338,9 +369,15 @@ class _CommunityPanelState extends State<CommunityPanel>
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: TabBar(
               controller: _tabController,
-              tabs: const [Tab(text: 'For You'), Tab(text: 'Recent'), Tab(text: 'Mine')],
-              labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w400),
+              tabs: const [
+                Tab(text: 'For You'),
+                Tab(text: 'Recent'),
+                Tab(text: 'Mine')
+              ],
+              labelStyle:
+                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+              unselectedLabelStyle:
+                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w400),
               labelColor: AppColors.aqua,
               unselectedLabelColor: mutedColor,
               indicatorColor: AppColors.aqua,
@@ -361,7 +398,8 @@ class _CommunityPanelState extends State<CommunityPanel>
                   textColor: textColor,
                   mutedColor: mutedColor,
                   selectedCategory: _selectedCategory,
-                  onCategoryChanged: (cat) => setState(() => _selectedCategory = cat),
+                  onCategoryChanged: (cat) =>
+                      setState(() => _selectedCategory = cat),
                   onViewAll: () => _tabController.animateTo(1),
                   onPublish: _openPublishSheet,
                 ),
@@ -406,9 +444,12 @@ class _ProfileAvatar extends StatelessWidget {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
     final color = _avatarColor(name);
 
-    if (imagePath != null && imagePath!.isNotEmpty && File(imagePath!).existsSync()) {
+    if (imagePath != null &&
+        imagePath!.isNotEmpty &&
+        File(imagePath!).existsSync()) {
       return ClipOval(
-        child: Image.file(File(imagePath!), width: size, height: size, fit: BoxFit.cover),
+        child: Image.file(File(imagePath!),
+            width: size, height: size, fit: BoxFit.cover),
       );
     }
 
@@ -468,8 +509,11 @@ class _ForYouTab extends StatelessWidget {
 
     final filtered = selectedCategory == 'All'
         ? feed
-        : feed.where((e) =>
-            (e.category ?? '').toLowerCase() == selectedCategory.toLowerCase()).toList();
+        : feed
+            .where((e) =>
+                (e.category ?? '').toLowerCase() ==
+                selectedCategory.toLowerCase())
+            .toList();
 
     // Use pinned featured entry if still valid; otherwise fall back to first
     final featuredId = state.featuredEntryId;
@@ -478,14 +522,19 @@ class _ForYouTab extends StatelessWidget {
     if (featuredId != null) {
       try {
         featured = filtered.firstWhere((e) => e.id == featuredId);
-        recentItems = filtered.where((e) => e.id != featuredId).take(8).toList();
+        recentItems =
+            filtered.where((e) => e.id != featuredId).take(8).toList();
       } catch (_) {
         featured = filtered.isNotEmpty ? filtered.first : null;
-        recentItems = filtered.length > 1 ? filtered.skip(1).take(8).toList() : <PublishedEntry>[];
+        recentItems = filtered.length > 1
+            ? filtered.skip(1).take(8).toList()
+            : <PublishedEntry>[];
       }
     } else {
       featured = filtered.isNotEmpty ? filtered.first : null;
-      recentItems = filtered.length > 1 ? filtered.skip(1).take(8).toList() : <PublishedEntry>[];
+      recentItems = filtered.length > 1
+          ? filtered.skip(1).take(8).toList()
+          : <PublishedEntry>[];
     }
 
     return CustomScrollView(
@@ -507,28 +556,36 @@ class _ForYouTab extends StatelessWidget {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.auto_stories_outlined, size: 52, color: mutedColor.withOpacity(0.3)),
+                  Icon(Icons.auto_stories_outlined,
+                      size: 52, color: mutedColor.withOpacity(0.3)),
                   const SizedBox(height: 16),
                   Text(
                     'No entries yet.\nBe the first to share.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.crimsonPro(
-                      fontSize: 18, fontStyle: FontStyle.italic,
-                      color: mutedColor.withOpacity(0.6), height: 1.6,
+                      fontSize: 18,
+                      fontStyle: FontStyle.italic,
+                      color: mutedColor.withOpacity(0.6),
+                      height: 1.6,
                     ),
                   ),
                   const SizedBox(height: 24),
                   GestureDetector(
                     onTap: onPublish,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 24, vertical: 12),
                       decoration: BoxDecoration(
                         color: AppColors.aqua.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: AppColors.aqua.withOpacity(0.4)),
+                        border:
+                            Border.all(color: AppColors.aqua.withOpacity(0.4)),
                       ),
                       child: Text('Share Something',
-                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                          style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.aqua)),
                     ),
                   ),
                 ],
@@ -542,7 +599,10 @@ class _ForYouTab extends StatelessWidget {
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 20, 24, 12),
                 child: Text('Featured Reflection',
-                    style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
+                    style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: textColor)),
               ),
             ),
 
@@ -554,7 +614,8 @@ class _ForYouTab extends StatelessWidget {
                 child: _FeaturedCard(
                   entry: featured,
                   onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: featured!)),
+                    MaterialPageRoute(
+                        builder: (_) => CommunityEntryViewer(entry: featured!)),
                   ),
                 ),
               ),
@@ -569,11 +630,17 @@ class _ForYouTab extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text('Recently Shared',
-                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
+                        style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: textColor)),
                     GestureDetector(
                       onTap: onViewAll,
                       child: Text('View all',
-                          style: GoogleFonts.inter(fontSize: 13, color: AppColors.aqua, fontWeight: FontWeight.w500)),
+                          style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: AppColors.aqua,
+                              fontWeight: FontWeight.w500)),
                     ),
                   ],
                 ),
@@ -591,9 +658,11 @@ class _ForYouTab extends StatelessWidget {
                   textColor: textColor,
                   mutedColor: mutedColor,
                   onTap: () => Navigator.of(ctx).push(
-                    MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: entry)),
+                    MaterialPageRoute(
+                        builder: (_) => CommunityEntryViewer(entry: entry)),
                   ),
-                  onAppreciate: () => ctx.read<CommunityState>().toggleClap(entry.id),
+                  onAppreciate: () =>
+                      ctx.read<CommunityState>().toggleClap(entry.id),
                 );
               },
               childCount: recentItems.length,
@@ -649,10 +718,13 @@ class _CategoryChipsRow extends StatelessWidget {
               decoration: BoxDecoration(
                 color: isSelected
                     ? color.withOpacity(0.14)
-                    : (isDark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.05)),
+                    : (isDark
+                        ? Colors.white.withOpacity(0.07)
+                        : Colors.black.withOpacity(0.05)),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: isSelected ? color.withOpacity(0.5) : Colors.transparent,
+                  color:
+                      isSelected ? color.withOpacity(0.5) : Colors.transparent,
                   width: 1.5,
                 ),
               ),
@@ -665,7 +737,8 @@ class _CategoryChipsRow extends StatelessWidget {
                     cat,
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight:
+                          isSelected ? FontWeight.w600 : FontWeight.w400,
                       color: isSelected ? color : mutedColor,
                     ),
                   ),
@@ -700,7 +773,8 @@ class _FeaturedCard extends StatelessWidget {
     final authorColor = _avatarColor(author);
     final authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
 
-    final cardH = ((MediaQuery.of(context).size.width - 48) * 11 / 16).clamp(220.0, 340.0);
+    final cardH = ((MediaQuery.of(context).size.width - 48) * 11 / 16)
+        .clamp(220.0, 340.0);
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
@@ -713,8 +787,10 @@ class _FeaturedCard extends StatelessWidget {
             children: [
               // Background
               hasImage
-                  ? Image.file(File(entry.headerImage!), fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => _GradientBox(gradient: gradient))
+                  ? Image.file(File(entry.headerImage!),
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) =>
+                          _GradientBox(gradient: gradient))
                   : _GradientBox(gradient: gradient),
 
               // Gradient overlay — dark at bottom
@@ -745,7 +821,8 @@ class _FeaturedCard extends StatelessWidget {
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
                         child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 9, vertical: 4),
                           decoration: BoxDecoration(
                             color: catColor,
                             borderRadius: BorderRadius.circular(4),
@@ -753,8 +830,10 @@ class _FeaturedCard extends StatelessWidget {
                           child: Text(
                             entry.category!.toUpperCase(),
                             style: GoogleFonts.inter(
-                              fontSize: 9, fontWeight: FontWeight.w700,
-                              color: Colors.white, letterSpacing: 1.4,
+                              fontSize: 9,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              letterSpacing: 1.4,
                             ),
                           ),
                         ),
@@ -764,8 +843,10 @@ class _FeaturedCard extends StatelessWidget {
                     Text(
                       entry.title.isEmpty ? 'Untitled' : entry.title,
                       style: GoogleFonts.crimsonPro(
-                        fontSize: 24, fontWeight: FontWeight.w700,
-                        color: Colors.white, height: 1.2,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 1.2,
                       ),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -777,7 +858,9 @@ class _FeaturedCard extends StatelessWidget {
                       Text(
                         entry.preview(90),
                         style: GoogleFonts.inter(
-                          fontSize: 12, color: Colors.white.withOpacity(0.72), height: 1.45,
+                          fontSize: 12,
+                          color: Colors.white.withOpacity(0.72),
+                          height: 1.45,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -790,11 +873,16 @@ class _FeaturedCard extends StatelessWidget {
                     Row(
                       children: [
                         Container(
-                          width: 28, height: 28,
-                          decoration: BoxDecoration(color: authorColor, shape: BoxShape.circle),
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                              color: authorColor, shape: BoxShape.circle),
                           child: Center(
                             child: Text(authorInitial,
-                                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: Colors.white)),
+                                style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white)),
                           ),
                         ),
                         const SizedBox(width: 8),
@@ -803,20 +891,29 @@ class _FeaturedCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(author,
-                                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.white)),
                               Text(_readTime(entry.content),
-                                  style: GoogleFonts.inter(fontSize: 10, color: Colors.white.withOpacity(0.6))),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      color: Colors.white.withOpacity(0.6))),
                             ],
                           ),
                         ),
                         Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 9),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 22, vertical: 9),
                           decoration: BoxDecoration(
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(22),
                           ),
                           child: Text('Read',
-                              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.black87)),
+                              style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.black87)),
                         ),
                       ],
                     ),
@@ -897,8 +994,10 @@ class _CompactEntryCard extends StatelessWidget {
                     width: 86,
                     height: 86,
                     child: hasImage
-                        ? Image.file(File(entry.headerImage!), fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => _GradientBox(gradient: gradient))
+                        ? Image.file(File(entry.headerImage!),
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _GradientBox(gradient: gradient))
                         : _GradientBox(gradient: gradient),
                   ),
                 ),
@@ -910,25 +1009,31 @@ class _CompactEntryCard extends StatelessWidget {
                     children: [
                       Row(
                         children: [
-                          if (entry.category != null && entry.category!.isNotEmpty)
+                          if (entry.category != null &&
+                              entry.category!.isNotEmpty)
                             Text(
                               entry.category!.toUpperCase(),
                               style: GoogleFonts.inter(
-                                fontSize: 10, fontWeight: FontWeight.w700,
-                                color: catColor, letterSpacing: 0.8,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w700,
+                                color: catColor,
+                                letterSpacing: 0.8,
                               ),
                             ),
                           const Spacer(),
                           Text(_relativeDate(entry.createdAt),
-                              style: GoogleFonts.inter(fontSize: 10, color: mutedColor)),
+                              style: GoogleFonts.inter(
+                                  fontSize: 10, color: mutedColor)),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text(
                         entry.title.isEmpty ? 'Untitled' : entry.title,
                         style: GoogleFonts.crimsonPro(
-                          fontSize: 17, fontWeight: FontWeight.w700,
-                          color: textColor, height: 1.2,
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                          height: 1.2,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -937,7 +1042,8 @@ class _CompactEntryCard extends StatelessWidget {
                         const SizedBox(height: 3),
                         Text(
                           entry.preview(65),
-                          style: GoogleFonts.inter(fontSize: 12, color: mutedColor, height: 1.4),
+                          style: GoogleFonts.inter(
+                              fontSize: 12, color: mutedColor, height: 1.4),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -946,30 +1052,48 @@ class _CompactEntryCard extends StatelessWidget {
                       Row(
                         children: [
                           Container(
-                            width: 18, height: 18,
-                            decoration: BoxDecoration(color: authorColor, shape: BoxShape.circle),
+                            width: 18,
+                            height: 18,
+                            decoration: BoxDecoration(
+                                color: authorColor, shape: BoxShape.circle),
                             child: Center(
                               child: Text(authorInitial,
-                                  style: GoogleFonts.inter(fontSize: 8, fontWeight: FontWeight.w700, color: Colors.white)),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white)),
                             ),
                           ),
                           const SizedBox(width: 5),
                           Text(author,
-                              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: mutedColor)),
+                              style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: mutedColor)),
                           const SizedBox(width: 5),
                           Text(_readTime(entry.content),
-                              style: GoogleFonts.inter(fontSize: 11, color: mutedColor.withOpacity(0.6))),
+                              style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: mutedColor.withOpacity(0.6))),
                           const Spacer(),
                           GestureDetector(
-                            onTap: () { HapticFeedback.lightImpact(); onAppreciate(); },
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              onAppreciate();
+                            },
                             child: Icon(
-                              entry.hasClapped ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              entry.hasClapped
+                                  ? Icons.favorite_rounded
+                                  : Icons.favorite_border_rounded,
                               size: 15,
-                              color: entry.hasClapped ? const Color(0xFFE87FA0) : mutedColor.withOpacity(0.5),
+                              color: entry.hasClapped
+                                  ? const Color(0xFFE87FA0)
+                                  : mutedColor.withOpacity(0.5),
                             ),
                           ),
                           const SizedBox(width: 10),
-                          Icon(Icons.bookmark_border_rounded, size: 15, color: mutedColor.withOpacity(0.5)),
+                          Icon(Icons.bookmark_border_rounded,
+                              size: 15, color: mutedColor.withOpacity(0.5)),
                         ],
                       ),
                     ],
@@ -979,7 +1103,12 @@ class _CompactEntryCard extends StatelessWidget {
             ),
           ),
         ),
-        Divider(color: divColor, thickness: 0.5, height: 0, indent: 24, endIndent: 24),
+        Divider(
+            color: divColor,
+            thickness: 0.5,
+            height: 0,
+            indent: 24,
+            endIndent: 24),
         const SizedBox(height: 14),
       ],
     );
@@ -1016,28 +1145,35 @@ class _RecentTab extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.auto_stories_outlined, size: 52, color: mutedColor.withOpacity(0.3)),
+            Icon(Icons.auto_stories_outlined,
+                size: 52, color: mutedColor.withOpacity(0.3)),
             const SizedBox(height: 14),
             Text(
               'Nothing shared yet.\nBe the first.',
               textAlign: TextAlign.center,
               style: GoogleFonts.crimsonPro(
-                fontSize: 18, fontStyle: FontStyle.italic,
-                color: mutedColor.withOpacity(0.6), height: 1.6,
+                fontSize: 18,
+                fontStyle: FontStyle.italic,
+                color: mutedColor.withOpacity(0.6),
+                height: 1.6,
               ),
             ),
             const SizedBox(height: 20),
             GestureDetector(
               onTap: onPublish,
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                 decoration: BoxDecoration(
                   color: AppColors.aqua.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(10),
                   border: Border.all(color: AppColors.aqua.withOpacity(0.4)),
                 ),
                 child: Text('Publish Something',
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                    style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.aqua)),
               ),
             ),
           ],
@@ -1067,9 +1203,11 @@ class _RecentTab extends StatelessWidget {
             textColor: textColor,
             mutedColor: mutedColor,
             onTap: () => Navigator.of(ctx).push(
-              MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: state.feed[i])),
+              MaterialPageRoute(
+                  builder: (_) => CommunityEntryViewer(entry: state.feed[i])),
             ),
-            onAppreciate: () => context.read<CommunityState>().toggleClap(state.feed[i].id),
+            onAppreciate: () =>
+                context.read<CommunityState>().toggleClap(state.feed[i].id),
           );
         },
       ),
@@ -1130,8 +1268,10 @@ class _FeedEntryCard extends StatelessWidget {
                         width: 98,
                         height: 108,
                         child: hasImage
-                            ? Image.file(File(entry.headerImage!), fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => _GradientBox(gradient: gradient))
+                            ? Image.file(File(entry.headerImage!),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) =>
+                                    _GradientBox(gradient: gradient))
                             : _GradientBox(gradient: gradient),
                       ),
                     ),
@@ -1142,28 +1282,34 @@ class _FeedEntryCard extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              if (entry.category != null && entry.category!.isNotEmpty)
+                              if (entry.category != null &&
+                                  entry.category!.isNotEmpty)
                                 Flexible(
                                   child: Text(
                                     entry.category!.toUpperCase(),
                                     style: GoogleFonts.inter(
-                                      fontSize: 10, fontWeight: FontWeight.w700,
-                                      color: catColor, letterSpacing: 0.8,
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: catColor,
+                                      letterSpacing: 0.8,
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
                               const Spacer(),
                               Text(_relativeDate(entry.createdAt),
-                                  style: GoogleFonts.inter(fontSize: 10, color: mutedColor)),
+                                  style: GoogleFonts.inter(
+                                      fontSize: 10, color: mutedColor)),
                             ],
                           ),
                           const SizedBox(height: 5),
                           Text(
                             entry.title.isEmpty ? 'Untitled' : entry.title,
                             style: GoogleFonts.crimsonPro(
-                              fontSize: 18, fontWeight: FontWeight.w700,
-                              color: textColor, height: 1.2,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: textColor,
+                              height: 1.2,
                             ),
                             maxLines: 3,
                             overflow: TextOverflow.ellipsis,
@@ -1171,7 +1317,8 @@ class _FeedEntryCard extends StatelessWidget {
                           const SizedBox(height: 4),
                           Text(
                             entry.preview(80),
-                            style: GoogleFonts.inter(fontSize: 12, color: mutedColor, height: 1.45),
+                            style: GoogleFonts.inter(
+                                fontSize: 12, color: mutedColor, height: 1.45),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1184,36 +1331,54 @@ class _FeedEntryCard extends StatelessWidget {
                 Row(
                   children: [
                     Container(
-                      width: 22, height: 22,
-                      decoration: BoxDecoration(color: authorColor, shape: BoxShape.circle),
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                          color: authorColor, shape: BoxShape.circle),
                       child: Center(
                         child: Text(authorInitial,
-                            style: GoogleFonts.inter(fontSize: 9, fontWeight: FontWeight.w700, color: Colors.white)),
+                            style: GoogleFonts.inter(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white)),
                       ),
                     ),
                     const SizedBox(width: 7),
                     Text(author,
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: textColor)),
+                        style: GoogleFonts.inter(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: textColor)),
                     const SizedBox(width: 6),
                     Text(_readTime(entry.content),
-                        style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                        style:
+                            GoogleFonts.inter(fontSize: 11, color: mutedColor)),
                     const Spacer(),
                     GestureDetector(
-                      onTap: () { HapticFeedback.lightImpact(); onAppreciate(); },
+                      onTap: () {
+                        HapticFeedback.lightImpact();
+                        onAppreciate();
+                      },
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Icon(
-                            entry.hasClapped ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            entry.hasClapped
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
                             size: 16,
-                            color: entry.hasClapped ? const Color(0xFFE87FA0) : mutedColor,
+                            color: entry.hasClapped
+                                ? const Color(0xFFE87FA0)
+                                : mutedColor,
                           ),
                           const SizedBox(width: 3),
                           Text(
                             'Appreciate',
                             style: GoogleFonts.inter(
                               fontSize: 11,
-                              color: entry.hasClapped ? const Color(0xFFE87FA0) : mutedColor,
+                              color: entry.hasClapped
+                                  ? const Color(0xFFE87FA0)
+                                  : mutedColor,
                             ),
                           ),
                         ],
@@ -1223,20 +1388,28 @@ class _FeedEntryCard extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.chat_bubble_outline_rounded, size: 14, color: mutedColor),
+                        Icon(Icons.chat_bubble_outline_rounded,
+                            size: 14, color: mutedColor),
                         const SizedBox(width: 3),
                         Text('${entry.commentCount}',
-                            style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                            style: GoogleFonts.inter(
+                                fontSize: 11, color: mutedColor)),
                       ],
                     ),
                     const SizedBox(width: 12),
-                    Icon(Icons.bookmark_border_rounded, size: 16, color: mutedColor.withOpacity(0.55)),
+                    Icon(Icons.bookmark_border_rounded,
+                        size: 16, color: mutedColor.withOpacity(0.55)),
                   ],
                 ),
               ],
             ),
           ),
-          Divider(color: divColor, thickness: 0.5, height: 0, indent: 24, endIndent: 24),
+          Divider(
+              color: divColor,
+              thickness: 0.5,
+              height: 0,
+              indent: 24,
+              endIndent: 24),
         ],
       ),
     );
@@ -1269,25 +1442,33 @@ class _MyPostsTab extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.lock_outline_rounded, size: 48, color: mutedColor.withOpacity(0.3)),
+              Icon(Icons.lock_outline_rounded,
+                  size: 48, color: mutedColor.withOpacity(0.3)),
               const SizedBox(height: 16),
               Text(
                 'Sign in to view\nyour published entries.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.crimsonPro(fontSize: 18, fontStyle: FontStyle.italic, color: mutedColor),
+                style: GoogleFonts.crimsonPro(
+                    fontSize: 18,
+                    fontStyle: FontStyle.italic,
+                    color: mutedColor),
               ),
               const SizedBox(height: 24),
               GestureDetector(
                 onTap: onAuthRequired,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   decoration: BoxDecoration(
                     color: AppColors.aqua.withOpacity(0.12),
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(color: AppColors.aqua.withOpacity(0.4)),
                   ),
                   child: Text('Sign In',
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                      style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.aqua)),
                 ),
               ),
             ],
@@ -1303,7 +1484,8 @@ class _MyPostsTab extends StatelessWidget {
     if (state.myPosts.isEmpty) {
       return Center(
         child: Text("You haven't published anything yet.",
-            style: GoogleFonts.crimsonPro(fontSize: 16, fontStyle: FontStyle.italic, color: mutedColor)),
+            style: GoogleFonts.crimsonPro(
+                fontSize: 16, fontStyle: FontStyle.italic, color: mutedColor)),
       );
     }
 
@@ -1321,7 +1503,8 @@ class _MyPostsTab extends StatelessWidget {
             textColor: textColor,
             mutedColor: mutedColor,
             onTap: () => Navigator.of(ctx).push(
-              MaterialPageRoute(builder: (_) => CommunityEntryViewer(entry: entry)),
+              MaterialPageRoute(
+                  builder: (_) => CommunityEntryViewer(entry: entry)),
             ),
             onAppreciate: () {},
           );
@@ -1337,7 +1520,9 @@ class _MyPostsTab extends StatelessWidget {
 
 class _PublishSheet extends StatefulWidget {
   final List<Entry> entries;
-  final void Function(Entry entry, bool isAnon, String? displayName, String? category) onPublish;
+  final void Function(
+          Entry entry, bool isAnon, String? displayName, String? category)
+      onPublish;
 
   const _PublishSheet({required this.entries, required this.onPublish});
 
@@ -1371,7 +1556,10 @@ class _PublishSheetState extends State<_PublishSheet> {
   }
 
   @override
-  void dispose() { _nameCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1395,28 +1583,42 @@ class _PublishSheetState extends State<_PublishSheet> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const SizedBox(height: 12),
-            Center(child: Container(width: 36, height: 4,
-                decoration: BoxDecoration(color: mutedColor.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+            Center(
+                child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: mutedColor.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 16),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Text('Share to Sanctuary',
-                  style: GoogleFonts.crimsonPro(fontSize: 24, fontWeight: FontWeight.w700, color: textColor)),
+                  style: GoogleFonts.crimsonPro(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: textColor)),
             ),
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 4, 24, 14),
-              child: Text('Choose an entry and a category to give readers context.',
+              child: Text(
+                  'Choose an entry and a category to give readers context.',
                   style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
             ),
             Divider(color: divColor, thickness: 0.5, height: 0),
 
             Expanded(
               child: widget.entries.isEmpty
-                  ? Center(child: Text('No entries in current story.',
-                      style: GoogleFonts.crimsonPro(fontSize: 16, fontStyle: FontStyle.italic, color: mutedColor)))
+                  ? Center(
+                      child: Text('No entries in current story.',
+                          style: GoogleFonts.crimsonPro(
+                              fontSize: 16,
+                              fontStyle: FontStyle.italic,
+                              color: mutedColor)))
                   : ListView.builder(
                       controller: sc,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
                       itemCount: widget.entries.length,
                       itemBuilder: (_, i) {
                         final e = widget.entries[i];
@@ -1430,28 +1632,45 @@ class _PublishSheetState extends State<_PublishSheet> {
                             decoration: BoxDecoration(
                               color: sel
                                   ? AppColors.aqua.withOpacity(0.1)
-                                  : (dark ? Colors.white.withOpacity(0.04) : Colors.black.withOpacity(0.03)),
+                                  : (dark
+                                      ? Colors.white.withOpacity(0.04)
+                                      : Colors.black.withOpacity(0.03)),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: sel ? AppColors.aqua : Colors.transparent),
+                              border: Border.all(
+                                  color: sel
+                                      ? AppColors.aqua
+                                      : Colors.transparent),
                             ),
                             child: Row(
                               children: [
                                 Expanded(
                                   child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
                                     children: [
-                                      Text(e.title.isEmpty ? 'Untitled' : e.title,
-                                          style: GoogleFonts.crimsonPro(fontSize: 16, fontWeight: FontWeight.w700,
-                                              color: sel ? AppColors.aqua : textColor),
-                                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                                      Text(
+                                          e.title.isEmpty
+                                              ? 'Untitled'
+                                              : e.title,
+                                          style: GoogleFonts.crimsonPro(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w700,
+                                              color: sel
+                                                  ? AppColors.aqua
+                                                  : textColor),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
                                       Text(e.preview(70),
-                                          style: GoogleFonts.inter(fontSize: 12, color: mutedColor),
-                                          maxLines: 1, overflow: TextOverflow.ellipsis),
+                                          style: GoogleFonts.inter(
+                                              fontSize: 12, color: mutedColor),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis),
                                     ],
                                   ),
                                 ),
                                 if (sel)
-                                  const Icon(Icons.check_circle_rounded, color: AppColors.aqua, size: 20),
+                                  const Icon(Icons.check_circle_rounded,
+                                      color: AppColors.aqua, size: 20),
                               ],
                             ),
                           ),
@@ -1462,7 +1681,8 @@ class _PublishSheetState extends State<_PublishSheet> {
 
             // Category + options + button
             Padding(
-              padding: EdgeInsets.fromLTRB(24, 12, 24, 16 + MediaQuery.of(context).padding.bottom),
+              padding: EdgeInsets.fromLTRB(
+                  24, 12, 24, 16 + MediaQuery.of(context).padding.bottom),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1470,8 +1690,12 @@ class _PublishSheetState extends State<_PublishSheet> {
                   const SizedBox(height: 12),
 
                   // Category picker
-                  Text('CATEGORY', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600,
-                      color: mutedColor, letterSpacing: 1.5)),
+                  Text('CATEGORY',
+                      style: GoogleFonts.inter(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                          color: mutedColor,
+                          letterSpacing: 1.5)),
                   const SizedBox(height: 8),
                   SizedBox(
                     height: 36,
@@ -1484,18 +1708,31 @@ class _PublishSheetState extends State<_PublishSheet> {
                         final isSel = _selectedCategory == cat;
                         final color = _categoryColor(cat);
                         return GestureDetector(
-                          onTap: () => setState(() => _selectedCategory = isSel ? null : cat),
+                          onTap: () => setState(
+                              () => _selectedCategory = isSel ? null : cat),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 150),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 6),
                             decoration: BoxDecoration(
-                              color: isSel ? color.withOpacity(0.15) : (dark ? Colors.white.withOpacity(0.07) : Colors.black.withOpacity(0.05)),
+                              color: isSel
+                                  ? color.withOpacity(0.15)
+                                  : (dark
+                                      ? Colors.white.withOpacity(0.07)
+                                      : Colors.black.withOpacity(0.05)),
                               borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: isSel ? color.withOpacity(0.5) : Colors.transparent, width: 1.5),
+                              border: Border.all(
+                                  color: isSel
+                                      ? color.withOpacity(0.5)
+                                      : Colors.transparent,
+                                  width: 1.5),
                             ),
                             child: Text(cat,
-                                style: GoogleFonts.inter(fontSize: 12,
-                                    fontWeight: isSel ? FontWeight.w600 : FontWeight.w400,
+                                style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: isSel
+                                        ? FontWeight.w600
+                                        : FontWeight.w400,
                                     color: isSel ? color : mutedColor)),
                           ),
                         );
@@ -1508,18 +1745,24 @@ class _PublishSheetState extends State<_PublishSheet> {
                   if (!_isAnon) ...[
                     Container(
                       decoration: BoxDecoration(
-                        color: dark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+                        color: dark
+                            ? Colors.white.withOpacity(0.06)
+                            : Colors.black.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(10),
                       ),
                       child: TextField(
                         controller: _nameCtrl,
-                        style: GoogleFonts.inter(fontSize: 14, color: textColor),
+                        style:
+                            GoogleFonts.inter(fontSize: 14, color: textColor),
                         decoration: InputDecoration(
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                          contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 10),
                           hintText: 'Your display name...',
-                          hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor),
-                          prefixIcon: Icon(Icons.person_outline_rounded, size: 16, color: mutedColor),
+                          hintStyle: GoogleFonts.inter(
+                              fontSize: 14, color: mutedColor),
+                          prefixIcon: Icon(Icons.person_outline_rounded,
+                              size: 16, color: mutedColor),
                         ),
                       ),
                     ),
@@ -1533,17 +1776,25 @@ class _PublishSheetState extends State<_PublishSheet> {
                       children: [
                         AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
-                          width: 20, height: 20,
+                          width: 20,
+                          height: 20,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(5),
-                            color: _isAnon ? AppColors.aqua : Colors.transparent,
-                            border: Border.all(color: _isAnon ? AppColors.aqua : mutedColor, width: 1.5),
+                            color:
+                                _isAnon ? AppColors.aqua : Colors.transparent,
+                            border: Border.all(
+                                color: _isAnon ? AppColors.aqua : mutedColor,
+                                width: 1.5),
                           ),
-                          child: _isAnon ? const Icon(Icons.check, size: 13, color: Colors.white) : null,
+                          child: _isAnon
+                              ? const Icon(Icons.check,
+                                  size: 13, color: Colors.white)
+                              : null,
                         ),
                         const SizedBox(width: 10),
                         Text('Publish anonymously',
-                            style: GoogleFonts.inter(fontSize: 14, color: textColor)),
+                            style: GoogleFonts.inter(
+                                fontSize: 14, color: textColor)),
                       ],
                     ),
                   ),
@@ -1553,19 +1804,23 @@ class _PublishSheetState extends State<_PublishSheet> {
                   SizedBox(
                     width: double.infinity,
                     child: GestureDetector(
-                      onTap: (_selected == null || _loading) ? null : () async {
-                        setState(() => _loading = true);
-                        final name = _nameCtrl.text.trim();
-                        if (!_isAnon && name.isNotEmpty) {
-                          await context.read<CommunityState>().saveProfile(name: name);
-                        }
-                        widget.onPublish(
-                          _selected!,
-                          _isAnon,
-                          _isAnon ? null : (name.isEmpty ? null : name),
-                          _selectedCategory,
-                        );
-                      },
+                      onTap: (_selected == null || _loading)
+                          ? null
+                          : () async {
+                              setState(() => _loading = true);
+                              final name = _nameCtrl.text.trim();
+                              if (!_isAnon && name.isNotEmpty) {
+                                await context
+                                    .read<CommunityState>()
+                                    .saveProfile(name: name);
+                              }
+                              widget.onPublish(
+                                _selected!,
+                                _isAnon,
+                                _isAnon ? null : (name.isEmpty ? null : name),
+                                _selectedCategory,
+                              );
+                            },
                       child: AnimatedContainer(
                         duration: const Duration(milliseconds: 150),
                         padding: const EdgeInsets.symmetric(vertical: 14),
@@ -1575,18 +1830,28 @@ class _PublishSheetState extends State<_PublishSheet> {
                               : Colors.grey.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: _selected != null ? AppColors.aqua.withOpacity(0.5) : Colors.grey.withOpacity(0.2),
+                            color: _selected != null
+                                ? AppColors.aqua.withOpacity(0.5)
+                                : Colors.grey.withOpacity(0.2),
                           ),
                         ),
                         child: Center(
                           child: _loading
-                              ? const SizedBox(width: 18, height: 18,
-                                  child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.aqua))
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 1.5, color: AppColors.aqua))
                               : Text(
-                                  _selected == null ? 'Select an entry first' : 'Publish to Sanctuary',
+                                  _selected == null
+                                      ? 'Select an entry first'
+                                      : 'Publish to Sanctuary',
                                   style: GoogleFonts.inter(
-                                    fontSize: 14, fontWeight: FontWeight.w600,
-                                    color: _selected != null ? AppColors.aqua : mutedColor,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: _selected != null
+                                        ? AppColors.aqua
+                                        : mutedColor,
                                   ),
                                 ),
                         ),
@@ -1644,13 +1909,19 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   }
 
   @override
-  void dispose() { _nameCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _nameCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _pickProfileImage() async {
     final ok = await PermissionService.instance.ensurePhotos(context);
     if (!ok || !mounted) return;
     final path = await ImageService.instance.pickAndSave(
-      context: context, allowCrop: true, cropAspectRatioX: 1, cropAspectRatioY: 1,
+      context: context,
+      allowCrop: true,
+      cropAspectRatioX: 1,
+      cropAspectRatioY: 1,
     );
     if (path != null && mounted) {
       await context.read<CommunityState>().saveProfile(imagePath: path);
@@ -1663,7 +1934,11 @@ class _ProfileSheetState extends State<_ProfileSheet> {
     if (name.isEmpty) return;
     setState(() => _saving = true);
     await context.read<CommunityState>().saveProfile(name: name);
-    if (mounted) setState(() { _saving = false; _saved = true; });
+    if (mounted)
+      setState(() {
+        _saving = false;
+        _saved = true;
+      });
     await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) setState(() => _saved = false);
   }
@@ -1671,18 +1946,28 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   @override
   Widget build(BuildContext context) {
     final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
-    final divColor = widget.isDark ? AppColors.dividerDark : AppColors.dividerLight;
-    final cardBg = widget.isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+    final mutedColor =
+        widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final divColor =
+        widget.isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final cardBg = widget.isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.black.withOpacity(0.03);
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const SizedBox(height: 12),
-          Center(child: Container(width: 36, height: 4,
-              decoration: BoxDecoration(color: mutedColor.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+          Center(
+              child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                      color: mutedColor.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 20),
 
           // Profile image
@@ -1692,22 +1977,32 @@ class _ProfileSheetState extends State<_ProfileSheet> {
               child: Stack(
                 children: [
                   Container(
-                    width: 80, height: 80,
+                    width: 80,
+                    height: 80,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: cardBg,
-                      border: Border.all(color: AppColors.aqua.withOpacity(0.4), width: 2),
+                      border: Border.all(
+                          color: AppColors.aqua.withOpacity(0.4), width: 2),
                     ),
                     child: _imagePath != null && File(_imagePath!).existsSync()
-                        ? ClipOval(child: Image.file(File(_imagePath!), width: 80, height: 80, fit: BoxFit.cover))
-                        : Center(child: Icon(Icons.person_rounded, size: 38, color: mutedColor)),
+                        ? ClipOval(
+                            child: Image.file(File(_imagePath!),
+                                width: 80, height: 80, fit: BoxFit.cover))
+                        : Center(
+                            child: Icon(Icons.person_rounded,
+                                size: 38, color: mutedColor)),
                   ),
                   Positioned(
-                    bottom: 0, right: 0,
+                    bottom: 0,
+                    right: 0,
                     child: Container(
-                      width: 24, height: 24,
-                      decoration: const BoxDecoration(color: AppColors.aqua, shape: BoxShape.circle),
-                      child: const Icon(Icons.camera_alt_rounded, size: 13, color: Colors.white),
+                      width: 24,
+                      height: 24,
+                      decoration: const BoxDecoration(
+                          color: AppColors.aqua, shape: BoxShape.circle),
+                      child: const Icon(Icons.camera_alt_rounded,
+                          size: 13, color: Colors.white),
                     ),
                   ),
                 ],
@@ -1715,7 +2010,8 @@ class _ProfileSheetState extends State<_ProfileSheet> {
             ),
           ),
           const SizedBox(height: 6),
-          Text('Tap to change photo', style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+          Text('Tap to change photo',
+              style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
           const SizedBox(height: 20),
 
           // Email
@@ -1723,21 +2019,29 @@ class _ProfileSheetState extends State<_ProfileSheet> {
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12)),
+              decoration: BoxDecoration(
+                  color: cardBg, borderRadius: BorderRadius.circular(12)),
               child: Row(
                 children: [
                   Icon(Icons.email_outlined, size: 16, color: mutedColor),
                   const SizedBox(width: 10),
-                  Expanded(child: Text(widget.email.isEmpty ? 'Signed in' : widget.email,
-                      style: GoogleFonts.inter(fontSize: 13, color: textColor))),
+                  Expanded(
+                      child: Text(
+                          widget.email.isEmpty ? 'Signed in' : widget.email,
+                          style: GoogleFonts.inter(
+                              fontSize: 13, color: textColor))),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: AppColors.aqua.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text('Verified',
-                        style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                        style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.aqua)),
                   ),
                 ],
               ),
@@ -1763,9 +2067,11 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                       style: GoogleFonts.inter(fontSize: 15, color: textColor),
                       decoration: InputDecoration(
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 14),
                         hintText: 'Display name',
-                        hintStyle: GoogleFonts.inter(fontSize: 15, color: mutedColor),
+                        hintStyle:
+                            GoogleFonts.inter(fontSize: 15, color: mutedColor),
                       ),
                     ),
                   ),
@@ -1774,18 +2080,30 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
                       margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
                       decoration: BoxDecoration(
-                        color: _saved ? Colors.green.withOpacity(0.15) : AppColors.aqua.withOpacity(0.12),
+                        color: _saved
+                            ? Colors.green.withOpacity(0.15)
+                            : AppColors.aqua.withOpacity(0.12),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _saved ? Colors.green.withOpacity(0.4) : AppColors.aqua.withOpacity(0.4)),
+                        border: Border.all(
+                            color: _saved
+                                ? Colors.green.withOpacity(0.4)
+                                : AppColors.aqua.withOpacity(0.4)),
                       ),
                       child: _saving
-                          ? const SizedBox(width: 14, height: 14,
-                              child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.aqua))
+                          ? const SizedBox(
+                              width: 14,
+                              height: 14,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 1.5, color: AppColors.aqua))
                           : Text(_saved ? 'Saved ✓' : 'Save',
-                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600,
-                                  color: _saved ? Colors.green : AppColors.aqua)),
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      _saved ? Colors.green : AppColors.aqua)),
                     ),
                   ),
                 ],
@@ -1808,16 +2126,25 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                   onTap: widget.onSignOut,
                   child: Row(
                     children: [
-                      const Icon(Icons.logout_rounded, size: 18, color: AppColors.danger),
+                      const Icon(Icons.logout_rounded,
+                          size: 18, color: AppColors.danger),
                       const SizedBox(width: 10),
-                      Text('Sign Out', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.danger)),
+                      Text('Sign Out',
+                          style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.danger)),
                     ],
                   ),
                 ),
                 const Spacer(),
                 GestureDetector(
                   onTap: widget.onProfileUpdated,
-                  child: Text('Done', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                  child: Text('Done',
+                      style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.aqua)),
                 ),
               ],
             ),
@@ -1842,7 +2169,8 @@ class _AuthSheet extends StatefulWidget {
   State<_AuthSheet> createState() => _AuthSheetState();
 }
 
-class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMixin {
+class _AuthSheetState extends State<_AuthSheet>
+    with SingleTickerProviderStateMixin {
   late TabController _tab;
   final _emailCtrl = TextEditingController();
   final _passCtrl = TextEditingController();
@@ -1850,28 +2178,57 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
   String? _error;
 
   @override
-  void initState() { super.initState(); _tab = TabController(length: 2, vsync: this); }
+  void initState() {
+    super.initState();
+    _tab = TabController(length: 2, vsync: this);
+  }
 
   @override
-  void dispose() { _tab.dispose(); _emailCtrl.dispose(); _passCtrl.dispose(); super.dispose(); }
+  void dispose() {
+    _tab.dispose();
+    _emailCtrl.dispose();
+    _passCtrl.dispose();
+    super.dispose();
+  }
 
   Future<void> _submit() async {
     final email = _emailCtrl.text.trim();
     final pass = _passCtrl.text.trim();
     if (email.isEmpty || pass.isEmpty) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     String? err;
     if (_tab.index == 0) {
       err = await SupabaseService.instance.signInWithEmail(email, pass);
       if (!mounted) return;
-      if (err != null) { setState(() { _error = err; _loading = false; }); }
-      else { setState(() => _loading = false); widget.onSuccess(); }
+      if (err != null) {
+        setState(() {
+          _error = err;
+          _loading = false;
+        });
+      } else {
+        setState(() => _loading = false);
+        widget.onSuccess();
+      }
     } else {
       err = await SupabaseService.instance.signUpWithEmail(email, pass);
       if (!mounted) return;
-      if (err != null) { setState(() { _error = err; _loading = false; }); }
-      else if (SupabaseService.instance.isAuthenticated) { setState(() => _loading = false); widget.onSuccess(); }
-      else { setState(() { _error = 'Check your email ($email) to confirm your account.'; _loading = false; }); }
+      if (err != null) {
+        setState(() {
+          _error = err;
+          _loading = false;
+        });
+      } else if (SupabaseService.instance.isAuthenticated) {
+        setState(() => _loading = false);
+        widget.onSuccess();
+      } else {
+        setState(() {
+          _error = 'Check your email ($email) to confirm your account.';
+          _loading = false;
+        });
+      }
     }
   }
 
@@ -1883,7 +2240,8 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
 
     return Padding(
-      padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
       child: Container(
         decoration: BoxDecoration(
           color: bg,
@@ -1894,11 +2252,19 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Center(child: Container(width: 36, height: 4,
-                decoration: BoxDecoration(color: mutedColor.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+            Center(
+                child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: mutedColor.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 20),
             Text('Join the Sanctuary',
-                style: GoogleFonts.crimsonPro(fontSize: 26, fontWeight: FontWeight.w700, color: textColor)),
+                style: GoogleFonts.crimsonPro(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w700,
+                    color: textColor)),
             Text('Sign in to publish, appreciate, and reflect.',
                 style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
             const SizedBox(height: 20),
@@ -1909,16 +2275,30 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
               unselectedLabelColor: mutedColor,
               indicatorColor: AppColors.aqua,
               dividerColor: Colors.transparent,
-              labelStyle: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
+              labelStyle:
+                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
               unselectedLabelStyle: GoogleFonts.inter(fontSize: 13),
             ),
             const SizedBox(height: 16),
-            _InputField(controller: _emailCtrl, hint: 'Email', isDark: dark, textColor: textColor, mutedColor: mutedColor),
+            _InputField(
+                controller: _emailCtrl,
+                hint: 'Email',
+                isDark: dark,
+                textColor: textColor,
+                mutedColor: mutedColor),
             const SizedBox(height: 10),
-            _InputField(controller: _passCtrl, hint: 'Password', isDark: dark, textColor: textColor, mutedColor: mutedColor, obscure: true),
+            _InputField(
+                controller: _passCtrl,
+                hint: 'Password',
+                isDark: dark,
+                textColor: textColor,
+                mutedColor: mutedColor,
+                obscure: true),
             if (_error != null) ...[
               const SizedBox(height: 8),
-              Text(_error!, style: GoogleFonts.inter(fontSize: 12, color: AppColors.danger)),
+              Text(_error!,
+                  style:
+                      GoogleFonts.inter(fontSize: 12, color: AppColors.danger)),
             ],
             const SizedBox(height: 16),
             SizedBox(
@@ -1934,10 +2314,16 @@ class _AuthSheetState extends State<_AuthSheet> with SingleTickerProviderStateMi
                   ),
                   child: Center(
                     child: _loading
-                        ? const SizedBox(width: 18, height: 18,
-                            child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.aqua))
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 1.5, color: AppColors.aqua))
                         : Text('Continue',
-                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                            style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.aqua)),
                   ),
                 ),
               ),
@@ -1958,15 +2344,21 @@ class _InputField extends StatelessWidget {
   final bool obscure;
 
   const _InputField({
-    required this.controller, required this.hint, required this.isDark,
-    required this.textColor, required this.mutedColor, this.obscure = false,
+    required this.controller,
+    required this.hint,
+    required this.isDark,
+    required this.textColor,
+    required this.mutedColor,
+    this.obscure = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? Colors.white.withOpacity(0.06) : Colors.black.withOpacity(0.04),
+        color: isDark
+            ? Colors.white.withOpacity(0.06)
+            : Colors.black.withOpacity(0.04),
         borderRadius: BorderRadius.circular(10),
       ),
       child: TextField(
@@ -1975,7 +2367,8 @@ class _InputField extends StatelessWidget {
         style: GoogleFonts.inter(fontSize: 14, color: textColor),
         decoration: InputDecoration(
           border: InputBorder.none,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           hintText: hint,
           hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor),
         ),
@@ -1993,7 +2386,10 @@ class _SetupRequired extends StatelessWidget {
   final Color textColor;
   final Color mutedColor;
 
-  const _SetupRequired({required this.isDark, required this.textColor, required this.mutedColor});
+  const _SetupRequired(
+      {required this.isDark,
+      required this.textColor,
+      required this.mutedColor});
 
   @override
   Widget build(BuildContext context) {
@@ -2004,15 +2400,25 @@ class _SetupRequired extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Sanctuary', style: GoogleFonts.crimsonPro(fontSize: 30, fontWeight: FontWeight.w700, color: textColor)),
+            Text('Sanctuary',
+                style: GoogleFonts.crimsonPro(
+                    fontSize: 30,
+                    fontWeight: FontWeight.w700,
+                    color: textColor)),
             const SizedBox(height: 32),
-            Icon(Icons.cloud_off_rounded, size: 48, color: mutedColor.withOpacity(0.3)),
+            Icon(Icons.cloud_off_rounded,
+                size: 48, color: mutedColor.withOpacity(0.3)),
             const SizedBox(height: 16),
             Text('Supabase not configured.',
-                style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w600, color: textColor)),
+                style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: textColor)),
             const SizedBox(height: 8),
-            Text('Set your Supabase URL and anon key in\nlib/services/supabase_service.dart\nto enable community features.',
-                style: GoogleFonts.inter(fontSize: 13, color: mutedColor, height: 1.6)),
+            Text(
+                'Set your Supabase URL and anon key in\nlib/services/supabase_service.dart\nto enable community features.',
+                style: GoogleFonts.inter(
+                    fontSize: 13, color: mutedColor, height: 1.6)),
           ],
         ),
       ),

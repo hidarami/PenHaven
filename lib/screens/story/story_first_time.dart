@@ -63,9 +63,9 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
     setState(() => _creating = true);
     try {
       await context.read<AppState>().createStory(
-        title: title,
-        description: _descController.text.trim(),
-      );
+            title: title,
+            description: _descController.text.trim(),
+          );
     } catch (e) {
       if (!mounted) return;
       setState(() => _creating = false);
@@ -103,7 +103,8 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
                           focusNode: _focusNode,
                           style: AppTypography.storyTitle(textColor),
                           textInputAction: TextInputAction.next,
-                          onSubmitted: (_) => FocusScope.of(context).nextFocus(),
+                          onSubmitted: (_) =>
+                              FocusScope.of(context).nextFocus(),
                           decoration: InputDecoration(
                             border: InputBorder.none,
                             contentPadding: EdgeInsets.zero,

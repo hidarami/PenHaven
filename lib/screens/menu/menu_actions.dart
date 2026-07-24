@@ -128,7 +128,8 @@ class MenuActions extends StatelessWidget {
         // Use Consumer so the sheet rebuilds when entries are restored/deleted
         return Consumer<AppState>(
           builder: (context, appState, _) {
-            final deleted = appState.allEntries.where((e) => e.isDeleted).toList();
+            final deleted =
+                appState.allEntries.where((e) => e.isDeleted).toList();
             return SafeArea(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

@@ -48,8 +48,7 @@ class _VersionHistoryScreenState extends State<VersionHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final bg = widget.isDark ? AppColors.warmDark : AppColors.warmWhite;
-    final textColor =
-        widget.isDark ? AppColors.textDark : AppColors.textLight;
+    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
     final mutedColor =
         widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
 
@@ -112,17 +111,15 @@ class _VersionHistoryScreenState extends State<VersionHistoryScreen> {
         content: TextField(
           controller: ctrl,
           autofocus: true,
-          decoration:
-              const InputDecoration(hintText: 'e.g. Before major edit'),
+          decoration: const InputDecoration(hintText: 'e.g. Before major edit'),
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              await VersionDao.instance.updateLabel(
-                  version.id, ctrl.text.trim());
+              await VersionDao.instance
+                  .updateLabel(version.id, ctrl.text.trim());
               Navigator.pop(ctx);
               _load();
             },
@@ -192,8 +189,7 @@ class _VersionTile extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   version.relativeTime,
-                  style: GoogleFonts.inter(
-                      fontSize: 11, color: mutedColor),
+                  style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
                 ),
               ],
             ),
@@ -204,8 +200,8 @@ class _VersionTile extends StatelessWidget {
               GestureDetector(
                 onTap: onRestore,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
                     color: AppColors.aqua.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
@@ -224,8 +220,7 @@ class _VersionTile extends StatelessWidget {
                 onTap: onLabel,
                 child: Text(
                   'Label',
-                  style: GoogleFonts.inter(
-                      fontSize: 11, color: mutedColor),
+                  style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
                 ),
               ),
             ],

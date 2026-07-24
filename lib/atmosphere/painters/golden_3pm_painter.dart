@@ -131,7 +131,10 @@ class Golden3pmPainter extends CustomPainter {
   /// Wooden floor reflects sunlight upward. Bottom 25% of screen.
   void _paintFloorBounce(Canvas canvas, Size size) {
     final bottomRect = Rect.fromLTWH(
-      0, size.height * 0.75, size.width, size.height * 0.25,
+      0,
+      size.height * 0.75,
+      size.width,
+      size.height * 0.25,
     );
     canvas.drawRect(
       bottomRect,
@@ -285,7 +288,10 @@ class Golden3pmPainter extends CustomPainter {
   /// Floor reflects warm exterior light upward, even in a curtained room.
   void _paintReflectedAmber(Canvas canvas, Size size) {
     final bottomRect = Rect.fromLTWH(
-      0, size.height * 0.80, size.width, size.height * 0.20,
+      0,
+      size.height * 0.80,
+      size.width,
+      size.height * 0.20,
     );
     canvas.drawRect(
       bottomRect,

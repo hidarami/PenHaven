@@ -18,7 +18,8 @@ import '../../theme/app_colors.dart';
 
 class EditorHeaderImage extends StatelessWidget {
   final String? currentPath;
-  final ValueChanged<(String?, String?)> onImageChanged; // (path, ratio), null path = remove
+  final ValueChanged<(String?, String?)>
+      onImageChanged; // (path, ratio), null path = remove
 
   const EditorHeaderImage({
     super.key,
@@ -50,7 +51,7 @@ class EditorHeaderImage extends StatelessWidget {
 
     String? path;
     String? ratio = _getRatioString(choice);
-    
+
     switch (choice) {
       case 'full':
         path = await ImageService.instance.pickHeaderImage(
@@ -87,7 +88,7 @@ class EditorHeaderImage extends StatelessWidget {
         );
         break;
     }
-    
+
     if (path != null) {
       onImageChanged((path, ratio));
     } else {
@@ -144,11 +145,36 @@ class EditorHeaderImage extends StatelessWidget {
               ),
               const SizedBox(height: 20),
               // Ratio options
-              _RatioPicker(value: '16:9', label: '16 : 9', sub: 'Widescreen — best for most photos', textColor: textColor, mutedColor: mutedColor),
-              _RatioPicker(value: '4:3', label: '4 : 3', sub: 'Classic photo ratio', textColor: textColor, mutedColor: mutedColor),
-              _RatioPicker(value: '3:1', label: '3 : 1', sub: 'Cinematic strip — very wide', textColor: textColor, mutedColor: mutedColor),
-              _RatioPicker(value: '1:1', label: '1 : 1', sub: 'Square — symmetrical', textColor: textColor, mutedColor: mutedColor),
-              _RatioPicker(value: 'full', label: 'Full size', sub: 'No crop — use photo as-is', textColor: textColor, mutedColor: mutedColor),
+              _RatioPicker(
+                  value: '16:9',
+                  label: '16 : 9',
+                  sub: 'Widescreen — best for most photos',
+                  textColor: textColor,
+                  mutedColor: mutedColor),
+              _RatioPicker(
+                  value: '4:3',
+                  label: '4 : 3',
+                  sub: 'Classic photo ratio',
+                  textColor: textColor,
+                  mutedColor: mutedColor),
+              _RatioPicker(
+                  value: '3:1',
+                  label: '3 : 1',
+                  sub: 'Cinematic strip — very wide',
+                  textColor: textColor,
+                  mutedColor: mutedColor),
+              _RatioPicker(
+                  value: '1:1',
+                  label: '1 : 1',
+                  sub: 'Square — symmetrical',
+                  textColor: textColor,
+                  mutedColor: mutedColor),
+              _RatioPicker(
+                  value: 'full',
+                  label: 'Full size',
+                  sub: 'No crop — use photo as-is',
+                  textColor: textColor,
+                  mutedColor: mutedColor),
               const SizedBox(height: 8),
             ],
           ),
@@ -229,13 +255,12 @@ class _RatioPicker extends StatelessWidget {
                           color: textColor)),
                   Text(sub,
                       style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: mutedColor,
-                          height: 1.3)),
+                          fontSize: 11, color: mutedColor, height: 1.3)),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right_rounded, size: 18, color: mutedColor.withOpacity(0.4)),
+            Icon(Icons.chevron_right_rounded,
+                size: 18, color: mutedColor.withOpacity(0.4)),
           ],
         ),
       ),
@@ -245,12 +270,18 @@ class _RatioPicker extends StatelessWidget {
   // Visual preview box width that represents the ratio approximately
   double _previewWidth() {
     switch (value) {
-      case '16:9': return 48;
-      case '4:3': return 36;
-      case '3:1': return 66;
-      case '1:1': return 22;
-      case 'full': return 38;
-      default: return 40;
+      case '16:9':
+        return 48;
+      case '4:3':
+        return 36;
+      case '3:1':
+        return 66;
+      case '1:1':
+        return 22;
+      case 'full':
+        return 38;
+      default:
+        return 40;
     }
   }
 }

@@ -137,7 +137,6 @@ class AppState extends ChangeNotifier {
     await prefs.setBool('isBiometricEnabled', value);
   }
 
-
   Future<void> markOnboardingSeen() async {
     _hasSeenOnboarding = true;
     final prefs = await SharedPreferences.getInstance();
@@ -423,9 +422,8 @@ class AppState extends ChangeNotifier {
   Future<void> _loadTimeCapsules() async {
     _timeCapsules = await CapsuleDao.instance.getAllCapsules();
     // Notify if any capsules are ready and not yet opened
-    final ready = _timeCapsules
-        .where((c) => c.isReadyToOpen && !c.isOpened)
-        .toList();
+    final ready =
+        _timeCapsules.where((c) => c.isReadyToOpen && !c.isOpened).toList();
     if (ready.isNotEmpty) {
       NotificationService.instance.showTimeCapsuleReady(
         ready.first.message,
@@ -465,5 +463,4 @@ class AppState extends ChangeNotifier {
 
   List<TimeCapsule> get readyCapsules =>
       _timeCapsules.where((c) => c.isReadyToOpen && !c.isOpened).toList();
-
 }

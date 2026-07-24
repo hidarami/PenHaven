@@ -109,5 +109,3 @@ class StoryDao {
     return (result.first['c'] as int?) ?? 0;
   }
 }
-
-

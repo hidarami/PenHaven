@@ -161,8 +161,8 @@ class _StoryCreateDialogState extends State<StoryCreateDialog> {
                 const SizedBox(width: 8),
                 NeumorphicButton(
                   onTap: _canSubmit ? _submit : null,
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 20, vertical: 10),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                   child: Text(
                     'Create',
                     style: AppTypography.buttonLabel(
@@ -257,10 +257,13 @@ class FlowMarkdownBody extends StatelessWidget {
           color: textColor,
         ),
         // Bold / Italic — inherit preferred font
-        strong: AppTypography.bodyTextFor(preferredFont, textColor).copyWith(fontWeight: FontWeight.w700),
-        em: AppTypography.bodyTextFor(preferredFont, textColor).copyWith(fontStyle: FontStyle.italic),
+        strong: AppTypography.bodyTextFor(preferredFont, textColor)
+            .copyWith(fontWeight: FontWeight.w700),
+        em: AppTypography.bodyTextFor(preferredFont, textColor)
+            .copyWith(fontStyle: FontStyle.italic),
         // Blockquote
-        blockquote: AppTypography.bodyTextFor(preferredFont, mutedColor).copyWith(fontStyle: FontStyle.italic),
+        blockquote: AppTypography.bodyTextFor(preferredFont, mutedColor)
+            .copyWith(fontStyle: FontStyle.italic),
         blockquoteDecoration: BoxDecoration(
           color: AppColors.blockquoteBg,
           border: Border(

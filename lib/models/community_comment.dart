@@ -17,10 +17,12 @@ class CommunityComment {
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
-  String get authorLabel =>
-      isAnonymous ? 'Anonymous' : (displayName?.isNotEmpty == true ? displayName! : 'A Writer');
+  String get authorLabel => isAnonymous
+      ? 'Anonymous'
+      : (displayName?.isNotEmpty == true ? displayName! : 'A Writer');
 
-  factory CommunityComment.fromMap(Map<String, dynamic> map) => CommunityComment(
+  factory CommunityComment.fromMap(Map<String, dynamic> map) =>
+      CommunityComment(
         id: map['id'] as String,
         entryId: map['entry_id'] as String,
         userId: map['user_id'].toString(),

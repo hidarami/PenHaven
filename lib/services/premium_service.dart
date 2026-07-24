@@ -14,12 +14,12 @@ import 'package:flutter/foundation.dart';
 /// Named feature gates. Check these with PremiumService.instance.isAvailable(feature).
 class PremiumFeature {
   static const String cloudSync = 'cloud_sync';
-  static const String advancedExport = 'advanced_export';      // PDF + image export
-  static const String versionHistory = 'version_history';      // beyond 5 versions
-  static const String fontChoice = 'font_choice';              // premium fonts
-  static const String allAtmospheres = 'all_atmospheres';      // custom themes
-  static const String unlimitedEntries = 'unlimited_entries';  // >50 entries
-  static const String search = 'search';                       // always free
+  static const String advancedExport = 'advanced_export'; // PDF + image export
+  static const String versionHistory = 'version_history'; // beyond 5 versions
+  static const String fontChoice = 'font_choice'; // premium fonts
+  static const String allAtmospheres = 'all_atmospheres'; // custom themes
+  static const String unlimitedEntries = 'unlimited_entries'; // >50 entries
+  static const String search = 'search'; // always free
 }
 
 class PremiumService extends ChangeNotifier {

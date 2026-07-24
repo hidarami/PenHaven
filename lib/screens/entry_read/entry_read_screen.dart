@@ -105,11 +105,11 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
       body: Stack(
         children: [
           GestureDetector(
-              onHorizontalDragEnd: _handleSwipeExit,
-              onLongPress: _handleLongPress,
-              behavior: HitTestBehavior.translucent,
-              child: _ReadContent(entry: _entry, isDark: dark),
-            ),
+            onHorizontalDragEnd: _handleSwipeExit,
+            onLongPress: _handleLongPress,
+            behavior: HitTestBehavior.translucent,
+            child: _ReadContent(entry: _entry, isDark: dark),
+          ),
           // ── Atmosphere visual overlay (glow painters) ──────────────────
           const AtmosphereOverlay(),
           // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
@@ -210,7 +210,8 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
       if (mounted) setState(() => _loaded = true);
       return;
     }
-    final pub = await SupabaseService.instance.getPublishedEntry(widget.entryId);
+    final pub =
+        await SupabaseService.instance.getPublishedEntry(widget.entryId);
     if (mounted) {
       setState(() {
         _pub = pub;
@@ -267,9 +268,13 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.13),
                 borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
+                border: Border.all(
+                    color: Colors.white.withOpacity(0.25), width: 0.5),
                 boxShadow: [
-                  BoxShadow(color: Colors.black.withOpacity(0.10), blurRadius: 20, offset: const Offset(0, 4)),
+                  BoxShadow(
+                      color: Colors.black.withOpacity(0.10),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4)),
                 ],
               ),
               child: Row(
@@ -279,7 +284,8 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                   GestureDetector(
                     onTap: () => _handleClap(context),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 10),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -310,16 +316,21 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                     ),
                   ),
                   // Divider
-                  Container(width: 0.5, height: 16, color: Colors.white.withOpacity(0.35)),
+                  Container(
+                      width: 0.5,
+                      height: 16,
+                      color: Colors.white.withOpacity(0.35)),
                   // ── Comment button ───────────────────────────────────
                   GestureDetector(
                     onTap: () => _showComments(context),
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 18, vertical: 10),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.chat_bubble_outline_rounded, size: 15, color: Colors.white.withOpacity(0.9)),
+                          Icon(Icons.chat_bubble_outline_rounded,
+                              size: 15, color: Colors.white.withOpacity(0.9)),
                           const SizedBox(width: 5),
                           Text(
                             '$_commentCount',
@@ -334,18 +345,26 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                     ),
                   ),
                   // Divider
-                  Container(width: 0.5, height: 16, color: Colors.white.withOpacity(0.35)),
+                  Container(
+                      width: 0.5,
+                      height: 16,
+                      color: Colors.white.withOpacity(0.35)),
                   // Published label
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.public_rounded, size: 13, color: Colors.white.withOpacity(0.7)),
+                        Icon(Icons.public_rounded,
+                            size: 13, color: Colors.white.withOpacity(0.7)),
                         const SizedBox(width: 4),
                         Text(
                           'Published',
-                          style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white.withOpacity(0.7)),
+                          style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white.withOpacity(0.7)),
                         ),
                       ],
                     ),
@@ -396,8 +415,13 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
 
   Future<void> _loadComments() async {
     try {
-      final c = await SupabaseService.instance.getCommunityComments(widget.entryId);
-      if (mounted) setState(() { _comments = c; _loading = false; });
+      final c =
+          await SupabaseService.instance.getCommunityComments(widget.entryId);
+      if (mounted)
+        setState(() {
+          _comments = c;
+          _loading = false;
+        });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
@@ -407,18 +431,19 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
     final body = _ctrl.text.trim();
     if (body.isEmpty || _submitting) return;
     if (!SupabaseService.instance.isAuthenticated) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign in to comment.')));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Sign in to comment.')));
       return;
     }
     setState(() => _submitting = true);
     final email = SupabaseService.instance.userEmail;
     final displayName = _isAnon ? null : email?.split('@').first;
     final ok = await context.read<CommunityState>().addComment(
-      entryId: widget.entryId,
-      body: body,
-      isAnonymous: _isAnon,
-      displayName: displayName,
-    );
+          entryId: widget.entryId,
+          body: body,
+          isAnonymous: _isAnon,
+          displayName: displayName,
+        );
     if (ok && mounted) {
       _ctrl.clear();
       widget.onCommentAdded?.call();
@@ -434,7 +459,8 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
-    final cardBg = dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+    final cardBg =
+        dark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
 
     return DraggableScrollableSheet(
       initialChildSize: 0.6,
@@ -449,15 +475,29 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
         child: Column(
           children: [
             const SizedBox(height: 12),
-            Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: mutedColor.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+            Center(
+                child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: mutedColor.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2)))),
             const SizedBox(height: 14),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
-                  Text('Responses', style: GoogleFonts.crimsonPro(fontSize: 22, fontWeight: FontWeight.w700, color: textColor)),
+                  Text('Responses',
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: textColor)),
                   const Spacer(),
-                  if (_loading) const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 1.5)),
+                  if (_loading)
+                    const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 1.5)),
                 ],
               ),
             ),
@@ -467,7 +507,10 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
               child: Container(
-                decoration: BoxDecoration(color: cardBg, borderRadius: BorderRadius.circular(12), border: Border.all(color: divColor.withOpacity(0.5))),
+                decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: divColor.withOpacity(0.5))),
                 padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,12 +519,16 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
                       controller: _ctrl,
                       maxLines: 3,
                       minLines: 1,
-                      style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.5),
+                      style: GoogleFonts.inter(
+                          fontSize: 14, color: textColor, height: 1.5),
                       decoration: InputDecoration(
                         border: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
                         hintText: 'Share your thoughts...',
-                        hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor, fontStyle: FontStyle.italic),
+                        hintStyle: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: mutedColor,
+                            fontStyle: FontStyle.italic),
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -492,23 +539,52 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
                           child: Row(mainAxisSize: MainAxisSize.min, children: [
                             AnimatedContainer(
                               duration: const Duration(milliseconds: 120),
-                              width: 14, height: 14,
-                              decoration: BoxDecoration(borderRadius: BorderRadius.circular(3), color: _isAnon ? AppColors.aqua : Colors.transparent, border: Border.all(color: _isAnon ? AppColors.aqua : mutedColor.withOpacity(0.5), width: 1.5)),
-                              child: _isAnon ? const Icon(Icons.check, size: 10, color: Colors.white) : null,
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(3),
+                                  color: _isAnon
+                                      ? AppColors.aqua
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                      color: _isAnon
+                                          ? AppColors.aqua
+                                          : mutedColor.withOpacity(0.5),
+                                      width: 1.5)),
+                              child: _isAnon
+                                  ? const Icon(Icons.check,
+                                      size: 10, color: Colors.white)
+                                  : null,
                             ),
                             const SizedBox(width: 5),
-                            Text('Anonymous', style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                            Text('Anonymous',
+                                style: GoogleFonts.inter(
+                                    fontSize: 11, color: mutedColor)),
                           ]),
                         ),
                         const Spacer(),
                         GestureDetector(
                           onTap: _submitting ? null : _submit,
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                            decoration: BoxDecoration(color: AppColors.aqua.withOpacity(0.12), borderRadius: BorderRadius.circular(20), border: Border.all(color: AppColors.aqua.withOpacity(0.4))),
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 7),
+                            decoration: BoxDecoration(
+                                color: AppColors.aqua.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: AppColors.aqua.withOpacity(0.4))),
                             child: _submitting
-                                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.aqua))
-                                : Text('Post', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 1.5,
+                                        color: AppColors.aqua))
+                                : Text('Post',
+                                    style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.aqua)),
                           ),
                         ),
                       ],
@@ -522,35 +598,85 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : _comments.isEmpty
-                      ? Center(child: Text('No responses yet.', style: GoogleFonts.crimsonPro(fontSize: 16, fontStyle: FontStyle.italic, color: mutedColor)))
+                      ? Center(
+                          child: Text('No responses yet.',
+                              style: GoogleFonts.crimsonPro(
+                                  fontSize: 16,
+                                  fontStyle: FontStyle.italic,
+                                  color: mutedColor)))
                       : ListView.separated(
                           controller: sc,
                           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
                           itemCount: _comments.length,
-                          separatorBuilder: (_, __) => Divider(color: divColor.withOpacity(0.5), height: 20),
+                          separatorBuilder: (_, __) => Divider(
+                              color: divColor.withOpacity(0.5), height: 20),
                           itemBuilder: (_, i) {
                             final c = _comments[i];
                             final diff = DateTime.now().difference(c.createdAt);
-                            final ago = diff.inMinutes < 60 ? '${diff.inMinutes}m ago'
-                                : diff.inHours < 24 ? '${diff.inHours}h ago'
-                                : diff.inDays < 7 ? '${diff.inDays}d ago'
-                                : DateFormat('MMM d').format(c.createdAt);
-                            const colors = [Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A), Color(0xFF9472D4), Color(0xFFE87FA0)];
-                            final avatarColor = colors[c.authorLabel.codeUnits.fold(0, (a, b) => a + b) % colors.length];
-                            return Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Container(width: 28, height: 28, decoration: BoxDecoration(color: avatarColor, shape: BoxShape.circle),
-                                  child: Center(child: Text(c.authorLabel.isNotEmpty ? c.authorLabel[0].toUpperCase() : '?', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: Colors.white)))),
-                              const SizedBox(width: 10),
-                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Row(children: [
-                                  Text(c.authorLabel, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
-                                  const SizedBox(width: 6),
-                                  Text(ago, style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
-                                ]),
-                                const SizedBox(height: 3),
-                                Text(c.body, style: GoogleFonts.inter(fontSize: 14, color: textColor.withOpacity(0.85), height: 1.5)),
-                              ])),
-                            ]);
+                            final ago = diff.inMinutes < 60
+                                ? '${diff.inMinutes}m ago'
+                                : diff.inHours < 24
+                                    ? '${diff.inHours}h ago'
+                                    : diff.inDays < 7
+                                        ? '${diff.inDays}d ago'
+                                        : DateFormat('MMM d')
+                                            .format(c.createdAt);
+                            const colors = [
+                              Color(0xFF7BA591),
+                              Color(0xFF5B8DB8),
+                              Color(0xFFD4820A),
+                              Color(0xFF9472D4),
+                              Color(0xFFE87FA0)
+                            ];
+                            final avatarColor = colors[c.authorLabel.codeUnits
+                                    .fold(0, (a, b) => a + b) %
+                                colors.length];
+                            return Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                          color: avatarColor,
+                                          shape: BoxShape.circle),
+                                      child: Center(
+                                          child: Text(
+                                              c.authorLabel.isNotEmpty
+                                                  ? c.authorLabel[0]
+                                                      .toUpperCase()
+                                                  : '?',
+                                              style: GoogleFonts.inter(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white)))),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                        Row(children: [
+                                          Text(c.authorLabel,
+                                              style: GoogleFonts.inter(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: textColor)),
+                                          const SizedBox(width: 6),
+                                          Text(ago,
+                                              style: GoogleFonts.inter(
+                                                  fontSize: 11,
+                                                  color: mutedColor)),
+                                        ]),
+                                        const SizedBox(height: 3),
+                                        Text(c.body,
+                                            style: GoogleFonts.inter(
+                                                fontSize: 14,
+                                                color:
+                                                    textColor.withOpacity(0.85),
+                                                height: 1.5)),
+                                      ])),
+                                ]);
                           },
                         ),
             ),

@@ -15,7 +15,6 @@ import 'about_section.dart';
 import 'fonts_screen.dart';
 import 'themes_screen.dart';
 
-
 /// Settings screen — full-screen push, no back button (swipe left-to-right).
 /// Covers: Appearance, Privacy, Tracking, About.
 class SettingsScreen extends StatelessWidget {
@@ -116,9 +115,8 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     SettingsNavTile(
                       icon: Icons.lock_outline_rounded,
-                      label: appState.isLockEnabled
-                          ? 'App Lock · On'
-                          : 'App Lock',
+                      label:
+                          appState.isLockEnabled ? 'App Lock · On' : 'App Lock',
                       description: appState.isLockEnabled
                           ? 'PIN lock is active. Tap to change or remove.'
                           : 'Set a PIN to protect your sanctuary.',
@@ -144,7 +142,8 @@ class SettingsScreen extends StatelessWidget {
                     SettingsNavTile(
                       icon: Icons.palette_outlined,
                       label: _themeLabel(atmosphereState),
-                      description: 'Manual themes override the atmosphere background.',
+                      description:
+                          'Manual themes override the atmosphere background.',
                       isDark: isDark,
                       bg: bg,
                       onTap: () => Navigator.of(context).push(
@@ -166,8 +165,11 @@ class SettingsScreen extends StatelessWidget {
                   children: [
                     SettingsNavTile(
                       icon: Icons.font_download_outlined,
-                      label: AppTypography.fontDisplayNames[appState.preferredFont] ?? 'Crimson Pro',
-                      description: 'Choose how your journal entries feel to read.',
+                      label: AppTypography
+                              .fontDisplayNames[appState.preferredFont] ??
+                          'Crimson Pro',
+                      description:
+                          'Choose how your journal entries feel to read.',
                       isDark: isDark,
                       bg: bg,
                       onTap: () => Navigator.of(context).push(
@@ -190,12 +192,10 @@ class SettingsScreen extends StatelessWidget {
                     SettingsNavTile(
                       icon: Icons.backup_outlined,
                       label: 'Full Backup (JSON)',
-                      description:
-                          'Export all data as a restorable JSON file.',
+                      description: 'Export all data as a restorable JSON file.',
                       isDark: isDark,
                       bg: bg,
-                      onTap: () =>
-                          BackupService.instance.exportBackup(context),
+                      onTap: () => BackupService.instance.exportBackup(context),
                     ),
                     SettingsNavTile(
                       icon: Icons.download_outlined,
@@ -235,7 +235,8 @@ class SettingsScreen extends StatelessWidget {
       ),
     );
   }
-/// Returns display label for current theme selection.
+
+  /// Returns display label for current theme selection.
   String _themeLabel(AtmosphereState atmo) {
     if (atmo.manualTheme == null) return 'Dynamic (Auto)';
     for (final t in AppColors.manualThemes) {
@@ -244,7 +245,7 @@ class SettingsScreen extends StatelessWidget {
     return 'Dynamic (Auto)';
   }
 
-void _setupLock(BuildContext context) async {
+  void _setupLock(BuildContext context) async {
     await Future.delayed(const Duration(milliseconds: 150));
     if (!context.mounted) return;
     await Navigator.of(context).push(
@@ -331,8 +332,8 @@ void _setupLock(BuildContext context) async {
                 ),
                 title: Text(
                   'Remove App Lock',
-                  style: GoogleFonts.inter(
-                      fontSize: 15, color: AppColors.danger),
+                  style:
+                      GoogleFonts.inter(fontSize: 15, color: AppColors.danger),
                 ),
                 onTap: () async {
                   Navigator.pop(ctx);
@@ -354,16 +355,16 @@ void _setupLock(BuildContext context) async {
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Remove App Lock?'),
-        content:
-            const Text('Your PIN will be deleted and Flow will open without protection.'),
+        content: const Text(
+            'Your PIN will be deleted and Flow will open without protection.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),
               child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Remove',
-                style: TextStyle(color: AppColors.danger)),
+            child:
+                const Text('Remove', style: TextStyle(color: AppColors.danger)),
           ),
         ],
       ),

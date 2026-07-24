@@ -30,7 +30,8 @@ class Entry {
   int timeSpentSeconds; // Proof of Work — cumulative seconds in editor
   String moodColor;
   String? headerImage; // Optional full-width banner (path)
-  String? headerImageRatio; // Aspect ratio: '16:9', '4:3', '3:1', '1:1', or 'full'
+  String?
+      headerImageRatio; // Aspect ratio: '16:9', '4:3', '3:1', '1:1', or 'full'
   List<EntryImage> images; // Legacy — kept for migration only
   bool isDeleted;
   String? blocksJson; // Block-based content (new format)

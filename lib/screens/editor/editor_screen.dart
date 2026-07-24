@@ -122,7 +122,8 @@ class _EditorScreenState extends State<EditorScreen> {
     setState(() => _updatingSanctuary = true);
     await _performSave();
     try {
-      final existing = await SupabaseService.instance.getPublishedEntry(_entry.id);
+      final existing =
+          await SupabaseService.instance.getPublishedEntry(_entry.id);
       if (existing != null) {
         await SupabaseService.instance.publishEntry(
           entry: _entry,
@@ -422,20 +423,30 @@ class _EditorBar extends StatelessWidget {
               onTap: updatingSanctuary ? null : onUpdateSanctuary,
               child: Container(
                 margin: const EdgeInsets.only(right: 4),
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: AppColors.aqua.withOpacity(0.12),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: AppColors.aqua.withOpacity(0.4)),
                 ),
                 child: updatingSanctuary
-                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.aqua))
+                    ? const SizedBox(
+                        width: 14,
+                        height: 14,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 1.5, color: AppColors.aqua))
                     : Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.cloud_sync_outlined, size: 13, color: AppColors.aqua),
+                          const Icon(Icons.cloud_sync_outlined,
+                              size: 13, color: AppColors.aqua),
                           const SizedBox(width: 4),
-                          Text('Sync', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                          Text('Sync',
+                              style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.aqua)),
                         ],
                       ),
               ),

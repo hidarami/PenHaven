@@ -95,9 +95,10 @@ class AtmosphereImageLayer extends StatelessWidget {
 
 class _OverlayConfig {
   final String assetPath;
-  final double opacity;       // Overall image visibility (0.0–1.0)
-  final Color tintColor;      // Color to blend into the image
-  final double tintOpacity;   // How strongly to tint (0 = no tint, 1 = solid tint)
+  final double opacity; // Overall image visibility (0.0–1.0)
+  final Color tintColor; // Color to blend into the image
+  final double
+      tintOpacity; // How strongly to tint (0 = no tint, 1 = solid tint)
 
   const _OverlayConfig({
     required this.assetPath,

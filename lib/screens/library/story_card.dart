@@ -44,7 +44,9 @@ class StoryCard extends StatelessWidget {
               duration: const Duration(milliseconds: 300),
               width: 4,
               decoration: BoxDecoration(
-                color: isActive ? context.watch<AtmosphereState>().accentColor : Colors.transparent,
+                color: isActive
+                    ? context.watch<AtmosphereState>().accentColor
+                    : Colors.transparent,
                 borderRadius: const BorderRadius.only(
                   topLeft: Radius.circular(12),
                   bottomLeft: Radius.circular(12),
@@ -165,7 +167,8 @@ class StoryCard extends StatelessWidget {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+              leading:
+                  const Icon(Icons.delete_outline, color: AppColors.danger),
               title: const Text(
                 'Delete story',
                 style: TextStyle(color: AppColors.danger),

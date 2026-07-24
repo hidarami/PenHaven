@@ -73,7 +73,8 @@ class _SunMoonIndicatorState extends State<SunMoonIndicator>
             width: 32,
             height: 32,
             child: AnimatedBuilder(
-              animation: Listenable.merge([_rotationCtrl, _pulseCtrl, _rainCtrl]),
+              animation:
+                  Listenable.merge([_rotationCtrl, _pulseCtrl, _rainCtrl]),
               builder: (context, _) {
                 final rotation = _rotationCtrl.value * math.pi * 2;
                 final pulse = _pulseCtrl.value;
@@ -209,14 +210,17 @@ class _MoonPainter extends CustomPainter {
     );
 
     // Crescent: main circle minus offset mask
-    final path = Path()
-      ..addOval(Rect.fromCircle(center: center, radius: 8.5));
+    final path = Path()..addOval(Rect.fromCircle(center: center, radius: 8.5));
     final maskCenter = Offset(center.dx + 5.5, center.dy - 1.5);
     final maskPath = Path()
       ..addOval(Rect.fromCircle(center: maskCenter, radius: 7.5));
     final crescent = Path.combine(PathOperation.difference, path, maskPath);
 
-    canvas.drawPath(crescent, Paint()..color = color..style = PaintingStyle.fill);
+    canvas.drawPath(
+        crescent,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill);
 
     // Star near moon
     final starPos = Offset(center.dx + 9, center.dy - 8);
@@ -229,7 +233,8 @@ class _MoonPainter extends CustomPainter {
     for (int i = 0; i < 4; i++) {
       final a = i * math.pi / 2;
       canvas.drawLine(
-        Offset(starPos.dx + sR * 0.4 * math.cos(a), starPos.dy + sR * 0.4 * math.sin(a)),
+        Offset(starPos.dx + sR * 0.4 * math.cos(a),
+            starPos.dy + sR * 0.4 * math.sin(a)),
         Offset(starPos.dx + sR * math.cos(a), starPos.dy + sR * math.sin(a)),
         starPaint,
       );
@@ -258,7 +263,8 @@ class _RainPainter extends CustomPainter {
       Offset(center.dx, center.dy - 3),
       12,
       Paint()
-        ..color = color.withOpacity(0.08 + math.sin(progress * math.pi * 2) * 0.04)
+        ..color =
+            color.withOpacity(0.08 + math.sin(progress * math.pi * 2) * 0.04)
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
 
@@ -353,7 +359,12 @@ class _SnowPainter extends CustomPainter {
     }
 
     // Center dot
-    canvas.drawCircle(center, 1.5, Paint()..color = color..style = PaintingStyle.fill);
+    canvas.drawCircle(
+        center,
+        1.5,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill);
   }
 
   @override
@@ -397,9 +408,12 @@ class _FogPainter extends CustomPainter {
       final path = Path()
         ..moveTo(center.dx - halfW, y)
         ..cubicTo(
-          center.dx - halfW / 2, y - 1.5,
-          center.dx + halfW / 2, y + 1.5,
-          center.dx + halfW, y,
+          center.dx - halfW / 2,
+          y - 1.5,
+          center.dx + halfW / 2,
+          y + 1.5,
+          center.dx + halfW,
+          y,
         );
       canvas.drawPath(path, paint);
     }
@@ -433,7 +447,8 @@ class _GoldenHourPainter extends CustomPainter {
     canvas.drawLine(Offset(cx - 12, cy + 1), Offset(cx + 12, cy + 1), paint);
 
     // Half sun above horizon
-    final sunRect = Rect.fromCenter(center: Offset(cx, cy), width: 14, height: 14);
+    final sunRect =
+        Rect.fromCenter(center: Offset(cx, cy), width: 14, height: 14);
     canvas.drawArc(sunRect, math.pi, math.pi, false, paint);
 
     // Radiating lines above horizon (sunrise/sunset rays)
@@ -474,7 +489,10 @@ class _CloudyPainter extends CustomPainter {
     final drift = math.sin(pulse * math.pi * 2) * 1.4;
 
     // Back cloud — dimmer, drifts right
-    _drawCloud(canvas, Offset(cx + 4 + drift, cy - 1), 8.5,
+    _drawCloud(
+        canvas,
+        Offset(cx + 4 + drift, cy - 1),
+        8.5,
         Paint()
           ..color = color.withOpacity(0.42)
           ..style = PaintingStyle.stroke
@@ -482,7 +500,10 @@ class _CloudyPainter extends CustomPainter {
           ..strokeCap = StrokeCap.round);
 
     // Front cloud — solid, drifts left
-    _drawCloud(canvas, Offset(cx - 2 - drift * 0.4, cy + 2), 10.5,
+    _drawCloud(
+        canvas,
+        Offset(cx - 2 - drift * 0.4, cy + 2),
+        10.5,
         Paint()
           ..color = color
           ..style = PaintingStyle.stroke
@@ -497,8 +518,7 @@ class _CloudyPainter extends CustomPainter {
         radius: Radius.circular(r * 0.55));
     path.arcToPoint(Offset(c.dx + r * 0.2, c.dy - r * 0.65),
         radius: Radius.circular(r * 0.45));
-    path.arcToPoint(Offset(c.dx + r, c.dy),
-        radius: Radius.circular(r * 0.6));
+    path.arcToPoint(Offset(c.dx + r, c.dy), radius: Radius.circular(r * 0.6));
     path.arcToPoint(Offset(c.dx - r, c.dy),
         radius: Radius.circular(r * 0.85), clockwise: false);
     canvas.drawPath(path, paint);
@@ -536,11 +556,14 @@ class _CloudyNightPainter extends CustomPainter {
     final moonPath = Path()
       ..addOval(Rect.fromCircle(center: moonC, radius: 7.5));
     final maskPath = Path()
-      ..addOval(
-          Rect.fromCircle(center: Offset(moonC.dx + 5, moonC.dy - 1), radius: 7.0));
+      ..addOval(Rect.fromCircle(
+          center: Offset(moonC.dx + 5, moonC.dy - 1), radius: 7.0));
     final crescent = Path.combine(PathOperation.difference, moonPath, maskPath);
     canvas.drawPath(
-        crescent, Paint()..color = color..style = PaintingStyle.fill);
+        crescent,
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.fill);
 
     // Cloud drifting over moon
     final drift = math.sin(pulse * math.pi * 2) * 0.9;
@@ -574,7 +597,7 @@ class _CloudyNightPainter extends CustomPainter {
 class _ThunderstormPainter extends CustomPainter {
   final Color color;
   final double progress; // rain animation 0–1
-  final double pulse;    // lightning flash trigger
+  final double pulse; // lightning flash trigger
 
   const _ThunderstormPainter({
     required this.color,

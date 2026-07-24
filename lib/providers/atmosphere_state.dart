@@ -80,7 +80,8 @@ class AtmosphereState extends ChangeNotifier {
     _minuteTimer = Timer.periodic(const Duration(minutes: 1), (_) => _tick());
     // Fetch weather now and refresh every 30 minutes
     _fetchWeather();
-    _weatherRefreshTimer = Timer.periodic(const Duration(minutes: 30), (_) => _fetchWeather());
+    _weatherRefreshTimer =
+        Timer.periodic(const Duration(minutes: 30), (_) => _fetchWeather());
   }
 
   Future<void> setDynamicTheme(bool value) async {
@@ -215,43 +216,43 @@ class AtmosphereState extends ChangeNotifier {
       final response = await http.get(url).timeout(const Duration(seconds: 8));
 
       if (response.statusCode == 200) {
-          final data = jsonDecode(response.body) as Map<String, dynamic>;
-          final current = data['current_weather'] as Map<String, dynamic>;
-          final weatherCode = current['weathercode'] as int;
-          final temp = current['temperature'] as num;
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final current = data['current_weather'] as Map<String, dynamic>;
+        final weatherCode = current['weathercode'] as int;
+        final temp = current['temperature'] as num;
 
-          // Reverse geocode for city name via Nominatim (free, no key)
-          String cityName = '';
-          try {
-            final geoUri = Uri.parse(
-              'https://nominatim.openstreetmap.org/reverse'
-              '?format=json'
-              '&lat=${pos.latitude}'
-              '&lon=${pos.longitude}'
-              '&zoom=10',
-            );
-            final geoResp = await http.get(
-              geoUri,
-              headers: {'User-Agent': 'FlowApp/1.0'},
-            ).timeout(const Duration(seconds: 5));
-            if (geoResp.statusCode == 200) {
-              final geoData = jsonDecode(geoResp.body) as Map<String, dynamic>;
-              final address = geoData['address'] as Map<String, dynamic>?;
-              cityName = (address?['city'] ??
-                      address?['town'] ??
-                      address?['village'] ??
-                      '')
-                  .toString();
-            }
-          } catch (_) {}
-
-          _weather = WeatherData(
-            condition: _parseWeatherCode(weatherCode),
-            tempCelsius: temp.toDouble(),
-            cityName: cityName,
+        // Reverse geocode for city name via Nominatim (free, no key)
+        String cityName = '';
+        try {
+          final geoUri = Uri.parse(
+            'https://nominatim.openstreetmap.org/reverse'
+            '?format=json'
+            '&lat=${pos.latitude}'
+            '&lon=${pos.longitude}'
+            '&zoom=10',
           );
-          _tick(); // Re-evaluate atmosphere with new weather
-        }
+          final geoResp = await http.get(
+            geoUri,
+            headers: {'User-Agent': 'FlowApp/1.0'},
+          ).timeout(const Duration(seconds: 5));
+          if (geoResp.statusCode == 200) {
+            final geoData = jsonDecode(geoResp.body) as Map<String, dynamic>;
+            final address = geoData['address'] as Map<String, dynamic>?;
+            cityName = (address?['city'] ??
+                    address?['town'] ??
+                    address?['village'] ??
+                    '')
+                .toString();
+          }
+        } catch (_) {}
+
+        _weather = WeatherData(
+          condition: _parseWeatherCode(weatherCode),
+          tempCelsius: temp.toDouble(),
+          cityName: cityName,
+        );
+        _tick(); // Re-evaluate atmosphere with new weather
+      }
     } catch (_) {
       // Weather fetch failed silently — atmosphere falls back to time-based.
     }

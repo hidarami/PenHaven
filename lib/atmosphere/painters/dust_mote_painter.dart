@@ -87,11 +87,11 @@ class _DustMoteOverlayState extends State<DustMoteOverlay>
 class _Mote {
   final double baseX;
   final double baseY;
-  final double size;         // 1.0–5.0px radius
+  final double size; // 1.0–5.0px radius
   final double driftSpeed;
   final double driftAngle;
   final double phaseOffset;
-  final double glowFactor;   // 0.8–2.0 — how much glow this mote has
+  final double glowFactor; // 0.8–2.0 — how much glow this mote has
 
   const _Mote({
     required this.baseX,
@@ -116,12 +116,12 @@ class _Mote {
   }
 
   Offset positionAt(double t, Size sz) {
-    final px = (baseX * sz.width)
-        + math.cos(driftAngle) * driftSpeed * (t % 120)
-        + math.sin(t * 0.3 + phaseOffset) * 8;
-    final py = (baseY * sz.height)
-        + math.sin(driftAngle) * driftSpeed * (t % 120) * 0.25
-        + math.sin(t * 0.45 + phaseOffset) * 10;
+    final px = (baseX * sz.width) +
+        math.cos(driftAngle) * driftSpeed * (t % 120) +
+        math.sin(t * 0.3 + phaseOffset) * 8;
+    final py = (baseY * sz.height) +
+        math.sin(driftAngle) * driftSpeed * (t % 120) * 0.25 +
+        math.sin(t * 0.45 + phaseOffset) * 10;
     return Offset(px % sz.width, py.clamp(0, sz.height));
   }
 

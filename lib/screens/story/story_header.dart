@@ -86,8 +86,8 @@ class _StoryHeaderState extends State<StoryHeader> {
     final newTitle = _controller.text.trim();
     final newDesc = _descController.text.trim();
     if (newTitle.isNotEmpty) {
-      final changed = newTitle != widget.story.title ||
-          newDesc != widget.story.description;
+      final changed =
+          newTitle != widget.story.title || newDesc != widget.story.description;
       if (changed) {
         try {
           context.read<AppState>().updateStory(
@@ -122,42 +122,42 @@ class _StoryHeaderState extends State<StoryHeader> {
           onDoubleTap: _startEditing,
           onLongPress: _startEditing,
           child: _editing
-                  ? Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextField(
-                          controller: _controller,
-                          focusNode: _focusNode,
-                          style: AppTypography.storyTitle(textColor),
-                          textInputAction: TextInputAction.next,
-                          maxLines: 1,
-                          onSubmitted: (_) => _descFocusNode.requestFocus(),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                            fillColor: Colors.transparent,
-                            filled: true,
-                            hintText: 'Story title',
-                            hintStyle: AppTypography.storyTitle(mutedColor),
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        TextField(
-                          controller: _descController,
-                          focusNode: _descFocusNode,
-                          style: AppTypography.storyDescription(mutedColor),
-                          textInputAction: TextInputAction.done,
-                          onSubmitted: (_) => _save(),
-                          decoration: InputDecoration(
-                            border: InputBorder.none,
-                            contentPadding: EdgeInsets.zero,
-                            hintText: 'Description (optional)',
-                            hintStyle: AppTypography.storyDescription(
-                                mutedColor.withOpacity(0.5)),
-                          ),
-                        ),
-                      ],
-                    )
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      style: AppTypography.storyTitle(textColor),
+                      textInputAction: TextInputAction.next,
+                      maxLines: 1,
+                      onSubmitted: (_) => _descFocusNode.requestFocus(),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        fillColor: Colors.transparent,
+                        filled: true,
+                        hintText: 'Story title',
+                        hintStyle: AppTypography.storyTitle(mutedColor),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    TextField(
+                      controller: _descController,
+                      focusNode: _descFocusNode,
+                      style: AppTypography.storyDescription(mutedColor),
+                      textInputAction: TextInputAction.done,
+                      onSubmitted: (_) => _save(),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        hintText: 'Description (optional)',
+                        hintStyle: AppTypography.storyDescription(
+                            mutedColor.withOpacity(0.5)),
+                      ),
+                    ),
+                  ],
+                )
               : Text(
                   widget.story.title,
                   style: AppTypography.storyTitle(textColor),

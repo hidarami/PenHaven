@@ -65,7 +65,8 @@ class AppColors {
 
   // ── Atmosphere Backgrounds (Light) ─────────────────────────────────────────
   // Near-white neutral — window light projects onto a bright wall, not yellow
-  static const Color golden3pmLight = Color(0xFFFEF8EC); // Warm cream — paper in afternoon sun
+  static const Color golden3pmLight =
+      Color(0xFFFEF8EC); // Warm cream — paper in afternoon sun
   static const Color midnightInkLight = Color(0xFFE8E3F5);
   static const Color sundayMorningLight = Color(0xFFF5F1E8);
   static const Color goldenHourLight = Color(0xFFFFF0CC);

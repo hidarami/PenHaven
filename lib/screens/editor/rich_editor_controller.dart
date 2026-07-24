@@ -47,10 +47,7 @@ class RichEditorController extends TextEditingController {
 
   /// Returns combined format attrs at a given character position.
   FormatAttrs attrsAt(int pos) {
-    bool bold = false,
-        italic = false,
-        underline = false,
-        strike = false;
+    bool bold = false, italic = false, underline = false, strike = false;
     Color? highlight;
     String? link;
 

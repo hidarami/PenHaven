@@ -71,7 +71,7 @@ class EntryHeaderImage extends StatelessWidget {
   double _getHeight(double width) {
     // Default to 3:1 if no ratio specified
     final ratioStr = ratio ?? '3:1';
-    
+
     switch (ratioStr) {
       case '16:9':
         return width / (16 / 9);

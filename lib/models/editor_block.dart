@@ -96,8 +96,7 @@ class FormatAttrs {
         italic: m['italic'] as bool? ?? false,
         underline: m['underline'] as bool? ?? false,
         strikethrough: m['strikethrough'] as bool? ?? false,
-        highlight:
-            m['highlight'] != null ? Color(m['highlight'] as int) : null,
+        highlight: m['highlight'] != null ? Color(m['highlight'] as int) : null,
         link: m['link'] as String?,
       );
 
@@ -113,8 +112,8 @@ class FormatAttrs {
           link == other.link;
 
   @override
-  int get hashCode => Object.hash(
-      bold, italic, underline, strikethrough, highlight, link);
+  int get hashCode =>
+      Object.hash(bold, italic, underline, strikethrough, highlight, link);
 }
 
 // ── Format range (span in a text block) ──────────────────────────────────────
@@ -235,7 +234,7 @@ class TextBlock extends EditorBlock {
     );
   }
 
-factory TextBlock.empty({BlockType type = BlockType.text}) =>
+  factory TextBlock.empty({BlockType type = BlockType.text}) =>
       TextBlock(id: const Uuid().v4(), type: type, text: '');
 }
 
