@@ -432,14 +432,6 @@ class _ExportSheetState extends State<ExportSheet> {
                               isDark: widget.isDark,
                               onChanged: (_) => setState(() {}),
                             ),
-                            if (_layoutMode == 'pages') ...[
-                              const SizedBox(height: 6),
-                              Text(
-                                'Appears at the top of every page.',
-                                style: GoogleFonts.inter(
-                                    fontSize: 11, color: mutedColor),
-                              ),
-                            ],
                           ],
                         ],
                       ),
@@ -477,14 +469,6 @@ class _ExportSheetState extends State<ExportSheet> {
                               hint: 'Footer text...',
                               isDark: widget.isDark,
                               onChanged: (_) => setState(() {}),
-                            ),
-                          ],
-                          if (_layoutMode == 'pages') ...[
-                            const SizedBox(height: 6),
-                            Text(
-                              'Page numbers are always shown in pages mode.',
-                              style: GoogleFonts.inter(
-                                  fontSize: 11, color: mutedColor),
                             ),
                           ],
                         ],

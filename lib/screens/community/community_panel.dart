@@ -249,8 +249,6 @@ class _CommunityPanelState extends State<CommunityPanel>
   late TabController _tabController;
   bool _initialized = false;
   String _selectedCategory = 'All';
-  String? _displayName;
-  String? _profileImagePath;
 
   @override
   bool get wantKeepAlive => true;
@@ -258,7 +256,7 @@ class _CommunityPanelState extends State<CommunityPanel>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
   }
 
@@ -266,16 +264,6 @@ class _CommunityPanelState extends State<CommunityPanel>
   void dispose() {
     _tabController.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadProfile() async {
-    final prefs = await SharedPreferences.getInstance();
-    if (mounted) {
-      setState(() {
-        _displayName = prefs.getString('communityDisplayName');
-        _profileImagePath = prefs.getString('communityProfileImage');
-      });
-    }
   }
 
   Future<void> _init() async {
@@ -286,9 +274,6 @@ class _CommunityPanelState extends State<CommunityPanel>
     await state.loadFeatured();
     await state.loadBookmarks();
     await state.loadFeed();
-    if (SupabaseService.instance.isAuthenticated) {
-      await state.loadMyPosts();
-    }
   }
 
   void _openPublishSheet() {
@@ -330,42 +315,11 @@ class _CommunityPanelState extends State<CommunityPanel>
       builder: (_) => _AuthSheet(
         onSuccess: () {
           Navigator.pop(context);
-          _loadProfile();
+          context.read<CommunityState>().loadProfile();
           context.read<CommunityState>().loadMyPosts();
           setState(() {});
         },
       ),
-    );
-  }
-
-  void _showProfileSheet() {
-    final dark = context.read<AppState>().isDarkMode;
-    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) {
-        final cs = context.read<CommunityState>();
-        return _ProfileSheet(
-          email: SupabaseService.instance.userEmail ?? '',
-          isDark: dark,
-          currentName: cs.profileDisplayName,
-          currentImagePath: cs.profileImagePath,
-          onSignOut: () async {
-            Navigator.pop(context);
-            await SupabaseService.instance.signOut();
-            setState(() {});
-          },
-          onProfileUpdated: () {
-            Navigator.pop(context);
-            context.read<CommunityState>().loadProfile();
-          },
-        );
-      },
     );
   }
 
@@ -381,8 +335,6 @@ class _CommunityPanelState extends State<CommunityPanel>
     final accentColor = context.watch<AtmosphereState>().accentColor;
     final communityState = context.watch<CommunityState>();
     final displayName = communityState.profileDisplayName;
-    final profileImagePath = communityState.profileImagePath;
-    final isAuth = SupabaseService.instance.isAuthenticated;
 
     if (!SupabaseService.instance.isSupabaseConfigured) {
       return _SetupRequired(
@@ -433,35 +385,31 @@ class _CommunityPanelState extends State<CommunityPanel>
                   ),
                 ),
                 const SizedBox(width: 12),
-                // Publish + profile row
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    GestureDetector(
-                      onTap: _openPublishSheet,
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          color: dark
-                              ? Colors.white.withOpacity(0.07)
-                              : Colors.black.withOpacity(0.05),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.edit_outlined,
-                            size: 16, color: mutedColor),
-                      ),
+                GestureDetector(
+                  onTap: _openPublishSheet,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.aqua.withOpacity(0.10),
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                          color: AppColors.aqua.withOpacity(0.35)),
                     ),
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: isAuth ? _showProfileSheet : _showAuthSheet,
-                      child: _ProfileAvatar(
-                        imagePath: profileImagePath,
-                        name: username,
-                        size: 38,
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.add_rounded,
+                            size: 15, color: AppColors.aqua),
+                        const SizedBox(width: 5),
+                        Text('Publish',
+                            style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.aqua)),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ],
             ),
@@ -477,7 +425,6 @@ class _CommunityPanelState extends State<CommunityPanel>
               tabs: const [
                 Tab(text: 'For You'),
                 Tab(text: 'Recent'),
-                Tab(text: 'Mine')
               ],
               labelColor: accentColor,
               unselectedLabelColor: mutedColor,
@@ -512,13 +459,6 @@ class _CommunityPanelState extends State<CommunityPanel>
                   mutedColor: mutedColor,
                   onPublish: _openPublishSheet,
                 ),
-                _MyPostsTab(
-                  accentColor: accentColor,
-                  isDark: dark,
-                  textColor: textColor,
-                  mutedColor: mutedColor,
-                  onAuthRequired: _showAuthSheet,
-                ),
               ],
             ),
           ),
@@ -531,53 +471,6 @@ class _CommunityPanelState extends State<CommunityPanel>
 // ─────────────────────────────────────────────────────────────────────────────
 // PROFILE AVATAR
 // ─────────────────────────────────────────────────────────────────────────────
-
-class _ProfileAvatar extends StatelessWidget {
-  final String? imagePath;
-  final String name;
-  final double size;
-
-  const _ProfileAvatar({
-    required this.imagePath,
-    required this.name,
-    this.size = 36,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
-    final color = _avatarColor(name);
-
-    if (imagePath != null &&
-        imagePath!.isNotEmpty &&
-        File(imagePath!).existsSync()) {
-      return ClipOval(
-        child: Image.file(File(imagePath!),
-            width: size, height: size, fit: BoxFit.cover),
-      );
-    }
-
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.18),
-        shape: BoxShape.circle,
-        border: Border.all(color: color.withOpacity(0.45), width: 1.5),
-      ),
-      child: Center(
-        child: Text(
-          initial,
-          style: GoogleFonts.inter(
-            fontSize: size * 0.38,
-            fontWeight: FontWeight.w700,
-            color: color,
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // FOR YOU TAB
@@ -1497,249 +1390,6 @@ class _FeedEntryCard extends StatelessWidget {
 // MY POSTS TAB
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _MyPostsTab extends StatelessWidget {
-  final Color accentColor;
-  final bool isDark;
-  final Color textColor;
-  final Color mutedColor;
-  final VoidCallback onAuthRequired;
-
-  const _MyPostsTab({
-    required this.accentColor,
-    required this.isDark,
-    required this.textColor,
-    required this.mutedColor,
-    required this.onAuthRequired,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final state = context.watch<CommunityState>();
-    final bookmarks = state.bookmarkedEntries;
-
-    if (!SupabaseService.instance.isAuthenticated) {
-      return Column(
-        children: [
-          // Show bookmarks even when not signed in (they're local)
-          if (bookmarks.isNotEmpty)
-            _buildBookmarksPill(context, bookmarks),
-          Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.lock_outline_rounded,
-                        size: 48, color: mutedColor.withOpacity(0.3)),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Sign in to view\nyour published entries.',
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.crimsonPro(
-                          fontSize: 18,
-                          fontStyle: FontStyle.italic,
-                          color: mutedColor),
-                    ),
-                    const SizedBox(height: 24),
-                    GestureDetector(
-                      onTap: onAuthRequired,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 24, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: AppColors.aqua.withOpacity(0.12),
-                          borderRadius: BorderRadius.circular(10),
-                          border:
-                              Border.all(color: AppColors.aqua.withOpacity(0.4)),
-                        ),
-                        child: Text('Sign In',
-                            style: GoogleFonts.inter(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.aqua)),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    }
-
-    if (state.myPostsLoading && state.myPosts.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
-    }
-
-    return RefreshIndicator(
-      onRefresh: () => context.read<CommunityState>().loadMyPosts(),
-      child: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // ── Bookmarks pill ─────────────────────────────────────────
-          if (bookmarks.isNotEmpty)
-            SliverToBoxAdapter(child: _buildBookmarksPill(context, bookmarks)),
-
-          // ── My posts ───────────────────────────────────────────────
-          if (state.myPosts.isEmpty)
-            SliverFillRemaining(
-              child: Center(
-                child: Text("You haven't published anything yet.",
-                    style: GoogleFonts.crimsonPro(
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                        color: mutedColor)),
-              ),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) {
-                  final entry = state.myPosts[i];
-                  return _FeedEntryCard(
-                    entry: entry,
-                    isDark: isDark,
-                    textColor: textColor,
-                    mutedColor: mutedColor,
-                    onTap: () => Navigator.of(ctx).push(
-                      MaterialPageRoute(
-                          builder: (_) => CommunityEntryViewer(entry: entry)),
-                    ),
-                    onAppreciate: () {},
-                  );
-                },
-                childCount: state.myPosts.length,
-              ),
-            ),
-
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildBookmarksPill(
-      BuildContext context, List<PublishedEntry> bookmarks) {
-    return GestureDetector(
-      onTap: () => _showBookmarksSheet(context, bookmarks),
-      child: Container(
-        margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        decoration: BoxDecoration(
-          color: isDark
-              ? Colors.white.withOpacity(0.05)
-              : Colors.black.withOpacity(0.03),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: accentColor.withOpacity(0.3)),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.bookmark_rounded, size: 18, color: accentColor),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Bookmarks',
-                      style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: textColor)),
-                  Text(
-                      '${bookmarks.length} saved '
-                      '${bookmarks.length == 1 ? 'entry' : 'entries'}',
-                      style:
-                          GoogleFonts.inter(fontSize: 12, color: mutedColor)),
-                ],
-              ),
-            ),
-            Icon(Icons.chevron_right_rounded,
-                size: 18, color: mutedColor.withOpacity(0.5)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showBookmarksSheet(
-      BuildContext context, List<PublishedEntry> bookmarks) {
-    final bg = isDark ? AppColors.warmDark : AppColors.warmWhite;
-    showModalBottomSheet<void>(
-      context: context,
-      backgroundColor: bg,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.75,
-        maxChildSize: 0.95,
-        builder: (ctx, sc) => Column(
-          children: [
-            const SizedBox(height: 12),
-            Center(
-              child: Container(
-                width: 36,
-                height: 4,
-                decoration: BoxDecoration(
-                    color: mutedColor.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(2)),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Row(
-                children: [
-                  const Icon(Icons.bookmark_rounded,
-                      size: 20, color: AppColors.aqua),
-                  const SizedBox(width: 10),
-                  Text('Bookmarks',
-                      style: GoogleFonts.crimsonPro(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w700,
-                          color: textColor)),
-                ],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Expanded(
-              child: bookmarks.isEmpty
-                  ? Center(
-                      child: Text('No bookmarks yet.',
-                          style: GoogleFonts.crimsonPro(
-                              fontSize: 16,
-                              fontStyle: FontStyle.italic,
-                              color: mutedColor)))
-                  : ListView.builder(
-                      controller: sc,
-                      padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
-                      itemCount: bookmarks.length,
-                      itemBuilder: (ctx2, i) => _FeedEntryCard(
-                        entry: bookmarks[i],
-                        isDark: isDark,
-                        textColor: textColor,
-                        mutedColor: mutedColor,
-                        onTap: () {
-                          Navigator.pop(ctx);
-                          Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) =>
-                                  CommunityEntryViewer(entry: bookmarks[i])));
-                        },
-                        onAppreciate: () => ctx
-                            .read<CommunityState>()
-                            .toggleClap(bookmarks[i].id),
-                      ),
-                    ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLISH SHEET
@@ -2090,290 +1740,7 @@ class _PublishSheetState extends State<_PublishSheet> {
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// PROFILE SHEET
-// ─────────────────────────────────────────────────────────────────────────────
 
-class _ProfileSheet extends StatefulWidget {
-  final String email;
-  final bool isDark;
-  final String? currentName;
-  final String? currentImagePath;
-  final VoidCallback onSignOut;
-  final VoidCallback onProfileUpdated;
-
-  const _ProfileSheet({
-    required this.email,
-    required this.isDark,
-    this.currentName,
-    this.currentImagePath,
-    required this.onSignOut,
-    required this.onProfileUpdated,
-  });
-
-  @override
-  State<_ProfileSheet> createState() => _ProfileSheetState();
-}
-
-class _ProfileSheetState extends State<_ProfileSheet> {
-  late TextEditingController _nameCtrl;
-  bool _saving = false;
-  bool _saved = false;
-  String? _imagePath;
-
-  @override
-  void initState() {
-    super.initState();
-    _imagePath = widget.currentImagePath;
-    _nameCtrl = TextEditingController(
-      text: widget.currentName ?? widget.email.split('@').first,
-    );
-  }
-
-  @override
-  void dispose() {
-    _nameCtrl.dispose();
-    super.dispose();
-  }
-
-  Future<void> _pickProfileImage() async {
-    final ok = await PermissionService.instance.ensurePhotos(context);
-    if (!ok || !mounted) return;
-    final path = await ImageService.instance.pickAndSave(
-      context: context,
-      allowCrop: true,
-      cropAspectRatioX: 1,
-      cropAspectRatioY: 1,
-    );
-    if (path != null && mounted) {
-      await context.read<CommunityState>().saveProfile(imagePath: path);
-      setState(() => _imagePath = path);
-    }
-  }
-
-  Future<void> _save() async {
-    final name = _nameCtrl.text.trim();
-    if (name.isEmpty) return;
-    if (!mounted) return;
-    setState(() => _saving = true);
-    try {
-      await context.read<CommunityState>().saveProfile(name: name);
-    } catch (_) {
-      // Silently handle errors if widget was disposed during save
-    }
-    if (!mounted) return;
-    setState(() {
-      _saving = false;
-      _saved = true;
-    });
-    await Future.delayed(const Duration(milliseconds: 1200));
-    if (!mounted) return;
-    setState(() => _saved = false);
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor =
-        widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
-    final divColor =
-        widget.isDark ? AppColors.dividerDark : AppColors.dividerLight;
-    final cardBg = widget.isDark
-        ? Colors.white.withOpacity(0.05)
-        : Colors.black.withOpacity(0.03);
-
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const SizedBox(height: 12),
-          Center(
-              child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: mutedColor.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(2)))),
-          const SizedBox(height: 20),
-          Center(
-            child: GestureDetector(
-              onTap: _pickProfileImage,
-              child: Stack(
-                children: [
-                  Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: cardBg,
-                      border: Border.all(
-                          color: AppColors.aqua.withOpacity(0.4), width: 2),
-                    ),
-                    child: _imagePath != null && File(_imagePath!).existsSync()
-                        ? ClipOval(
-                            child: Image.file(File(_imagePath!),
-                                width: 80, height: 80, fit: BoxFit.cover))
-                        : Center(
-                            child: Icon(Icons.person_rounded,
-                                size: 38, color: mutedColor)),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                          color: AppColors.aqua, shape: BoxShape.circle),
-                      child: const Icon(Icons.camera_alt_rounded,
-                          size: 13, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text('Tap to change photo',
-              style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              decoration: BoxDecoration(
-                  color: cardBg, borderRadius: BorderRadius.circular(12)),
-              child: Row(
-                children: [
-                  Icon(Icons.email_outlined, size: 16, color: mutedColor),
-                  const SizedBox(width: 10),
-                  Expanded(
-                      child: Text(
-                          widget.email.isEmpty ? 'Signed in' : widget.email,
-                          style: GoogleFonts.inter(
-                              fontSize: 13, color: textColor))),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                    decoration: BoxDecoration(
-                      color: AppColors.aqua.withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text('Verified',
-                        style: GoogleFonts.inter(
-                            fontSize: 10,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.aqua)),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 14),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Container(
-              decoration: BoxDecoration(
-                color: cardBg,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: divColor.withOpacity(0.5)),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: TextField(
-                      controller: _nameCtrl,
-                      style: GoogleFonts.inter(fontSize: 15, color: textColor),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 16, vertical: 14),
-                        hintText: 'Display name',
-                        hintStyle:
-                            GoogleFonts.inter(fontSize: 15, color: mutedColor),
-                      ),
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: _saving ? null : _save,
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: _saved
-                            ? Colors.green.withOpacity(0.15)
-                            : AppColors.aqua.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(
-                            color: _saved
-                                ? Colors.green.withOpacity(0.4)
-                                : AppColors.aqua.withOpacity(0.4)),
-                      ),
-                      child: _saving
-                          ? const SizedBox(
-                              width: 14,
-                              height: 14,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 1.5, color: AppColors.aqua))
-                          : Text(_saved ? 'Saved ✓' : 'Save',
-                              style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color:
-                                      _saved ? Colors.green : AppColors.aqua)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(height: 20),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Divider(color: divColor, thickness: 0.5),
-          ),
-          const SizedBox(height: 12),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: widget.onSignOut,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.logout_rounded,
-                          size: 18, color: AppColors.danger),
-                      const SizedBox(width: 10),
-                      Text('Sign Out',
-                          style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              color: AppColors.danger)),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: widget.onProfileUpdated,
-                  child: Text('Done',
-                      style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.aqua)),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
-        ],
-      ),
-    );
-  }
-}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH SHEET

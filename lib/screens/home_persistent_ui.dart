@@ -16,8 +16,13 @@ import '../widgets/neumorphic_widgets.dart';
 
 class HomePersistentUI extends StatelessWidget {
   final VoidCallback onMenuTap;
+  final VoidCallback onSearchTap;
 
-  const HomePersistentUI({super.key, required this.onMenuTap});
+  const HomePersistentUI({
+    super.key,
+    required this.onMenuTap,
+    required this.onSearchTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -40,14 +45,28 @@ class HomePersistentUI extends StatelessWidget {
             // CRITICAL: No back button here. This corner is reserved.
             const SunMoonIndicator(),
 
-            // ── Glass menu button — top-right, ALWAYS ─────────────────────
-            GlassButton(
-              onTap: onMenuTap,
-              child: const Icon(
-                Icons.menu,
-                size: 18,
-                color: Colors.white,
-              ),
+            // ── Search + Menu buttons — top-right, ALWAYS ─────────────────
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                GlassButton(
+                  onTap: onSearchTap,
+                  child: const Icon(
+                    Icons.search_rounded,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GlassButton(
+                  onTap: onMenuTap,
+                  child: const Icon(
+                    Icons.menu,
+                    size: 18,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ],
         ),
