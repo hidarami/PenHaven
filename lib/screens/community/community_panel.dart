@@ -183,7 +183,7 @@ class _CommunityPanelState extends State<CommunityPanel>
     _initialized = true;
     final state = context.read<CommunityState>();
     await state.loadProfile();
-    await state.loadFeatured(); // Load pinned featured entry state
+    await state.loadFeatured();
     await state.loadFeed();
     if (SupabaseService.instance.isAuthenticated) {
       await state.loadMyPosts();
@@ -247,21 +247,24 @@ class _CommunityPanelState extends State<CommunityPanel>
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (_) => _ProfileSheet(
-        email: SupabaseService.instance.userEmail ?? '',
-        isDark: dark,
-        currentName: _displayName,
-        currentImagePath: _profileImagePath,
-        onSignOut: () async {
-          Navigator.pop(context);
-          await SupabaseService.instance.signOut();
-          setState(() {});
-        },
-        onProfileUpdated: () {
-          Navigator.pop(context);
-          context.read<CommunityState>().loadProfile();
-        },
-      ),
+      builder: (_) {
+        final cs = context.read<CommunityState>();
+        return _ProfileSheet(
+          email: SupabaseService.instance.userEmail ?? '',
+          isDark: dark,
+          currentName: cs.profileDisplayName,
+          currentImagePath: cs.profileImagePath,
+          onSignOut: () async {
+            Navigator.pop(context);
+            await SupabaseService.instance.signOut();
+            setState(() {});
+          },
+          onProfileUpdated: () {
+            Navigator.pop(context);
+            context.read<CommunityState>().loadProfile();
+          },
+        );
+      },
     );
   }
 
@@ -374,10 +377,6 @@ class _CommunityPanelState extends State<CommunityPanel>
                 Tab(text: 'Recent'),
                 Tab(text: 'Mine')
               ],
-              labelStyle:
-                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-              unselectedLabelStyle:
-                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w400),
               labelColor: AppColors.aqua,
               unselectedLabelColor: mutedColor,
               indicatorColor: AppColors.aqua,
@@ -425,7 +424,7 @@ class _CommunityPanelState extends State<CommunityPanel>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PROFILE AVATAR — properly loads and displays image
+// PROFILE AVATAR
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ProfileAvatar extends StatelessWidget {
@@ -476,7 +475,7 @@ class _ProfileAvatar extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FOR YOU TAB — Sanctuary-style home
+// FOR YOU TAB
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ForYouTab extends StatelessWidget {
@@ -515,7 +514,6 @@ class _ForYouTab extends StatelessWidget {
                 selectedCategory.toLowerCase())
             .toList();
 
-    // Use pinned featured entry if still valid; otherwise fall back to first
     final featuredId = state.featuredEntryId;
     PublishedEntry? featured;
     List<PublishedEntry> recentItems;
@@ -540,7 +538,6 @@ class _ForYouTab extends StatelessWidget {
     return CustomScrollView(
       physics: const BouncingScrollPhysics(),
       slivers: [
-        // Category chips
         SliverToBoxAdapter(
           child: _CategoryChipsRow(
             selectedCategory: selectedCategory,
@@ -593,7 +590,6 @@ class _ForYouTab extends StatelessWidget {
             ),
           )
         else ...[
-          // "Featured Reflection" label
           if (featured != null)
             SliverToBoxAdapter(
               child: Padding(
@@ -606,7 +602,6 @@ class _ForYouTab extends StatelessWidget {
               ),
             ),
 
-          // Featured card
           if (featured != null)
             SliverToBoxAdapter(
               child: Padding(
@@ -621,7 +616,6 @@ class _ForYouTab extends StatelessWidget {
               ),
             ),
 
-          // "Recently Shared" header
           if (recentItems.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
@@ -647,7 +641,6 @@ class _ForYouTab extends StatelessWidget {
               ),
             ),
 
-          // Recently shared list
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (ctx, i) {
@@ -753,7 +746,7 @@ class _CategoryChipsRow extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FEATURED CARD — large card with image/gradient overlay
+// FEATURED CARD
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _FeaturedCard extends StatelessWidget {
@@ -769,7 +762,10 @@ class _FeaturedCard extends StatelessWidget {
         File(entry.headerImage!).existsSync();
     final gradient = _entryGradient(entry);
     final catColor = _categoryColor(entry.category);
-    final author = entry.authorLabel;
+    final communityState = context.watch<CommunityState>();
+    final author = entry.isOwner
+        ? (communityState.profileDisplayName ?? entry.authorLabel)
+        : entry.authorLabel;
     final authorColor = _avatarColor(author);
     final authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
 
@@ -785,7 +781,6 @@ class _FeaturedCard extends StatelessWidget {
             fit: StackFit.expand,
             clipBehavior: Clip.hardEdge,
             children: [
-              // Background
               hasImage
                   ? Image.file(File(entry.headerImage!),
                       fit: BoxFit.cover,
@@ -793,7 +788,6 @@ class _FeaturedCard extends StatelessWidget {
                           _GradientBox(gradient: gradient))
                   : _GradientBox(gradient: gradient),
 
-              // Gradient overlay — dark at bottom
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -809,14 +803,12 @@ class _FeaturedCard extends StatelessWidget {
                 ),
               ),
 
-              // Content
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    // Category badge
                     if (entry.category != null && entry.category!.isNotEmpty)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 10),
@@ -839,7 +831,6 @@ class _FeaturedCard extends StatelessWidget {
                         ),
                       ),
 
-                    // Title
                     Text(
                       entry.title.isEmpty ? 'Untitled' : entry.title,
                       style: GoogleFonts.crimsonPro(
@@ -852,7 +843,6 @@ class _FeaturedCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
 
-                    // Preview
                     if (entry.content.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -869,22 +859,13 @@ class _FeaturedCard extends StatelessWidget {
 
                     const SizedBox(height: 14),
 
-                    // Author + Read button
                     Row(
                       children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                              color: authorColor, shape: BoxShape.circle),
-                          child: Center(
-                            child: Text(authorInitial,
-                                style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.white)),
-                          ),
-                        ),
+                        _AuthorAvatar(
+                            entry: entry,
+                            size: 28,
+                            authorColor: authorColor,
+                            authorInitial: authorInitial),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -945,7 +926,7 @@ class _GradientBox extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPACT ENTRY CARD — Recently Shared style (image left, text right)
+// COMPACT ENTRY CARD
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _CompactEntryCard extends StatelessWidget {
@@ -972,7 +953,10 @@ class _CompactEntryCard extends StatelessWidget {
         File(entry.headerImage!).existsSync();
     final gradient = _entryGradient(entry);
     final catColor = _categoryColor(entry.category);
-    final author = entry.authorLabel;
+    final communityState = context.watch<CommunityState>();
+    final author = entry.isOwner
+        ? (communityState.profileDisplayName ?? entry.authorLabel)
+        : entry.authorLabel;
     final authorColor = _avatarColor(author);
     final authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
     final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
@@ -987,7 +971,6 @@ class _CompactEntryCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Thumbnail
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: SizedBox(
@@ -1002,7 +985,6 @@ class _CompactEntryCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 14),
-                // Text
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1051,19 +1033,11 @@ class _CompactEntryCard extends StatelessWidget {
                       const SizedBox(height: 7),
                       Row(
                         children: [
-                          Container(
-                            width: 18,
-                            height: 18,
-                            decoration: BoxDecoration(
-                                color: authorColor, shape: BoxShape.circle),
-                            child: Center(
-                              child: Text(authorInitial,
-                                  style: GoogleFonts.inter(
-                                      fontSize: 8,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white)),
-                            ),
-                          ),
+                          _AuthorAvatar(
+                              entry: entry,
+                              size: 18,
+                              authorColor: authorColor,
+                              authorInitial: authorInitial),
                           const SizedBox(width: 5),
                           Text(author,
                               style: GoogleFonts.inter(
@@ -1116,7 +1090,7 @@ class _CompactEntryCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// RECENT TAB — Community feed (middle panel style)
+// RECENT TAB
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _RecentTab extends StatelessWidget {
@@ -1216,7 +1190,7 @@ class _RecentTab extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// FEED ENTRY CARD — middle panel card style
+// FEED ENTRY CARD
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _FeedEntryCard extends StatelessWidget {
@@ -1243,7 +1217,10 @@ class _FeedEntryCard extends StatelessWidget {
         File(entry.headerImage!).existsSync();
     final gradient = _entryGradient(entry);
     final catColor = _categoryColor(entry.category);
-    final author = entry.authorLabel;
+    final communityState = context.watch<CommunityState>();
+    final author = entry.isOwner
+        ? (communityState.profileDisplayName ?? entry.authorLabel)
+        : entry.authorLabel;
     final authorColor = _avatarColor(author);
     final authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
     final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
@@ -1261,7 +1238,6 @@ class _FeedEntryCard extends StatelessWidget {
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Thumbnail
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: SizedBox(
@@ -1330,19 +1306,11 @@ class _FeedEntryCard extends StatelessWidget {
                 const SizedBox(height: 11),
                 Row(
                   children: [
-                    Container(
-                      width: 22,
-                      height: 22,
-                      decoration: BoxDecoration(
-                          color: authorColor, shape: BoxShape.circle),
-                      child: Center(
-                        child: Text(authorInitial,
-                            style: GoogleFonts.inter(
-                                fontSize: 9,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white)),
-                      ),
-                    ),
+                    _AuthorAvatar(
+                        entry: entry,
+                        size: 22,
+                        authorColor: authorColor,
+                        authorInitial: authorInitial),
                     const SizedBox(width: 7),
                     Text(author,
                         style: GoogleFonts.inter(
@@ -1515,7 +1483,7 @@ class _MyPostsTab extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PUBLISH SHEET — with category picker
+// PUBLISH SHEET
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PublishSheet extends StatefulWidget {
@@ -1679,7 +1647,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                     ),
             ),
 
-            // Category + options + button
             Padding(
               padding: EdgeInsets.fromLTRB(
                   24, 12, 24, 16 + MediaQuery.of(context).padding.bottom),
@@ -1689,7 +1656,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                   Divider(color: divColor, thickness: 0.5),
                   const SizedBox(height: 12),
 
-                  // Category picker
                   Text('CATEGORY',
                       style: GoogleFonts.inter(
                           fontSize: 10,
@@ -1701,7 +1667,7 @@ class _PublishSheetState extends State<_PublishSheet> {
                     height: 36,
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
-                      itemCount: _kCategories.length - 1, // skip 'All'
+                      itemCount: _kCategories.length - 1,
                       separatorBuilder: (_, __) => const SizedBox(width: 6),
                       itemBuilder: (_, i) {
                         final cat = _kCategories[i + 1];
@@ -1741,7 +1707,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Display name
                   if (!_isAnon) ...[
                     Container(
                       decoration: BoxDecoration(
@@ -1769,7 +1734,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                     const SizedBox(height: 10),
                   ],
 
-                  // Anonymous toggle
                   GestureDetector(
                     onTap: () => setState(() => _isAnon = !_isAnon),
                     child: Row(
@@ -1800,7 +1764,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                   ),
                   const SizedBox(height: 14),
 
-                  // Publish button
                   SizedBox(
                     width: double.infinity,
                     child: GestureDetector(
@@ -1869,7 +1832,7 @@ class _PublishSheetState extends State<_PublishSheet> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// PROFILE SHEET — with image picker, fixes avatar not showing
+// PROFILE SHEET
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ProfileSheet extends StatefulWidget {
@@ -1932,15 +1895,21 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   Future<void> _save() async {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
+    if (!mounted) return;
     setState(() => _saving = true);
-    await context.read<CommunityState>().saveProfile(name: name);
-    if (mounted)
-      setState(() {
-        _saving = false;
-        _saved = true;
-      });
+    try {
+      await context.read<CommunityState>().saveProfile(name: name);
+    } catch (_) {
+      // Silently handle errors if widget was disposed during save
+    }
+    if (!mounted) return;
+    setState(() {
+      _saving = false;
+      _saved = true;
+    });
     await Future.delayed(const Duration(milliseconds: 1200));
-    if (mounted) setState(() => _saved = false);
+    if (!mounted) return;
+    setState(() => _saved = false);
   }
 
   @override
@@ -1969,8 +1938,6 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                       color: mutedColor.withOpacity(0.3),
                       borderRadius: BorderRadius.circular(2)))),
           const SizedBox(height: 20),
-
-          // Profile image
           Center(
             child: GestureDetector(
               onTap: _pickProfileImage,
@@ -2013,8 +1980,6 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           Text('Tap to change photo',
               style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
           const SizedBox(height: 20),
-
-          // Email
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Container(
@@ -2047,10 +2012,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
               ),
             ),
           ),
-
           const SizedBox(height: 14),
-
-          // Display name
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Container(
@@ -2110,14 +2072,12 @@ class _ProfileSheetState extends State<_ProfileSheet> {
               ),
             ),
           ),
-
           const SizedBox(height: 20),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Divider(color: divColor, thickness: 0.5),
           ),
           const SizedBox(height: 12),
-
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
             child: Row(
@@ -2149,7 +2109,6 @@ class _ProfileSheetState extends State<_ProfileSheet> {
               ],
             ),
           ),
-
           SizedBox(height: MediaQuery.of(context).padding.bottom + 16),
         ],
       ),
@@ -2275,9 +2234,6 @@ class _AuthSheetState extends State<_AuthSheet>
               unselectedLabelColor: mutedColor,
               indicatorColor: AppColors.aqua,
               dividerColor: Colors.transparent,
-              labelStyle:
-                  GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600),
-              unselectedLabelStyle: GoogleFonts.inter(fontSize: 13),
             ),
             const SizedBox(height: 16),
             _InputField(
@@ -2371,6 +2327,58 @@ class _InputField extends StatelessWidget {
               const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
           hintText: hint,
           hintStyle: GoogleFonts.inter(fontSize: 14, color: mutedColor),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AUTHOR AVATAR
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _AuthorAvatar extends StatelessWidget {
+  final PublishedEntry entry;
+  final double size;
+  final Color authorColor;
+  final String authorInitial;
+
+  const _AuthorAvatar({
+    required this.entry,
+    required this.size,
+    required this.authorColor,
+    required this.authorInitial,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (entry.isOwner) {
+      final imagePath = context.read<CommunityState>().profileImagePath;
+      if (imagePath != null &&
+          imagePath.isNotEmpty &&
+          File(imagePath).existsSync()) {
+        return ClipOval(
+          child: Image.file(
+            File(imagePath),
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+          ),
+        );
+      }
+    }
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(color: authorColor, shape: BoxShape.circle),
+      child: Center(
+        child: Text(
+          authorInitial,
+          style: GoogleFonts.inter(
+            fontSize: size * 0.40,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
         ),
       ),
     );

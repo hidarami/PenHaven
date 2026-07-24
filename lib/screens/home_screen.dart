@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../atmosphere/atmosphere_overlay.dart';
 import '../atmosphere/atmosphere_image_layer.dart';
@@ -32,6 +34,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late final PageController _pageController;
+  Timer? _lockTimer;
 
   @override
   void initState() {
@@ -43,25 +46,61 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     // Run mercy archive on app open
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AppState>().runMercyArchive();
+      _checkPendingLock();
     });
   }
 
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _lockTimer?.cancel();
     _pageController.dispose();
     super.dispose();
+  }
+
+  Future<void> _checkPendingLock() async {
+    // Check if app was backgrounded for more than 1 minute
+    final prefs = await SharedPreferences.getInstance();
+    final backgroundedAt = prefs.getInt('appBackgroundedAt');
+    if (backgroundedAt != null) {
+      final backgroundedTime =
+          DateTime.fromMillisecondsSinceEpoch(backgroundedAt);
+      final elapsed = DateTime.now().difference(backgroundedTime);
+      if (elapsed.inMinutes >= 1) {
+        final appState = context.read<AppState>();
+        if (appState.isLockEnabled && !appState.isLocked) {
+          appState.lockApp();
+        }
+      }
+      // Clear the timestamp
+      await prefs.remove('appBackgroundedAt');
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
-    // Auto-lock when app goes to background (if biometric is enabled)
     if (state == AppLifecycleState.paused) {
-      final appState = context.read<AppState>();
-      if (appState.isLockEnabled && !appState.isLocked) {
-        appState.lockApp();
-      }
+      // App going to background - start timer and store timestamp
+      _lockTimer?.cancel();
+      _lockTimer = Timer(const Duration(minutes: 1), () async {
+        final appState = context.read<AppState>();
+        if (appState.isLockEnabled && !appState.isLocked) {
+          appState.lockApp();
+        }
+      });
+      // Store timestamp for handling app termination
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.setInt(
+            'appBackgroundedAt', DateTime.now().millisecondsSinceEpoch);
+      });
+    } else if (state == AppLifecycleState.resumed) {
+      // App returned - cancel timer and clear timestamp
+      _lockTimer?.cancel();
+      _lockTimer = null;
+      SharedPreferences.getInstance().then((prefs) {
+        prefs.remove('appBackgroundedAt');
+      });
     }
   }
 

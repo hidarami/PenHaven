@@ -2,10 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../models/community_comment.dart';
 import '../../models/published_entry.dart';
@@ -61,6 +65,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     _commentCount = _entry.commentCount;
     _schedulePillHide();
     _scrollCtrl.addListener(_onScroll);
+    _loadBookmark();
   }
 
   @override
@@ -69,6 +74,15 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     _hideTimer?.cancel();
     _scrollCtrl.dispose();
     super.dispose();
+  }
+
+// Loads persisted bookmark state for this entry
+  Future<void> _loadBookmark() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() =>
+          _isBookmarked = prefs.getBool('bookmark_${_entry.id}') ?? false);
+    }
   }
 
   void _onScroll() {
@@ -171,13 +185,27 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     context.read<CommunityState>().toggleClap(_entry.id);
   }
 
-  void _handleBookmark() => setState(() => _isBookmarked = !_isBookmarked);
+  Future<void> _handleBookmark() async {
+    final newVal = !_isBookmarked;
+    setState(() => _isBookmarked = newVal);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('bookmark_${_entry.id}', newVal);
+  }
 
   void _handleShare() {
     HapticFeedback.lightImpact();
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-          content: Text('Share link copied — deep-link not yet wired.')),
+    _showShareSheet(context);
+  }
+
+  void _showShareSheet(BuildContext ctx) {
+    final dark = ctx.read<AppState>().isDarkMode;
+    final profileImagePath = ctx.read<CommunityState>().profileImagePath;
+    showModalBottomSheet<void>(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _SanctuaryShareSheet(
+          entry: _entry, isDark: dark, profileImagePath: profileImagePath),
     );
   }
 
@@ -532,14 +560,30 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                     padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
                     child: Row(
                       children: [
-                        _AvatarCircle(name: _entry.authorLabel, size: 38),
+                        _AvatarCircle(
+                          name: _entry.isOwner
+                              ? (context
+                                      .watch<CommunityState>()
+                                      .profileDisplayName ??
+                                  _entry.authorLabel)
+                              : _entry.authorLabel,
+                          size: 38,
+                          imagePath: _entry.isOwner
+                              ? context.read<CommunityState>().profileImagePath
+                              : null,
+                        ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                _entry.authorLabel,
+                                _entry.isOwner
+                                    ? (context
+                                            .watch<CommunityState>()
+                                            .profileDisplayName ??
+                                        _entry.authorLabel)
+                                    : _entry.authorLabel,
                                 style: GoogleFonts.inter(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -905,7 +949,8 @@ class _NavIconButton extends StatelessWidget {
 class _AvatarCircle extends StatelessWidget {
   final String name;
   final double size;
-  const _AvatarCircle({required this.name, required this.size});
+  final String? imagePath;
+  const _AvatarCircle({required this.name, required this.size, this.imagePath});
 
   Color _color(String n) {
     const colors = [
@@ -925,6 +970,14 @@ class _AvatarCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    if (imagePath != null &&
+        imagePath!.isNotEmpty &&
+        File(imagePath!).existsSync()) {
+      return ClipOval(
+        child: Image.file(File(imagePath!),
+            width: size, height: size, fit: BoxFit.cover),
+      );
+    }
     return Container(
       width: size,
       height: size,
@@ -1190,6 +1243,635 @@ class _CommentCard extends StatelessWidget {
               ],
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SANCTUARY SHARE SHEET — generates editorial card formats for social sharing
+// Matches the design board: Editorial, Magazine, Quote Story, Paper
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _SanctuaryShareSheet extends StatefulWidget {
+  final PublishedEntry entry;
+  final bool isDark;
+  final String? profileImagePath;
+  const _SanctuaryShareSheet(
+      {required this.entry, required this.isDark, this.profileImagePath});
+
+  @override
+  State<_SanctuaryShareSheet> createState() => _SanctuaryShareSheetState();
+}
+
+class _SanctuaryShareSheetState extends State<_SanctuaryShareSheet> {
+  int _selected = 0; // 0=Editorial, 1=Magazine, 2=Quote, 3=Paper
+  bool _sharing = false;
+  final _previewKey = GlobalKey();
+
+  Widget _buildCard() {
+    switch (_selected) {
+      case 0:
+        return _EditorialShareCard(
+            entry: widget.entry, profileImagePath: widget.profileImagePath);
+      case 1:
+        return _MagazineShareCard(
+            entry: widget.entry, profileImagePath: widget.profileImagePath);
+      case 2:
+        return _QuoteShareCard(
+            entry: widget.entry, profileImagePath: widget.profileImagePath);
+      default:
+        return _PaperShareCard(
+            entry: widget.entry, profileImagePath: widget.profileImagePath);
+    }
+  }
+
+  Future<void> _shareCard() async {
+    setState(() => _sharing = true);
+    try {
+      // Allow one frame for any animation to settle
+      await Future.delayed(const Duration(milliseconds: 150));
+      final boundary = _previewKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) {
+        setState(() => _sharing = false);
+        return;
+      }
+      // Capture at 3× for high-res social output
+      final image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ImageByteFormat.png);
+      if (byteData == null) {
+        setState(() => _sharing = false);
+        return;
+      }
+      final bytes = byteData.buffer.asUint8List();
+      final dir = await getTemporaryDirectory();
+      final file = File(
+          '${dir.path}/sanctuary_${DateTime.now().millisecondsSinceEpoch}.png');
+      await file.writeAsBytes(bytes);
+      if (!mounted) return;
+      Navigator.pop(context);
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'image/png')],
+        subject: widget.entry.title.isEmpty ? 'Sanctuary' : widget.entry.title,
+      );
+    } catch (e) {
+      debugPrint('[SanctuaryShare] $e');
+    }
+    if (mounted) setState(() => _sharing = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bg = widget.isDark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = widget.isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor =
+        widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+    final screenH = MediaQuery.of(context).size.height;
+    // Quote format uses taller preview to approach 9:16
+    final cardH = _selected == 2 ? (screenH * 0.44).clamp(220.0, 520.0) : 200.0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      child: SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // ── Drag handle ──────────────────────────────────────
+              const SizedBox(height: 12),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: mutedColor.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // ── Header ───────────────────────────────────────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text('Share beautifully',
+                    style: GoogleFonts.crimsonPro(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        color: textColor)),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 2, 24, 12),
+                child: Text('Choose a card format.',
+                    style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+              ),
+
+              // ── Format tabs ──────────────────────────────────────
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(children: [
+                  _ShareTab(
+                    label: 'Editorial',
+                    icon: Icons.auto_stories_outlined,
+                    selected: _selected == 0,
+                    onTap: () => setState(() => _selected = 0),
+                  ),
+                  _ShareTab(
+                    label: 'Magazine',
+                    icon: Icons.photo_library_outlined,
+                    selected: _selected == 1,
+                    onTap: () => setState(() => _selected = 1),
+                  ),
+                  _ShareTab(
+                    label: 'Quote Story',
+                    icon: Icons.format_quote_rounded,
+                    selected: _selected == 2,
+                    onTap: () => setState(() => _selected = 2),
+                  ),
+                  _ShareTab(
+                    label: 'Paper',
+                    icon: Icons.article_outlined,
+                    selected: _selected == 3,
+                    onTap: () => setState(() => _selected = 3),
+                  ),
+                ]),
+              ),
+              const SizedBox(height: 14),
+
+              // ── Card preview (also the capture target) ───────────
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: RepaintBoundary(
+                    key: _previewKey,
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 280),
+                      curve: Curves.easeInOut,
+                      height: cardH,
+                      child: _buildCard(),
+                    ),
+                  ),
+                ),
+              ),
+
+              // ── Stories hint ─────────────────────────────────────
+              if (_selected == 2)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
+                  child: Text('Optimised for Instagram & TikTok Stories',
+                      style: GoogleFonts.inter(
+                          fontSize: 10,
+                          color: mutedColor,
+                          fontStyle: FontStyle.italic)),
+                ),
+              const SizedBox(height: 16),
+
+              // ── Share button ─────────────────────────────────────
+              Padding(
+                padding: EdgeInsets.fromLTRB(24, 0, 24, bottomPad + 12),
+                child: GestureDetector(
+                  onTap: _sharing ? null : _shareCard,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    decoration: BoxDecoration(
+                      color: AppColors.aqua.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                      border:
+                          Border.all(color: AppColors.aqua.withOpacity(0.5)),
+                    ),
+                    child: Center(
+                      child: _sharing
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 1.5, color: AppColors.aqua))
+                          : Row(mainAxisSize: MainAxisSize.min, children: [
+                              const Icon(Icons.ios_share_outlined,
+                                  size: 16, color: AppColors.aqua),
+                              const SizedBox(width: 8),
+                              Text('Share this card',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.aqua)),
+                            ]),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Format tab pill ───────────────────────────────────────────────────────────
+
+class _ShareTab extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _ShareTab(
+      {required this.label,
+      required this.icon,
+      required this.selected,
+      required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color:
+              selected ? AppColors.aqua.withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+              color: selected
+                  ? AppColors.aqua.withOpacity(0.5)
+                  : Colors.grey.withOpacity(0.3)),
+        ),
+        child: Row(mainAxisSize: MainAxisSize.min, children: [
+          Icon(icon, size: 13, color: selected ? AppColors.aqua : Colors.grey),
+          const SizedBox(width: 5),
+          Text(label,
+              style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? AppColors.aqua : Colors.grey)),
+        ]),
+      ),
+    );
+  }
+}
+
+// ── Sanctuary watermark ───────────────────────────────────────────────────────
+
+class _SanctuaryMark extends StatelessWidget {
+  final bool light;
+  const _SanctuaryMark({this.light = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final color =
+        light ? Colors.white.withOpacity(0.55) : const Color(0xFF8A8178);
+    return Row(mainAxisSize: MainAxisSize.min, children: [
+      Icon(Icons.nightlight_rounded, size: 9, color: color),
+      const SizedBox(width: 4),
+      Text('Sanctuary',
+          style: GoogleFonts.inter(
+              fontSize: 8,
+              fontWeight: FontWeight.w600,
+              color: color,
+              letterSpacing: 1.4)),
+    ]);
+  }
+}
+
+// ── Card 1: Editorial — text left, image right ────────────────────────────────
+
+class _EditorialShareCard extends StatelessWidget {
+  final PublishedEntry entry;
+  final String? profileImagePath;
+  const _EditorialShareCard({required this.entry, this.profileImagePath});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = entry.headerImage != null &&
+        entry.headerImage!.isNotEmpty &&
+        File(entry.headerImage!).existsSync();
+    final catColor = const Color(0xFF4A7A6A);
+    final authorInitial =
+        entry.authorLabel.isNotEmpty ? entry.authorLabel[0].toUpperCase() : 'A';
+    final hasProfileImage = profileImagePath != null &&
+        profileImagePath!.isNotEmpty &&
+        File(profileImagePath!).existsSync();
+
+    return Container(
+      color: const Color(0xFFF7F3EE), // warm cream
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Left: all text content
+          Expanded(
+            flex: 55,
+            child: Padding(
+              padding: const EdgeInsets.all(18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (entry.category != null && entry.category!.isNotEmpty) ...[
+                    Text(
+                      entry.category!.toUpperCase(),
+                      style: GoogleFonts.inter(
+                          fontSize: 7,
+                          fontWeight: FontWeight.w700,
+                          color: catColor,
+                          letterSpacing: 1.5),
+                    ),
+                    const SizedBox(height: 6),
+                  ],
+                  Text(
+                    entry.title.isEmpty ? 'Untitled' : entry.title,
+                    style: GoogleFonts.crimsonPro(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1A1410),
+                        height: 1.2),
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: Text(
+                      entry.preview(100),
+                      style: GoogleFonts.inter(
+                          fontSize: 9,
+                          color: const Color(0xFF8A8178),
+                          height: 1.55),
+                      overflow: TextOverflow.fade,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Author row
+                  Row(children: [
+                    Container(
+                      width: 16,
+                      height: 16,
+                      decoration: const BoxDecoration(
+                          color: Color(0xFF7BA591), shape: BoxShape.circle),
+                      child: Center(
+                          child: Text(authorInitial,
+                              style: const TextStyle(
+                                  fontSize: 8,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700))),
+                    ),
+                    const SizedBox(width: 5),
+                    Expanded(
+                        child: Text(entry.authorLabel,
+                            style: GoogleFonts.inter(
+                                fontSize: 8,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1A1410)),
+                            overflow: TextOverflow.ellipsis)),
+                  ]),
+                  const SizedBox(height: 6),
+                  const _SanctuaryMark(),
+                ],
+              ),
+            ),
+          ),
+          // Right: header image or gradient
+          Expanded(
+            flex: 45,
+            child: hasImage
+                ? Image.file(File(entry.headerImage!), fit: BoxFit.cover)
+                : Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF0D2415), Color(0xFF1A4028)],
+                      ),
+                    ),
+                    child: Center(
+                        child: Icon(Icons.nightlight_rounded,
+                            size: 32, color: Colors.white.withOpacity(0.15))),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Card 2: Magazine — full-bleed image with gradient overlay ─────────────────
+
+class _MagazineShareCard extends StatelessWidget {
+  final PublishedEntry entry;
+  const _MagazineShareCard({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImage = entry.headerImage != null &&
+        entry.headerImage!.isNotEmpty &&
+        File(entry.headerImage!).existsSync();
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        // Background
+        hasImage
+            ? Image.file(File(entry.headerImage!), fit: BoxFit.cover)
+            : Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF050A14), Color(0xFF0D1A2E)],
+                  ),
+                ),
+              ),
+        // Scrim
+        Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Colors.transparent, Colors.black.withOpacity(0.90)],
+              stops: const [0.25, 1.0],
+            ),
+          ),
+        ),
+        // Text content anchored at bottom
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: 16,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (entry.category != null && entry.category!.isNotEmpty)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                  decoration: BoxDecoration(
+                      color: const Color(0xFF7BA591),
+                      borderRadius: BorderRadius.circular(3)),
+                  child: Text(
+                    entry.category!.toUpperCase(),
+                    style: GoogleFonts.inter(
+                        fontSize: 7,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        letterSpacing: 1.0),
+                  ),
+                ),
+              Text(
+                entry.title.isEmpty ? 'Untitled' : entry.title,
+                style: GoogleFonts.crimsonPro(
+                    fontSize: 19,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 1.2),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 10),
+              Row(children: [
+                Text(entry.authorLabel,
+                    style: GoogleFonts.inter(
+                        fontSize: 8,
+                        color: Colors.white.withOpacity(0.75),
+                        fontWeight: FontWeight.w500)),
+                const Spacer(),
+                const _SanctuaryMark(light: true),
+              ]),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Card 3: Quote Story — dark vertical, Instagram/TikTok format ──────────────
+
+class _QuoteShareCard extends StatelessWidget {
+  final PublishedEntry entry;
+  const _QuoteShareCard({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    final quote = entry.preview(200);
+
+    return Container(
+      color: const Color(0xFF060C16),
+      padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Sanctuary branding top
+          const _SanctuaryMark(light: true),
+          const SizedBox(height: 28),
+          // Decorative large quotation mark
+          Text('"',
+              style: GoogleFonts.crimsonPro(
+                  fontSize: 64,
+                  color: const Color(0xFF7BA591).withOpacity(0.35),
+                  height: 0.8)),
+          const SizedBox(height: 8),
+          // Quote text (main content)
+          Expanded(
+            child: Text(
+              quote,
+              style: GoogleFonts.crimsonPro(
+                  fontSize: 17, color: const Color(0xFFF0EBE3), height: 1.78),
+              overflow: TextOverflow.fade,
+            ),
+          ),
+          const SizedBox(height: 20),
+          // Divider
+          Container(height: 0.5, color: Colors.white.withOpacity(0.12)),
+          const SizedBox(height: 14),
+          // Attribution
+          Text('— ${entry.authorLabel}',
+              style: GoogleFonts.inter(
+                  fontSize: 10,
+                  color: const Color(0xFF6B6058),
+                  letterSpacing: 0.3)),
+          if (entry.category != null && entry.category!.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              entry.category!.toUpperCase(),
+              style: GoogleFonts.inter(
+                  fontSize: 8,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF7BA591),
+                  letterSpacing: 1.2),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+// ── Card 4: Paper — clean minimal warm cream ──────────────────────────────────
+
+class _PaperShareCard extends StatelessWidget {
+  final PublishedEntry entry;
+  const _PaperShareCard({required this.entry});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFFFEF8EC),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (entry.category != null && entry.category!.isNotEmpty) ...[
+            Text(
+              entry.category!.toUpperCase(),
+              style: GoogleFonts.inter(
+                  fontSize: 7,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.8,
+                  color: const Color(0xFF7BA591)),
+            ),
+            const SizedBox(height: 8),
+          ],
+          Text(
+            entry.title.isEmpty ? 'Untitled' : entry.title,
+            style: GoogleFonts.crimsonPro(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1A1410),
+                height: 1.2),
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 12),
+          Container(height: 0.5, color: const Color(0xFFDED9D2)),
+          const SizedBox(height: 12),
+          Expanded(
+            child: Text(
+              entry.preview(110),
+              style: GoogleFonts.crimsonPro(
+                  fontSize: 12, color: const Color(0xFF8A8178), height: 1.65),
+              overflow: TextOverflow.fade,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            Text(entry.authorLabel,
+                style: GoogleFonts.inter(
+                    fontSize: 8,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1A1410))),
+            const Spacer(),
+            const _SanctuaryMark(),
+          ]),
         ],
       ),
     );
