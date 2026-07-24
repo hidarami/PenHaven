@@ -179,8 +179,9 @@ class AppState extends ChangeNotifier {
   Future<Story> createStory({
     required String title,
     String description = '',
+    String? coverImage,
   }) async {
-    final story = Story(title: title, description: description);
+    final story = Story(title: title, description: description, coverImage: coverImage);
     await StoryDao.instance.insert(story);
     _stories.insert(0, story);
     await selectStory(story);

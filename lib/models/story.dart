@@ -9,6 +9,7 @@ class Story {
   bool isLocked;
   bool isDeleted;
   String? themeLock; // null=system, 'dark'=always dark, 'light'=always light
+  String? coverImage; // local file path to cover art
 
   Story({
     String? id,
@@ -19,6 +20,7 @@ class Story {
     this.isLocked = false,
     this.isDeleted = false,
     this.themeLock,
+    this.coverImage,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         updatedAt = updatedAt ?? DateTime.now();
@@ -33,6 +35,7 @@ class Story {
       'isLocked': isLocked ? 1 : 0,
       'isDeleted': isDeleted ? 1 : 0,
       'themeLock': themeLock,
+      'coverImage': coverImage,
     };
   }
 
@@ -46,6 +49,7 @@ class Story {
       isLocked: (map['isLocked'] as int) == 1,
       isDeleted: (map['isDeleted'] as int) == 1,
       themeLock: map['themeLock'] as String?,
+      coverImage: map['coverImage'] as String?,
     );
   }
 
@@ -57,6 +61,8 @@ class Story {
     bool? isDeleted,
     String? themeLock,
     bool clearThemeLock = false,
+    String? coverImage,
+    bool clearCoverImage = false,
   }) {
     return Story(
       id: id,
@@ -67,6 +73,7 @@ class Story {
       isLocked: isLocked ?? this.isLocked,
       isDeleted: isDeleted ?? this.isDeleted,
       themeLock: clearThemeLock ? null : (themeLock ?? this.themeLock),
+      coverImage: clearCoverImage ? null : (coverImage ?? this.coverImage),
     );
   }
 }

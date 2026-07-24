@@ -1666,7 +1666,8 @@ class _EditorialShareCard extends StatelessWidget {
 
 class _MagazineShareCard extends StatelessWidget {
   final PublishedEntry entry;
-  const _MagazineShareCard({required this.entry});
+  final String? profileImagePath;
+  const _MagazineShareCard({required this.entry, this.profileImagePath});
 
   @override
   Widget build(BuildContext context) {
@@ -1758,7 +1759,8 @@ class _MagazineShareCard extends StatelessWidget {
 
 class _QuoteShareCard extends StatelessWidget {
   final PublishedEntry entry;
-  const _QuoteShareCard({required this.entry});
+  final String? profileImagePath;
+  const _QuoteShareCard({required this.entry, this.profileImagePath});
 
   @override
   Widget build(BuildContext context) {
@@ -1820,7 +1822,8 @@ class _QuoteShareCard extends StatelessWidget {
 
 class _PaperShareCard extends StatelessWidget {
   final PublishedEntry entry;
-  const _PaperShareCard({required this.entry});
+  final String? profileImagePath;
+  const _PaperShareCard({required this.entry, this.profileImagePath});
 
   @override
   Widget build(BuildContext context) {
