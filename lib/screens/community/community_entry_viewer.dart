@@ -15,6 +15,7 @@ import '../../providers/atmosphere_state.dart';
 import '../../providers/community_state.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
 import '../editor/editor_canvas.dart';
 import '../../widgets/shared_widgets.dart';
 
@@ -44,6 +45,10 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   final ScrollController _scrollCtrl = ScrollController();
   double _readProgress = 0;
   bool _hasClapped = false;
+  String? _viewerFontName;
+  double _imageBrightness = 1.0;
+  bool _isBookmarked = false;
+  bool _showBrightnessSlider = false;
   int _clapCount = 0;
   int _commentCount = 0;
 
@@ -166,6 +171,101 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     context.read<CommunityState>().toggleClap(_entry.id);
   }
 
+  void _handleBookmark() => setState(() => _isBookmarked = !_isBookmarked);
+
+  void _handleShare() {
+    HapticFeedback.lightImpact();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Share link copied — deep-link not yet wired.')),
+    );
+  }
+
+  void _showFontPicker(BuildContext ctx) {
+    final dark = ctx.read<AppState>().isDarkMode;
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = dark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+    showModalBottomSheet<void>(
+      context: ctx,
+      backgroundColor: bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) {
+        final fonts = AppTypography.fontDisplayNames.entries.toList();
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 12),
+              Center(child: Container(width: 36, height: 4, decoration: BoxDecoration(color: mutedColor.withOpacity(0.3), borderRadius: BorderRadius.circular(2)))),
+              const SizedBox(height: 14),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Text('Reading Font', style: GoogleFonts.crimsonPro(fontSize: 22, fontWeight: FontWeight.w700, color: textColor)),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: fonts.length,
+                  itemBuilder: (_, i) {
+                    final key = fonts[i].key;
+                    final name = fonts[i].value;
+                    final current = _viewerFontName ?? ctx.read<AppState>().preferredFont;
+                    return ListTile(
+                      title: Text(name, style: AppTypography.bodyTextFor(key, textColor, size: 16, height: 1.5)),
+                      trailing: current == key ? const Icon(Icons.check_rounded, color: AppColors.aqua) : null,
+                      onTap: () { setState(() => _viewerFontName = key); Navigator.pop(_); },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showMoreMenu(BuildContext ctx) {
+    final dark = ctx.read<AppState>().isDarkMode;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+    showModalBottomSheet<void>(
+      context: ctx,
+      builder: (_) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            if (_entry.isOwner)
+              ListTile(
+                leading: const Icon(Icons.delete_outline, color: AppColors.danger),
+                title: const Text('Delete from Sanctuary', style: TextStyle(color: AppColors.danger)),
+                onTap: () async {
+                  Navigator.pop(_);
+                  await ctx.read<CommunityState>().deletePost(_entry.id);
+                  if (mounted) Navigator.of(ctx).pop();
+                },
+              ),
+            ListTile(
+              leading: Icon(Icons.brightness_medium_outlined, color: mutedColor),
+              title: const Text('Adjust image brightness'),
+              onTap: () { Navigator.pop(_); setState(() => _showBrightnessSlider = !_showBrightnessSlider); },
+            ),
+            ListTile(
+              leading: Icon(Icons.share_outlined, color: mutedColor),
+              title: const Text('Share this entry'),
+              onTap: () { Navigator.pop(_); _handleShare(); },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// Estimates reading time in minutes.
   String _readTime(String content) {
     final words = content.trim().split(RegExp(r'\s+')).length;
@@ -186,191 +286,193 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     final bg = context.watch<AtmosphereState>().backgroundFor(dark);
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
-    final fontName = context.watch<AppState>().preferredFont;
+    final fontName = _viewerFontName ?? context.watch<AppState>().preferredFont;
     final bottomPad = MediaQuery.of(context).padding.bottom;
     final topPad = MediaQuery.of(context).padding.top;
     final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
+    final hasHeaderImage = _entry.headerImage != null &&
+        _entry.headerImage!.isNotEmpty &&
+        File(_entry.headerImage!).existsSync();
+    const imageH = 280.0;
 
-    return GestureDetector(
-      onHorizontalDragEnd: (d) {
-        if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
-      },
-      onTap: () {
-        if (!_pillVisible) {
-          setState(() => _pillVisible = true);
-          _schedulePillHide();
-        }
-      },
-      child: Scaffold(
-        backgroundColor: bg,
-        body: Stack(
-          children: [
-            // ── Reading progress bar ──────────────────────────────────────
+    return Scaffold(
+      backgroundColor: bg,
+      body: Stack(
+        children: [
+          // ── Reading progress bar ──────────────────────────────────────
+          Positioned(
+            top: 0,
+            left: 0,
+            child: Container(
+              height: 2.5,
+              width: MediaQuery.of(context).size.width * _readProgress,
+              color: AppColors.aqua.withOpacity(0.7),
+            ),
+          ),
+
+          // ── Header image (local path, shows for author) ───────────
+          if (_entry.headerImage != null && _entry.headerImage!.isNotEmpty)
+            Builder(builder: (context) {
+              final file = File(_entry.headerImage!);
+              if (!file.existsSync()) return const SizedBox.shrink();
+              return Padding(
+                padding: const EdgeInsets.only(top: 16),
+                child: Image.file(
+                  file,
+                  width: double.infinity,
+                  height: 220,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                ),
+              );
+            }),
+
+          // ── Main content ──────────────────────────────────────────
+          SingleChildScrollView(
+            controller: _scrollCtrl,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Title
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                  child: Text(
+                    _entry.title.isEmpty ? 'Untitled' : _entry.title,
+                    style: GoogleFonts.crimsonPro(
+                      fontSize: 34,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                      height: 1.15,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ),
+
+                // Author row
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
+                  child: Row(
+                    children: [
+                      _AvatarCircle(name: _entry.authorLabel, size: 38),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              _entry.authorLabel,
+                              style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: textColor,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              '${_readTime(_entry.content)}  ·  ${_formatDate(_entry.createdAt)}',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                color: mutedColor,
+                                letterSpacing: 0.1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Thin divider
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+                  child: Container(height: 0.5, color: divColor),
+                ),
+
+                // Body content
+                Padding(
+                  padding: EdgeInsets.fromLTRB(24, 24, 24, bottomPad + 100),
+                  child: _buildBody(dark, fontName),
+                ),
+
+                // Comments section
+                if (_commentsOpen)
+                  _CommentsSection(
+                    comments: _comments,
+                    loading: _commentsLoading,
+                    controller: _commentCtrl,
+                    isAnon: _commentAnon,
+                    submitting: _submittingComment,
+                    isDark: dark,
+                    textColor: textColor,
+                    mutedColor: mutedColor,
+                    onAnonChanged: (v) => setState(() => _commentAnon = v),
+                    onSubmit: _submitComment,
+                  ),
+
+                SizedBox(height: bottomPad + 80),
+              ],
+            ),
+          ),
+
+          // ── Nav buttons overlaid ──────────────────────────────────────
+          Positioned(
+            top: topPad + 4,
+            left: 4,
+            right: 8,
+            child: Row(
+              children: [
+                _NavIconButton(icon: Icons.arrow_back_ios_new_rounded, hasImage: hasHeaderImage, mutedColor: mutedColor, onTap: () => Navigator.of(context).pop()),
+                const Spacer(),
+                _NavIconButton(icon: _isBookmarked ? Icons.bookmark_rounded : Icons.bookmark_border_rounded, hasImage: hasHeaderImage, mutedColor: mutedColor, active: _isBookmarked, onTap: _handleBookmark),
+                _NavIconButton(icon: Icons.text_fields_rounded, hasImage: hasHeaderImage, mutedColor: mutedColor, onTap: () => _showFontPicker(context)),
+                _NavIconButton(icon: Icons.more_horiz, hasImage: hasHeaderImage, mutedColor: mutedColor, onTap: () => _showMoreMenu(context)),
+              ],
+            ),
+          ),
+
+          // ── Brightness slider ─────────────────────────────────────────
+          if (_showBrightnessSlider && hasHeaderImage)
             Positioned(
-              top: 0,
-              left: 0,
+              top: topPad + 50,
+              left: 16,
+              right: 16,
               child: Container(
-                height: 2.5,
-                width: MediaQuery.of(context).size.width * _readProgress,
-                color: AppColors.aqua.withOpacity(0.7),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.brightness_low_rounded, size: 16, color: Colors.white70),
+                    Expanded(
+                      child: Slider(
+                        value: _imageBrightness, min: 0.3, max: 1.7,
+                        onChanged: (v) => setState(() => _imageBrightness = v),
+                        activeColor: Colors.white,
+                        inactiveColor: Colors.white30,
+                      ),
+                    ),
+                    const Icon(Icons.brightness_high_rounded, size: 16, color: Colors.white70),
+                  ],
+                ),
               ),
             ),
 
-            // ── Scrollable content ────────────────────────────────────────
-            CustomScrollView(
-              controller: _scrollCtrl,
-              physics: const BouncingScrollPhysics(),
-              slivers: [
-                // Status bar + nav row
-                SliverToBoxAdapter(
-                  child: Padding(
-                      padding: EdgeInsets.fromLTRB(4, topPad + 4, 8, 0),
-                      child: Row(
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.arrow_back_ios_new_rounded, size: 20, color: mutedColor),
-                            onPressed: () => Navigator.of(context).pop(),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            icon: Icon(Icons.bookmark_border_rounded, size: 22, color: mutedColor),
-                            onPressed: () {},
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.more_horiz, size: 22, color: mutedColor),
-                            onPressed: () {},
-                          ),
-                        ],
-                      ),
-                    ),
-                ),
-
-                // ── Title — editorial large format ────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                    child: Text(
-                      _entry.title.isEmpty ? 'Untitled' : _entry.title,
-                      style: GoogleFonts.crimsonPro(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w700,
-                        color: textColor,
-                        height: 1.15,
-                        letterSpacing: -0.3,
-                      ),
-                    ),
-                  ),
-                ),
-
-                // ── Author row ────────────────────────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
-                    child: Row(
-                      children: [
-                        // Author avatar
-                        _AvatarCircle(name: _entry.authorLabel, size: 38),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _entry.authorLabel,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${_readTime(_entry.content)}  ·  ${_formatDate(_entry.createdAt)}',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: mutedColor,
-                                  letterSpacing: 0.1,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // ── Thin divider ──────────────────────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-                    child: Container(height: 0.5, color: divColor),
-                  ),
-                ),
-
-                // ── Header image (local path, shows for author) ───────────
-                if (_entry.headerImage != null && _entry.headerImage!.isNotEmpty)
-                  SliverToBoxAdapter(
-                    child: Builder(builder: (context) {
-                      final file = File(_entry.headerImage!);
-                      if (!file.existsSync()) return const SizedBox.shrink();
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 16),
-                        child: Image.file(
-                          file,
-                          width: double.infinity,
-                          height: 220,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                        ),
-                      );
-                    }),
-                  ),
-
-                // ── Body content ──────────────────────────────────────────
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding:
-                        EdgeInsets.fromLTRB(24, 24, 24, bottomPad + 100),
-                    child: _buildBody(dark, fontName),
-                  ),
-                ),
-
-                // ── Comments section ──────────────────────────────────────
-                if (_commentsOpen)
-                  SliverToBoxAdapter(
-                    child: _CommentsSection(
-                      comments: _comments,
-                      loading: _commentsLoading,
-                      controller: _commentCtrl,
-                      isAnon: _commentAnon,
-                      submitting: _submittingComment,
-                      isDark: dark,
-                      textColor: textColor,
-                      mutedColor: mutedColor,
-                      onAnonChanged: (v) => setState(() => _commentAnon = v),
-                      onSubmit: _submitComment,
-                    ),
-                  ),
-
-                SliverToBoxAdapter(
-                    child: SizedBox(height: bottomPad + 80)),
-              ],
-            ),
-
-            // ── Glassmorphic action pill ──────────────────────────────────
-            Positioned(
-              bottom: bottomPad + 28,
-              left: 0,
-              right: 0,
-              child: AnimatedOpacity(
-                opacity: _pillVisible ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeOut,
-                child: IgnorePointer(
-                  ignoring: !_pillVisible,
-                  child: Center(
-                    child: _ActionPill(
+          // ── Glassmorphic action pill ──────────────────────────────────
+          Positioned(
+            bottom: bottomPad + 28,
+            left: 0,
+            right: 0,
+            child: AnimatedOpacity(
+              opacity: _pillVisible ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOut,
+              child: IgnorePointer(
+                ignoring: !_pillVisible,
+                child: Center(
+                  child: _ActionPill(
                     entry: _entry,
                     hasClapped: _hasClapped,
                     clapCount: _clapCount,
@@ -378,13 +480,13 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                     commentsOpen: _commentsOpen,
                     onClap: _handleClap,
                     onComment: _toggleComments,
-                  ),
+                    onShare: _handleShare,
                   ),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -415,6 +517,7 @@ class _ActionPill extends StatelessWidget {
   final bool commentsOpen;
   final VoidCallback onClap;
   final VoidCallback onComment;
+  final VoidCallback? onShare;
 
   const _ActionPill({
     required this.entry,
@@ -424,6 +527,7 @@ class _ActionPill extends StatelessWidget {
     required this.commentsOpen,
     required this.onClap,
     required this.onComment,
+    this.onShare,
   });
 
   @override
@@ -515,9 +619,12 @@ class _ActionPill extends StatelessWidget {
               Container(width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
 
               // ── Share ───────────────────────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Icon(Icons.ios_share_outlined, size: 17, color: Colors.white.withOpacity(0.9)),
+              GestureDetector(
+                onTap: onShare,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  child: Icon(Icons.ios_share_outlined, size: 17, color: Colors.white.withOpacity(0.9)),
+                ),
               ),
             ],
           ),
@@ -529,6 +636,45 @@ class _ActionPill extends StatelessWidget {
   String _formatCount(int n) {
     if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
     return '$n';
+  }
+}
+
+// ── Overlaid nav icon button ──────────────────────────────────────────────────
+
+class _NavIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool hasImage;
+  final Color mutedColor;
+  final bool active;
+
+  const _NavIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.hasImage,
+    required this.mutedColor,
+    this.active = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final color = hasImage
+        ? (active ? AppColors.aqua : Colors.white)
+        : (active ? AppColors.aqua : mutedColor);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 40,
+        height: 40,
+        decoration: hasImage
+            ? BoxDecoration(
+                color: Colors.black.withOpacity(0.28),
+                shape: BoxShape.circle,
+              )
+            : null,
+        child: Icon(icon, size: 20, color: color),
+      ),
+    );
   }
 }
 

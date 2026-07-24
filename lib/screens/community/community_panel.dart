@@ -124,9 +124,9 @@ class _CommunityPanelState extends State<CommunityPanel>
     with AutomaticKeepAliveClientMixin, SingleTickerProviderStateMixin {
   late TabController _tabController;
   bool _initialized = false;
+  String _selectedCategory = 'All';
   String? _displayName;
   String? _profileImagePath;
-  String _selectedCategory = 'All';
 
   @override
   bool get wantKeepAlive => true;
@@ -136,7 +136,6 @@ class _CommunityPanelState extends State<CommunityPanel>
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     WidgetsBinding.instance.addPostFrameCallback((_) => _init());
-    _loadProfile();
   }
 
   @override
@@ -159,6 +158,7 @@ class _CommunityPanelState extends State<CommunityPanel>
     if (_initialized) return;
     _initialized = true;
     final state = context.read<CommunityState>();
+    await state.loadProfile();
     await state.loadFeed();
     if (SupabaseService.instance.isAuthenticated) {
       await state.loadMyPosts();
@@ -233,7 +233,7 @@ class _CommunityPanelState extends State<CommunityPanel>
         },
         onProfileUpdated: () {
           Navigator.pop(context);
-          _loadProfile();
+          context.read<CommunityState>().loadProfile();
         },
       ),
     );
@@ -248,13 +248,16 @@ class _CommunityPanelState extends State<CommunityPanel>
     final mutedColor = AppColors.readableMuted(bg);
     final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
     final topPadding = MediaQuery.of(context).padding.top;
+    final communityState = context.watch<CommunityState>();
+    final displayName = communityState.profileDisplayName;
+    final profileImagePath = communityState.profileImagePath;
     final isAuth = SupabaseService.instance.isAuthenticated;
 
     if (!SupabaseService.instance.isSupabaseConfigured) {
       return _SetupRequired(isDark: dark, mutedColor: mutedColor, textColor: textColor);
     }
 
-    final username = _displayName ??
+    final username = displayName ??
         (SupabaseService.instance.userEmail?.split('@').first ?? 'there');
 
     return SafeArea(
@@ -316,7 +319,7 @@ class _CommunityPanelState extends State<CommunityPanel>
                     GestureDetector(
                       onTap: isAuth ? _showProfileSheet : _showAuthSheet,
                       child: _ProfileAvatar(
-                        imagePath: _profileImagePath,
+                        imagePath: profileImagePath,
                         name: username,
                         size: 38,
                       ),
@@ -682,12 +685,13 @@ class _FeaturedCard extends StatelessWidget {
     final authorColor = _avatarColor(author);
     final authorInitial = author.isNotEmpty ? author[0].toUpperCase() : '?';
 
+    final cardH = (MediaQuery.of(context).size.width - 48) * 9 / 16;
     return GestureDetector(
       onTap: onTap,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(16),
         child: SizedBox(
-          height: 258,
+          height: cardH,
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -1537,8 +1541,7 @@ class _PublishSheetState extends State<_PublishSheet> {
                         setState(() => _loading = true);
                         final name = _nameCtrl.text.trim();
                         if (!_isAnon && name.isNotEmpty) {
-                          final prefs = await SharedPreferences.getInstance();
-                          await prefs.setString('communityDisplayName', name);
+                          await context.read<CommunityState>().saveProfile(name: name);
                         }
                         widget.onPublish(
                           _selected!,
@@ -1634,8 +1637,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
       context: context, allowCrop: true, cropAspectRatioX: 1, cropAspectRatioY: 1,
     );
     if (path != null && mounted) {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('communityProfileImage', path);
+      await context.read<CommunityState>().saveProfile(imagePath: path);
       setState(() => _imagePath = path);
     }
   }
@@ -1644,8 +1646,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
     final name = _nameCtrl.text.trim();
     if (name.isEmpty) return;
     setState(() => _saving = true);
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('communityDisplayName', name);
+    await context.read<CommunityState>().saveProfile(name: name);
     if (mounted) setState(() { _saving = false; _saved = true; });
     await Future.delayed(const Duration(milliseconds: 1200));
     if (mounted) setState(() => _saved = false);

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 import '../../models/editor_block.dart';
@@ -7,6 +8,8 @@ import '../../models/entry_version.dart';
 import '../../providers/app_state.dart';
 import '../../providers/editor_state.dart';
 import '../../providers/atmosphere_state.dart';
+import '../../providers/community_state.dart';
+import '../../services/supabase_service.dart';
 import '../../data/version_dao.dart';
 import '../../theme/app_colors.dart';
 import '../../atmosphere/comfort_engine.dart';
@@ -40,7 +43,8 @@ class _EditorScreenState extends State<EditorScreen> {
   late TextEditingController _titleController;
   late List<EditorBlock> _blocks;
   final GlobalKey<EditorCanvasState> _canvasKey = GlobalKey();
-  // _socialCardRepaintKey removed — export now uses ExportSheet
+  bool _isPublished = false;
+  bool _updatingSanctuary = false;
 
   @override
   void initState() {
@@ -61,6 +65,7 @@ class _EditorScreenState extends State<EditorScreen> {
     editorState.bindAtmosphere(atmoState);
     editorState.onAutoSave = _performSave;
     editorState.startSession();
+    _checkIfPublished();
     // Force rebuild after first frame so _canvasKey.currentState is populated
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) setState(() {});
@@ -102,6 +107,38 @@ class _EditorScreenState extends State<EditorScreen> {
       timeSpentSeconds: _entry.timeSpentSeconds,
     );
     await VersionDao.instance.saveVersion(version);
+  }
+
+  // ── Sanctuary sync ─────────────────────────────────────────────────────────
+
+  Future<void> _checkIfPublished() async {
+    if (!SupabaseService.instance.isAuthenticated) return;
+    final pub = await SupabaseService.instance.getPublishedEntry(_entry.id);
+    if (mounted && pub != null) setState(() => _isPublished = true);
+  }
+
+  Future<void> _updateSanctuary() async {
+    if (_updatingSanctuary) return;
+    setState(() => _updatingSanctuary = true);
+    await _performSave();
+    try {
+      final existing = await SupabaseService.instance.getPublishedEntry(_entry.id);
+      if (existing != null) {
+        await SupabaseService.instance.publishEntry(
+          entry: _entry,
+          isAnonymous: existing.isAnonymous,
+          displayName: existing.displayName,
+          category: existing.category,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Sanctuary updated ✓')),
+          );
+          context.read<CommunityState>().loadFeed(refresh: true);
+        }
+      }
+    } catch (_) {}
+    if (mounted) setState(() => _updatingSanctuary = false);
   }
 
   // ── Back ───────────────────────────────────────────────────────────────────
@@ -242,6 +279,9 @@ class _EditorScreenState extends State<EditorScreen> {
                   onHistory: _openVersionHistory,
                   onEntryChanged: (e) => setState(() => _entry = e),
                   onImageExport: _exportAsImage,
+                  isPublished: _isPublished,
+                  updatingSanctuary: _updatingSanctuary,
+                  onUpdateSanctuary: _updateSanctuary,
                 ),
 
                 // Scrollable content
@@ -340,6 +380,9 @@ class _EditorBar extends StatelessWidget {
   final VoidCallback onHistory;
   final ValueChanged<Entry> onEntryChanged;
   final VoidCallback? onImageExport;
+  final bool isPublished;
+  final bool updatingSanctuary;
+  final VoidCallback? onUpdateSanctuary;
 
   const _EditorBar({
     required this.entry,
@@ -348,6 +391,9 @@ class _EditorBar extends StatelessWidget {
     required this.onHistory,
     required this.onEntryChanged,
     this.onImageExport,
+    this.isPublished = false,
+    this.updatingSanctuary = false,
+    this.onUpdateSanctuary,
   });
 
   @override
@@ -370,7 +416,31 @@ class _EditorBar extends StatelessWidget {
             onPressed: onHistory,
             tooltip: 'Version history',
           ),
-          // Overflow menu (reuse existing EditorAppBar logic)
+          // Sanctuary sync pill — appears only when entry is published
+          if (isPublished)
+            GestureDetector(
+              onTap: updatingSanctuary ? null : onUpdateSanctuary,
+              child: Container(
+                margin: const EdgeInsets.only(right: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.aqua.withOpacity(0.12),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: AppColors.aqua.withOpacity(0.4)),
+                ),
+                child: updatingSanctuary
+                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.aqua))
+                    : Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.cloud_sync_outlined, size: 13, color: AppColors.aqua),
+                          const SizedBox(width: 4),
+                          Text('Sync', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.aqua)),
+                        ],
+                      ),
+              ),
+            ),
+          // Overflow menu
           IconButton(
             icon: Icon(Icons.more_horiz, size: 22, color: mutedColor),
             onPressed: () => _showMenu(context),

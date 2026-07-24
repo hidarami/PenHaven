@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/published_entry.dart';
 import '../models/community_comment.dart';
 import '../models/entry.dart';
@@ -20,6 +21,32 @@ class CommunityState extends ChangeNotifier {
   bool get myPostsLoading => _myPostsLoading;
   bool get hasMore => _hasMore;
   String? get error => _error;
+
+  // ── Profile cache ──────────────────────────────────────────────────────────
+  String? _profileDisplayName;
+  String? _profileImagePath;
+  String? get profileDisplayName => _profileDisplayName;
+  String? get profileImagePath => _profileImagePath;
+
+  Future<void> loadProfile() async {
+    final prefs = await SharedPreferences.getInstance();
+    _profileDisplayName = prefs.getString('communityDisplayName');
+    _profileImagePath = prefs.getString('communityProfileImage');
+    notifyListeners();
+  }
+
+  Future<void> saveProfile({String? name, String? imagePath}) async {
+    final prefs = await SharedPreferences.getInstance();
+    if (name != null) {
+      _profileDisplayName = name;
+      await prefs.setString('communityDisplayName', name);
+    }
+    if (imagePath != null) {
+      _profileImagePath = imagePath;
+      await prefs.setString('communityProfileImage', imagePath);
+    }
+    notifyListeners();
+  }
 
   Future<void> loadFeed({bool refresh = false}) async {
     if (_feedLoading) return;

@@ -121,7 +121,11 @@ class EditorCanvasState extends State<EditorCanvas> {
         text.contains('**') ||
         text.contains('> ') ||
         text.contains('```') ||
-        text.contains('---\n');
+        text.contains('---\n') ||
+        text.contains('//') ||
+        text.contains('~~') ||
+        text.contains('==') ||
+        text.contains('__');
   }
 
   void _offerMarkdownConversion(String blockId, String text) {
@@ -167,6 +171,50 @@ class EditorCanvasState extends State<EditorCanvas> {
     widget.onBlocksChanged(_blocks);
   }
 
+  /// Strips inline markdown markers from [input] and returns
+  /// (cleanText, formatRanges). Handles **bold**, *italic*, //italic//,
+  /// __underline__, ~~strikethrough~~, ==highlight==.
+  (String, List<FormatRange>) _parseInlineMarkdown(String input) {
+    final rawMatches = <(int, int, int, int, FormatAttrs)>[];
+
+    void collect(RegExp re, FormatAttrs attrs) {
+      for (final m in re.allMatches(input)) {
+        final group1 = m.group(1);
+        if (group1 != null) {
+          final groupStart = input.indexOf(group1, m.start);
+          final groupEnd = groupStart + group1.length;
+          rawMatches.add((m.start, m.end, groupStart, groupEnd, attrs));
+        }
+      }
+    }
+
+    // Order matters: ** before * to avoid partial match
+    collect(RegExp(r'\*\*(.+?)\*\*'), FormatAttrs(bold: true));
+    collect(RegExp(r'(?<!\*)\*(?!\*)(.+?)(?<!\*)\*(?!\*)'), FormatAttrs(italic: true));
+    collect(RegExp(r'//(.+?)//'), FormatAttrs(italic: true));
+    collect(RegExp(r'__(.+?)__'), FormatAttrs(underline: true));
+    collect(RegExp(r'~~(.+?)~~'), FormatAttrs(strikethrough: true));
+    collect(RegExp(r'==(.+?)=='), FormatAttrs(highlight: const Color(0xFFFFFF00)));
+
+    rawMatches.sort((a, b) => a.$1.compareTo(b.$1));
+
+    final buf = StringBuffer();
+    final formats = <FormatRange>[];
+    int pos = 0;
+
+    for (final m in rawMatches) {
+      if (m.$1 < pos) continue; // skip overlapping
+      buf.write(input.substring(pos, m.$1));
+      final cleanStart = buf.length;
+      buf.write(input.substring(m.$3, m.$4)); // content only
+      formats.add(FormatRange(start: cleanStart, end: buf.length, attrs: m.$5));
+      pos = m.$2;
+    }
+    buf.write(input.substring(pos));
+
+    return (buf.toString(), formats);
+  }
+
   List<EditorBlock> _parseMarkdownToBlocks(String text) {
     final blocks = <EditorBlock>[];
     final lines = text.split('\n');
@@ -174,54 +222,42 @@ class EditorCanvasState extends State<EditorCanvas> {
 
     void flushText() {
       final t = currentText.toString().trim();
-      if (t.isNotEmpty)
-        blocks.add(
-            TextBlock(id: const Uuid().v4(), type: BlockType.text, text: t));
+      if (t.isNotEmpty) {
+        final (clean, fmts) = _parseInlineMarkdown(t);
+        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.text, text: clean, formats: fmts));
+      }
       currentText.clear();
+    }
+
+    TextBlock inlineBlock(String raw, BlockType type) {
+      final (clean, fmts) = _parseInlineMarkdown(raw);
+      return TextBlock(id: const Uuid().v4(), type: type, text: clean, formats: fmts);
     }
 
     for (final line in lines) {
       if (line.startsWith('# ')) {
         flushText();
-        blocks.add(TextBlock(
-            id: const Uuid().v4(),
-            type: BlockType.heading1,
-            text: line.substring(2)));
+        blocks.add(inlineBlock(line.substring(2), BlockType.heading1));
       } else if (line.startsWith('## ')) {
         flushText();
-        blocks.add(TextBlock(
-            id: const Uuid().v4(),
-            type: BlockType.heading2,
-            text: line.substring(3)));
+        blocks.add(inlineBlock(line.substring(3), BlockType.heading2));
       } else if (line.startsWith('### ')) {
         flushText();
-        blocks.add(TextBlock(
-            id: const Uuid().v4(),
-            type: BlockType.heading3,
-            text: line.substring(4)));
+        blocks.add(inlineBlock(line.substring(4), BlockType.heading3));
       } else if (line.startsWith('> ')) {
         flushText();
-        blocks.add(TextBlock(
-            id: const Uuid().v4(),
-            type: BlockType.quote,
-            text: line.substring(2)));
+        blocks.add(inlineBlock(line.substring(2), BlockType.quote));
       } else if (line.trim() == '---' || line.trim() == '***') {
         flushText();
         blocks.add(DividerBlock(id: const Uuid().v4()));
       } else if (line.startsWith('- [ ] ') || line.startsWith('- [x] ') || line.startsWith('- [X] ')) {
-        // Markdown checklist syntax
         flushText();
         final isChecked = !line.startsWith('- [ ] ');
-        final text = line.substring(6);
-        blocks.add(ChecklistBlock(id: const Uuid().v4(), text: text, isChecked: isChecked));
+        blocks.add(ChecklistBlock(id: const Uuid().v4(), text: line.substring(6), isChecked: isChecked));
       } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        // Bullet list
         flushText();
-        blocks.add(TextBlock(
-          id: const Uuid().v4(),
-          type: BlockType.bulletList,
-          text: line.substring(2),
-        ));
+        final (clean, fmts) = _parseInlineMarkdown(line.substring(2));
+        blocks.add(TextBlock(id: const Uuid().v4(), type: BlockType.bulletList, text: clean, formats: fmts));
       } else {
         if (currentText.isNotEmpty) currentText.write('\n');
         currentText.write(line);
