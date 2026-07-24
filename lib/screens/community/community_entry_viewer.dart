@@ -151,8 +151,9 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     }
 
     setState(() => _submittingComment = true);
+    final communityState = context.read<CommunityState>();
     final email = SupabaseService.instance.userEmail;
-    final displayName = email?.split('@').first;
+    final displayName = communityState.profileDisplayName ?? email?.split('@').first;
 
     final ok = await context.read<CommunityState>().addComment(
           entryId: _entry.id,
@@ -1269,6 +1270,19 @@ class _SanctuaryShareSheetState extends State<_SanctuaryShareSheet> {
   int _selected = 0; // 0=Editorial, 1=Magazine, 2=Quote, 3=Paper
   bool _sharing = false;
   final _previewKey = GlobalKey();
+  late TextEditingController _quoteTextCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _quoteTextCtrl = TextEditingController(text: widget.entry.preview(300));
+  }
+
+  @override
+  void dispose() {
+    _quoteTextCtrl.dispose();
+    super.dispose();
+  }
 
   Widget _buildCard() {
     switch (_selected) {
@@ -1280,10 +1294,14 @@ class _SanctuaryShareSheetState extends State<_SanctuaryShareSheet> {
             entry: widget.entry, profileImagePath: widget.profileImagePath);
       case 2:
         return _QuoteShareCard(
-            entry: widget.entry, profileImagePath: widget.profileImagePath);
+            entry: widget.entry,
+            profileImagePath: widget.profileImagePath,
+            customText: _quoteTextCtrl.text);
       default:
         return _PaperShareCard(
-            entry: widget.entry, profileImagePath: widget.profileImagePath);
+            entry: widget.entry,
+            profileImagePath: widget.profileImagePath,
+            customText: _quoteTextCtrl.text);
     }
   }
 
@@ -1404,6 +1422,55 @@ class _SanctuaryShareSheetState extends State<_SanctuaryShareSheet> {
                 ]),
               ),
               const SizedBox(height: 14),
+
+              // ── Custom text editor for Quote / Paper formats ──────
+              if (_selected == 2 || _selected == 3)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'EDIT QUOTE TEXT',
+                        style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: mutedColor,
+                            letterSpacing: 1.5),
+                      ),
+                      const SizedBox(height: 6),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: widget.isDark
+                              ? Colors.white.withOpacity(0.06)
+                              : Colors.black.withOpacity(0.04),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: widget.isDark
+                                  ? Colors.white.withOpacity(0.1)
+                                  : Colors.black.withOpacity(0.08)),
+                        ),
+                        child: TextField(
+                          controller: _quoteTextCtrl,
+                          maxLines: 4,
+                          minLines: 2,
+                          onChanged: (_) => setState(() {}),
+                          style: GoogleFonts.crimsonPro(
+                              fontSize: 14, color: textColor, height: 1.6),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(12),
+                            hintText: 'Enter quote text for the card...',
+                            hintStyle: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: mutedColor,
+                                fontStyle: FontStyle.italic),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // ── Card preview (also the capture target) ───────────
               Padding(
@@ -1611,17 +1678,20 @@ class _EditorialShareCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   // Author row
                   Row(children: [
-                    Container(
-                      width: 16,
-                      height: 16,
-                      decoration: const BoxDecoration(
-                          color: Color(0xFF7BA591), shape: BoxShape.circle),
-                      child: Center(
-                          child: Text(authorInitial,
-                              style: const TextStyle(
-                                  fontSize: 8,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700))),
+                    ClipOval(
+                      child: hasProfileImage
+                          ? Image.file(File(profileImagePath!),
+                              width: 16, height: 16, fit: BoxFit.cover)
+                          : Container(
+                              width: 16,
+                              height: 16,
+                              color: const Color(0xFF7BA591),
+                              child: Center(
+                                  child: Text(authorInitial,
+                                      style: const TextStyle(
+                                          fontSize: 8,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700)))),
                     ),
                     const SizedBox(width: 5),
                     Expanded(
@@ -1760,11 +1830,12 @@ class _MagazineShareCard extends StatelessWidget {
 class _QuoteShareCard extends StatelessWidget {
   final PublishedEntry entry;
   final String? profileImagePath;
-  const _QuoteShareCard({required this.entry, this.profileImagePath});
+  final String? customText;
+  const _QuoteShareCard({required this.entry, this.profileImagePath, this.customText});
 
   @override
   Widget build(BuildContext context) {
-    final quote = entry.preview(200);
+    final quote = (customText?.trim().isNotEmpty == true) ? customText! : entry.preview(200);
 
     return Container(
       color: const Color(0xFF060C16),
@@ -1823,7 +1894,8 @@ class _QuoteShareCard extends StatelessWidget {
 class _PaperShareCard extends StatelessWidget {
   final PublishedEntry entry;
   final String? profileImagePath;
-  const _PaperShareCard({required this.entry, this.profileImagePath});
+  final String? customText;
+  const _PaperShareCard({required this.entry, this.profileImagePath, this.customText});
 
   @override
   Widget build(BuildContext context) {
@@ -1859,7 +1931,7 @@ class _PaperShareCard extends StatelessWidget {
           const SizedBox(height: 12),
           Expanded(
             child: Text(
-              entry.preview(110),
+              (customText?.trim().isNotEmpty == true) ? customText! : entry.preview(110),
               style: GoogleFonts.crimsonPro(
                   fontSize: 12, color: const Color(0xFF8A8178), height: 1.65),
               overflow: TextOverflow.fade,

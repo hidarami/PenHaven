@@ -1,11 +1,7 @@
 import 'dart:io';
-import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
-import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 
 import '../../models/entry.dart';
@@ -49,15 +45,9 @@ class _ExportSheetState extends State<ExportSheet> {
   bool _showHeader = false;
   bool _showFooter = false;
   bool _includeImages = true;
-  String _layoutMode = 'full'; // 'full' | 'pages'
   bool _showOptions = true;
   bool _exporting = false;
 
-  // Pages mode state
-  List<String> _pageTexts = [];
-  int _currentPreviewPage = 0;
-
-  final GlobalKey _exportKey = GlobalKey();
   late final TextEditingController _headerCtrl;
   late final TextEditingController _footerCtrl;
 
@@ -79,108 +69,6 @@ class _ExportSheetState extends State<ExportSheet> {
   }
 
   // ── Export ────────────────────────────────────────────────────────────────
-
-  Future<void> _exportAsImage() async {
-    if (_exporting) return;
-    setState(() => _exporting = true);
-
-    try {
-      if (_layoutMode == 'pages') {
-        await _exportAsPages();
-      } else {
-        await _exportAsSingle();
-      }
-    } catch (e) {
-      debugPrint('[ExportSheet] failed: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Export failed: $e')),
-        );
-      }
-    }
-
-    if (mounted) setState(() => _exporting = false);
-  }
-
-  Future<void> _exportAsSingle() async {
-    await Future.delayed(const Duration(milliseconds: 300));
-    if (!mounted) return;
-
-    final boundary =
-        _exportKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
-    if (boundary == null) return;
-
-    final image = await boundary.toImage(pixelRatio: 3.0);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-    image.dispose();
-    if (byteData == null || !mounted) return;
-
-    final dir = await getTemporaryDirectory();
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    final file = File(p.join(dir.path, 'flow_$ts.png'));
-    await file.writeAsBytes(byteData.buffer.asUint8List());
-
-    if (!mounted) return;
-    Navigator.pop(context);
-    await Share.shareXFiles(
-      [XFile(file.path, mimeType: 'image/png')],
-      subject:
-          widget.entry.title.isNotEmpty ? widget.entry.title : 'Flow Entry',
-    );
-  }
-
-  Future<void> _exportAsPages() async {
-    // Text-based pagination — no image slicing, no mid-word cuts
-    final texts = _paginateContent();
-    if (texts.isEmpty) return;
-
-    final dir = await getTemporaryDirectory();
-    final ts = DateTime.now().millisecondsSinceEpoch;
-    final files = <File>[];
-
-    for (int i = 0; i < texts.length; i++) {
-      if (!mounted) break;
-
-      // Update preview to show this page's content
-      setState(() {
-        _pageTexts = texts;
-        _currentPreviewPage = i;
-      });
-
-      // Wait for widget to render this page
-      await Future.delayed(const Duration(milliseconds: 200));
-      if (!mounted) break;
-
-      final boundary = _exportKey.currentContext?.findRenderObject()
-          as RenderRepaintBoundary?;
-      if (boundary == null) continue;
-
-      final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      image.dispose();
-
-      if (byteData != null) {
-        final file = File(p.join(dir.path, 'flow_p${i + 1}_$ts.png'));
-        await file.writeAsBytes(byteData.buffer.asUint8List());
-        files.add(file);
-      }
-    }
-
-    // Reset pagination state
-    setState(() {
-      _pageTexts = [];
-      _currentPreviewPage = 0;
-    });
-
-    if (files.isEmpty || !mounted) return;
-    Navigator.pop(context);
-    await Share.shareXFiles(
-      files.map((f) => XFile(f.path, mimeType: 'image/png')).toList(),
-      subject:
-          widget.entry.title.isNotEmpty ? widget.entry.title : 'Flow Entry',
-      text: files.length > 1 ? '${files.length} pages · written in Flow' : null,
-    );
-  }
 
   // ── Pagination constants ───────────────────────────────────────────────────
   // Page: 360×640px. Content padding: 28px each side → 304px content width.
@@ -480,53 +368,6 @@ class _ExportSheetState extends State<ExportSheet> {
                   if (_showOptions) ...[
                     const SizedBox(height: 12),
 
-                    // Layout mode
-                    _Card(
-                      isDark: widget.isDark,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Layout',
-                              style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor)),
-                          const SizedBox(height: 10),
-                          Row(
-                            children: [
-                              _ModeChip(
-                                label: 'Full Content',
-                                sub: 'One tall image',
-                                isActive: _layoutMode == 'full',
-                                isDark: widget.isDark,
-                                onTap: () =>
-                                    setState(() => _layoutMode = 'full'),
-                              ),
-                              const SizedBox(width: 8),
-                              _ModeChip(
-                                label: 'Split to Pages',
-                                sub: '9:16 portrait',
-                                isActive: _layoutMode == 'pages',
-                                isDark: widget.isDark,
-                                onTap: () =>
-                                    setState(() => _layoutMode = 'pages'),
-                              ),
-                            ],
-                          ),
-                          if (_layoutMode == 'pages') ...[
-                            const SizedBox(height: 8),
-                            Text(
-                              'Long entries are split into multiple portrait images. Share them as a collection.',
-                              style: GoogleFonts.inter(
-                                  fontSize: 11, color: mutedColor, height: 1.4),
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
                     // Toggles
                     _Card(
                       isDark: widget.isDark,
@@ -665,58 +506,22 @@ class _ExportSheetState extends State<ExportSheet> {
 
                   ClipRRect(
                     borderRadius: BorderRadius.circular(12),
-                    child: RepaintBoundary(
-                      key: _exportKey,
-                      child: _EntryExportView(
-                        entry: widget.entry,
-                        isDark: _exportDark,
-                        showDate: _showDate,
-                        showWatermark: _showWatermark,
-                        includeImages: _includeImages,
-                        showHeader: _showHeader,
-                        headerText: _headerCtrl.text,
-                        showFooter: _showFooter,
-                        footerText: _footerCtrl.text,
-                        // Pages mode: override text content + show page numbers
-                        pageOverrideText: _pageTexts.isNotEmpty
-                            ? _pageTexts[_currentPreviewPage]
-                            : null,
-                        pageNum: _pageTexts.isNotEmpty
-                            ? _currentPreviewPage + 1
-                            : null,
-                        totalPages:
-                            _pageTexts.isNotEmpty ? _pageTexts.length : null,
-                      ),
+                    child: _EntryExportView(
+                      entry: widget.entry,
+                      isDark: _exportDark,
+                      showDate: _showDate,
+                      showWatermark: _showWatermark,
+                      includeImages: _includeImages,
+                      showHeader: _showHeader,
+                      headerText: _headerCtrl.text,
+                      showFooter: _showFooter,
+                      footerText: _footerCtrl.text,
                     ),
                   ),
-
-                  if (_layoutMode == 'pages') ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Preview shows the full content. In pages mode it will be split into 9:16 portrait images with header/footer on each page.',
-                      style: GoogleFonts.inter(
-                          fontSize: 11, color: mutedColor, height: 1.5),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
 
                   const SizedBox(height: 20),
 
                   // ── Export buttons ───────────────────────────────────────
-                  _ExportBtn(
-                    icon: Icons.image_outlined,
-                    label: _layoutMode == 'pages'
-                        ? 'Export as Images (Pages)'
-                        : 'Share as Image',
-                    sub: _layoutMode == 'pages'
-                        ? 'PNG · Split into 9:16 portrait pages'
-                        : 'PNG · Full entry height',
-                    color: AppColors.aqua,
-                    onTap: _exporting ? null : _exportAsImage,
-                    loading: _exporting,
-                    isDark: widget.isDark,
-                  ),
-                  const SizedBox(height: 10),
                   _ExportBtn(
                     icon: Icons.picture_as_pdf_outlined,
                     label: 'Export as PDF',

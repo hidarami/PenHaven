@@ -115,8 +115,8 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
           const AtmosphereOverlay(),
           // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
           const AtmosphereImageLayer(),
-          // ── Glassmorphic community stats pill (shows if published) ───────
-          _PublishedStatsPill(entryId: _entry.id),
+          // ── Glassmorphic community stats pill / share pill ────────────────
+      _PublishedStatsPill(entryId: _entry.id, entry: _entry),
         ],
       ),
     );
@@ -187,7 +187,8 @@ class _ReadContent extends StatelessWidget {
 
 class _PublishedStatsPill extends StatefulWidget {
   final String entryId;
-  const _PublishedStatsPill({required this.entryId});
+  final Entry entry;
+  const _PublishedStatsPill({required this.entryId, required this.entry});
 
   @override
   State<_PublishedStatsPill> createState() => _PublishedStatsPillState();
@@ -252,8 +253,66 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
 
   @override
   Widget build(BuildContext context) {
-    if (!_loaded || _pub == null) return const SizedBox.shrink();
+    if (!_loaded) return const SizedBox.shrink();
     final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    // Not published — show a simple glassmorphic share pill at bottom-right
+    if (_pub == null) {
+      return Positioned(
+        bottom: bottomPad + 28,
+        right: 20,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(30),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: GestureDetector(
+              onTap: () {
+                HapticFeedback.lightImpact();
+                final title = widget.entry.title;
+                final preview = widget.entry.preview(200);
+                Share.share(
+                  title.isNotEmpty ? '$title\n\n$preview' : preview,
+                  subject: title.isNotEmpty ? title : 'Journal Entry',
+                );
+              },
+              child: Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.14),
+                  borderRadius: BorderRadius.circular(30),
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.25), width: 0.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.ios_share_outlined,
+                        size: 16, color: Colors.white.withOpacity(0.9)),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Share',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return Positioned(
       bottom: bottomPad + 28,
@@ -443,7 +502,10 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
     }
     setState(() => _submitting = true);
     final email = SupabaseService.instance.userEmail;
-    final displayName = _isAnon ? null : email?.split('@').first;
+    final displayName = _isAnon
+        ? null
+        : (context.read<CommunityState>().profileDisplayName ??
+            email?.split('@').first);
     final ok = await context.read<CommunityState>().addComment(
           entryId: widget.entryId,
           body: body,

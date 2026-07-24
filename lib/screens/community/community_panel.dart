@@ -28,6 +28,22 @@ const _kCategories = [
   'Society',
   'Personal',
   'Reflections',
+  'Gratitude',
+  'Grief & Loss',
+  'Love',
+  'Growth',
+  'Mental Health',
+  'Creativity',
+  'Nature',
+  'Travel',
+  'Family',
+  'Spirituality',
+  'Work & Career',
+  'Poetry',
+  'Nostalgia',
+  'Humor',
+  'Justice',
+  'Art',
 ];
 
 const _kCategoryIcons = <String, IconData>{
@@ -39,6 +55,22 @@ const _kCategoryIcons = <String, IconData>{
   'Society': Icons.people_outline_rounded,
   'Personal': Icons.favorite_border_rounded,
   'Reflections': Icons.self_improvement_outlined,
+  'Gratitude': Icons.volunteer_activism_outlined,
+  'Grief & Loss': Icons.sentiment_very_dissatisfied_outlined,
+  'Love': Icons.favorite_rounded,
+  'Growth': Icons.trending_up_rounded,
+  'Mental Health': Icons.psychology_outlined,
+  'Creativity': Icons.palette_outlined,
+  'Nature': Icons.eco_outlined,
+  'Travel': Icons.flight_outlined,
+  'Family': Icons.family_restroom_outlined,
+  'Spirituality': Icons.spa_outlined,
+  'Work & Career': Icons.work_outline_rounded,
+  'Poetry': Icons.format_quote_rounded,
+  'Nostalgia': Icons.history_rounded,
+  'Humor': Icons.emoji_emotions_outlined,
+  'Justice': Icons.balance_rounded,
+  'Art': Icons.brush_outlined,
 };
 
 Color _categoryColor(String? cat) {
@@ -58,6 +90,40 @@ Color _categoryColor(String? cat) {
       return const Color(0xFFE87FA0);
     case 'reflections':
       return const Color(0xFF9472D4);
+    case 'gratitude':
+      return const Color(0xFF5BA86A);
+    case 'grief & loss':
+    case 'grief':
+      return const Color(0xFF7A8299);
+    case 'love':
+      return const Color(0xFFD45880);
+    case 'growth':
+      return const Color(0xFF3E9E5F);
+    case 'mental health':
+      return const Color(0xFF7B9ED9);
+    case 'creativity':
+      return const Color(0xFFE87A40);
+    case 'nature':
+      return const Color(0xFF5A9A68);
+    case 'travel':
+      return const Color(0xFF3A85C8);
+    case 'family':
+      return const Color(0xFFD4A028);
+    case 'spirituality':
+      return const Color(0xFF9B7ED4);
+    case 'work & career':
+    case 'work':
+      return const Color(0xFF5A7A9A);
+    case 'poetry':
+      return const Color(0xFFB86A9A);
+    case 'nostalgia':
+      return const Color(0xFFC8904A);
+    case 'humor':
+      return const Color(0xFFE8B840);
+    case 'justice':
+      return const Color(0xFF7A6ABA);
+    case 'art':
+      return const Color(0xFFD46A8A);
     default:
       return AppColors.aqua;
   }
@@ -81,6 +147,40 @@ List<Color> _entryGradient(PublishedEntry entry) {
       return [const Color(0xFF280A18), const Color(0xFF501530)];
     case 'reflections':
       return [const Color(0xFF180A28), const Color(0xFF301550)];
+    case 'gratitude':
+      return [const Color(0xFF0A2015), const Color(0xFF1A3A28)];
+    case 'grief & loss':
+    case 'grief':
+      return [const Color(0xFF131520), const Color(0xFF202535)];
+    case 'love':
+      return [const Color(0xFF280818), const Color(0xFF501030)];
+    case 'growth':
+      return [const Color(0xFF0A1F10), const Color(0xFF1A3820)];
+    case 'mental health':
+      return [const Color(0xFF0C1828), const Color(0xFF182540)];
+    case 'creativity':
+      return [const Color(0xFF251208), const Color(0xFF452218)];
+    case 'nature':
+      return [const Color(0xFF081808), const Color(0xFF102810)];
+    case 'travel':
+      return [const Color(0xFF081520), const Color(0xFF102838)];
+    case 'family':
+      return [const Color(0xFF201800), const Color(0xFF382800)];
+    case 'spirituality':
+      return [const Color(0xFF170828), const Color(0xFF2A1048)];
+    case 'work & career':
+    case 'work':
+      return [const Color(0xFF101820), const Color(0xFF1E2C38)];
+    case 'poetry':
+      return [const Color(0xFF200A18), const Color(0xFF381428)];
+    case 'nostalgia':
+      return [const Color(0xFF201808), const Color(0xFF382A10)];
+    case 'humor':
+      return [const Color(0xFF201A00), const Color(0xFF382E00)];
+    case 'justice':
+      return [const Color(0xFF100C20), const Color(0xFF201838)];
+    case 'art':
+      return [const Color(0xFF200810), const Color(0xFF381020)];
     default:
       final gradients = [
         [const Color(0xFF0D1A28), const Color(0xFF1A3045)],
@@ -184,6 +284,7 @@ class _CommunityPanelState extends State<CommunityPanel>
     final state = context.read<CommunityState>();
     await state.loadProfile();
     await state.loadFeatured();
+    await state.loadBookmarks();
     await state.loadFeed();
     if (SupabaseService.instance.isAuthenticated) {
       await state.loadMyPosts();
@@ -1413,80 +1514,228 @@ class _MyPostsTab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final state = context.watch<CommunityState>();
+    final bookmarks = state.bookmarkedEntries;
+
     if (!SupabaseService.instance.isAuthenticated) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.lock_outline_rounded,
-                  size: 48, color: mutedColor.withOpacity(0.3)),
-              const SizedBox(height: 16),
-              Text(
-                'Sign in to view\nyour published entries.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.crimsonPro(
-                    fontSize: 18,
-                    fontStyle: FontStyle.italic,
-                    color: mutedColor),
-              ),
-              const SizedBox(height: 24),
-              GestureDetector(
-                onTap: onAuthRequired,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                  decoration: BoxDecoration(
-                    color: AppColors.aqua.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: AppColors.aqua.withOpacity(0.4)),
-                  ),
-                  child: Text('Sign In',
-                      style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.aqua)),
+      return Column(
+        children: [
+          // Show bookmarks even when not signed in (they're local)
+          if (bookmarks.isNotEmpty)
+            _buildBookmarksPill(context, bookmarks),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.lock_outline_rounded,
+                        size: 48, color: mutedColor.withOpacity(0.3)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Sign in to view\nyour published entries.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 18,
+                          fontStyle: FontStyle.italic,
+                          color: mutedColor),
+                    ),
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: onAuthRequired,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.aqua.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border:
+                              Border.all(color: AppColors.aqua.withOpacity(0.4)),
+                        ),
+                        child: Text('Sign In',
+                            style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.aqua)),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       );
     }
 
-    final state = context.watch<CommunityState>();
     if (state.myPostsLoading && state.myPosts.isEmpty) {
       return const Center(child: CircularProgressIndicator());
-    }
-    if (state.myPosts.isEmpty) {
-      return Center(
-        child: Text("You haven't published anything yet.",
-            style: GoogleFonts.crimsonPro(
-                fontSize: 16, fontStyle: FontStyle.italic, color: mutedColor)),
-      );
     }
 
     return RefreshIndicator(
       onRefresh: () => context.read<CommunityState>().loadMyPosts(),
-      child: ListView.builder(
+      child: CustomScrollView(
         physics: const BouncingScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(0, 8, 0, 80),
-        itemCount: state.myPosts.length,
-        itemBuilder: (ctx, i) {
-          final entry = state.myPosts[i];
-          return _FeedEntryCard(
-            entry: entry,
-            isDark: isDark,
-            textColor: textColor,
-            mutedColor: mutedColor,
-            onTap: () => Navigator.of(ctx).push(
-              MaterialPageRoute(
-                  builder: (_) => CommunityEntryViewer(entry: entry)),
+        slivers: [
+          // ── Bookmarks pill ─────────────────────────────────────────
+          if (bookmarks.isNotEmpty)
+            SliverToBoxAdapter(child: _buildBookmarksPill(context, bookmarks)),
+
+          // ── My posts ───────────────────────────────────────────────
+          if (state.myPosts.isEmpty)
+            SliverFillRemaining(
+              child: Center(
+                child: Text("You haven't published anything yet.",
+                    style: GoogleFonts.crimsonPro(
+                        fontSize: 16,
+                        fontStyle: FontStyle.italic,
+                        color: mutedColor)),
+              ),
+            )
+          else
+            SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) {
+                  final entry = state.myPosts[i];
+                  return _FeedEntryCard(
+                    entry: entry,
+                    isDark: isDark,
+                    textColor: textColor,
+                    mutedColor: mutedColor,
+                    onTap: () => Navigator.of(ctx).push(
+                      MaterialPageRoute(
+                          builder: (_) => CommunityEntryViewer(entry: entry)),
+                    ),
+                    onAppreciate: () {},
+                  );
+                },
+                childCount: state.myPosts.length,
+              ),
             ),
-            onAppreciate: () {},
-          );
-        },
+
+          const SliverToBoxAdapter(child: SizedBox(height: 80)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBookmarksPill(
+      BuildContext context, List<PublishedEntry> bookmarks) {
+    return GestureDetector(
+      onTap: () => _showBookmarksSheet(context, bookmarks),
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(16, 12, 16, 4),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        decoration: BoxDecoration(
+          color: isDark
+              ? Colors.white.withOpacity(0.05)
+              : Colors.black.withOpacity(0.03),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: accentColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.bookmark_rounded, size: 18, color: accentColor),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Bookmarks',
+                      style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textColor)),
+                  Text(
+                      '${bookmarks.length} saved '
+                      '${bookmarks.length == 1 ? 'entry' : 'entries'}',
+                      style:
+                          GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                size: 18, color: mutedColor.withOpacity(0.5)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showBookmarksSheet(
+      BuildContext context, List<PublishedEntry> bookmarks) {
+    final bg = isDark ? AppColors.warmDark : AppColors.warmWhite;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: bg,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (_) => DraggableScrollableSheet(
+        expand: false,
+        initialChildSize: 0.75,
+        maxChildSize: 0.95,
+        builder: (ctx, sc) => Column(
+          children: [
+            const SizedBox(height: 12),
+            Center(
+              child: Container(
+                width: 36,
+                height: 4,
+                decoration: BoxDecoration(
+                    color: mutedColor.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2)),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Icon(Icons.bookmark_rounded,
+                      size: 20, color: AppColors.aqua),
+                  const SizedBox(width: 10),
+                  Text('Bookmarks',
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: textColor)),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: bookmarks.isEmpty
+                  ? Center(
+                      child: Text('No bookmarks yet.',
+                          style: GoogleFonts.crimsonPro(
+                              fontSize: 16,
+                              fontStyle: FontStyle.italic,
+                              color: mutedColor)))
+                  : ListView.builder(
+                      controller: sc,
+                      padding: const EdgeInsets.fromLTRB(0, 8, 0, 32),
+                      itemCount: bookmarks.length,
+                      itemBuilder: (ctx2, i) => _FeedEntryCard(
+                        entry: bookmarks[i],
+                        isDark: isDark,
+                        textColor: textColor,
+                        mutedColor: mutedColor,
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) =>
+                                  CommunityEntryViewer(entry: bookmarks[i])));
+                        },
+                        onAppreciate: () => ctx
+                            .read<CommunityState>()
+                            .toggleClap(bookmarks[i].id),
+                      ),
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -97,6 +97,25 @@ class CommunityState extends ChangeNotifier {
     notifyListeners();
   }
 
+  // ── Bookmarks ──────────────────────────────────────────────────────────────
+  List<String> _bookmarkedIds = [];
+  List<String> get bookmarkedIds => _bookmarkedIds;
+
+  /// Returns feed entries the user has bookmarked locally.
+  List<PublishedEntry> get bookmarkedEntries =>
+      _feed.where((e) => _bookmarkedIds.contains(e.id)).toList();
+
+  Future<void> loadBookmarks() async {
+    final prefs = await SharedPreferences.getInstance();
+    _bookmarkedIds = prefs
+        .getKeys()
+        .where((k) =>
+            k.startsWith('bookmark_') && (prefs.getBool(k) ?? false))
+        .map((k) => k.replaceFirst('bookmark_', ''))
+        .toList();
+    notifyListeners();
+  }
+
   Future<void> loadFeed({bool refresh = false}) async {
     if (_feedLoading) return;
     if (refresh) {
