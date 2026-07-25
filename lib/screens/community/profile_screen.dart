@@ -18,6 +18,27 @@ import '../../theme/app_colors.dart';
 import '../story_cover.dart';
 import 'community_entry_viewer.dart';
 
+class _BannerClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.moveTo(0, 0);
+    path.lineTo(size.width, 0);
+    path.lineTo(size.width, size.height - 28);
+    path.quadraticBezierTo(
+      size.width / 2,
+      size.height + 28,
+      0,
+      size.height - 28,
+    );
+    path.close();
+    return path;
+  }
+
+  @override
+  bool shouldReclip(covariant CustomClipper<Path> oldClipper) => false;
+}
+
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
@@ -97,8 +118,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                // Banner
-                SizedBox(
+                // Banner with curved bottom
+              ClipPath(
+                clipper: _BannerClipper(),
+                child: SizedBox(
                   height: 190 + topPad,
                   width: double.infinity,
                   child: hasImage
@@ -132,6 +155,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                 ),
+              ),
 
                 // Back button
                 Positioned(

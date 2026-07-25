@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -31,15 +32,23 @@ class MenuPanel extends StatelessWidget {
     VoidCallback? onNavigateToLibrary,
     VoidCallback? onCreateEntry,
   }) {
-    return showModalBottomSheet(
+    return showGeneralDialog(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withAlpha(55),
-      builder: (_) => MenuPanel(
+      barrierDismissible: true,
+      barrierLabel: 'Menu',
+      barrierColor: Colors.black.withOpacity(0.22),
+      transitionDuration: const Duration(milliseconds: 290),
+      pageBuilder: (ctx, anim, secAnim) => MenuPanel(
         outerContext: context,
         onNavigateToLibrary: onNavigateToLibrary,
         onCreateEntry: onCreateEntry,
+      ),
+      transitionBuilder: (ctx, anim, secAnim, child) => SlideTransition(
+        position: Tween<Offset>(
+          begin: const Offset(1, 0),
+          end: Offset.zero,
+        ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+        child: child,
       ),
     );
   }
@@ -68,30 +77,27 @@ class MenuPanel extends StatelessWidget {
         imagePath.isNotEmpty &&
         File(imagePath).existsSync();
 
-    return Container(
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      child: SafeArea(
-        child: SingleChildScrollView(
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Drag handle
-              const SizedBox(height: 10),
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: mutedColor.withOpacity(0.25),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
+    return Align(
+      alignment: Alignment.centerRight,
+      child: SizedBox(
+        width: MediaQuery.of(context).size.width * 0.62,
+        height: double.infinity,
+        child: ClipRRect(
+          borderRadius: const BorderRadius.only(
+            topLeft: Radius.circular(24),
+            bottomLeft: Radius.circular(24),
+          ),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: Container(
+              color: bg.withOpacity(0.82),
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  physics: const BouncingScrollPhysics(),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const SizedBox(height: 16),
 
               // ── Header: "Menu" + X ────────────────────────────
               Padding(
@@ -375,7 +381,11 @@ class MenuPanel extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  ),
+),
+),
+);
   }
 
   void _showAbout(bool isDark, Color bg) {

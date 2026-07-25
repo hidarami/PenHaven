@@ -205,7 +205,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
       context: ctx,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _SanctuaryShareSheet(
+      builder: (_) => SanctuaryShareSheet(
           entry: _entry, isDark: dark, profileImagePath: profileImagePath),
     );
   }
@@ -1255,18 +1255,18 @@ class _CommentCard extends StatelessWidget {
 // Matches the design board: Editorial, Magazine, Quote Story, Paper
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _SanctuaryShareSheet extends StatefulWidget {
+class SanctuaryShareSheet extends StatefulWidget {
   final PublishedEntry entry;
   final bool isDark;
   final String? profileImagePath;
-  const _SanctuaryShareSheet(
-      {required this.entry, required this.isDark, this.profileImagePath});
+  const SanctuaryShareSheet(
+      {super.key, required this.entry, required this.isDark, this.profileImagePath});
 
   @override
-  State<_SanctuaryShareSheet> createState() => _SanctuaryShareSheetState();
+  State<SanctuaryShareSheet> createState() => _SanctuaryShareSheetState();
 }
 
-class _SanctuaryShareSheetState extends State<_SanctuaryShareSheet> {
+class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
   int _selected = 0; // 0=Editorial, 1=Magazine, 2=Quote, 3=Paper
   bool _sharing = false;
   final _previewKey = GlobalKey();

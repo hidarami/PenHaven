@@ -16,6 +16,7 @@ import '../../theme/app_colors.dart';
 import '../editor/editor_screen.dart';
 import '../../services/supabase_service.dart';
 import '../../models/published_entry.dart';
+import '../community/community_entry_viewer.dart';
 import '../../models/community_comment.dart';
 import '../../providers/community_state.dart';
 import 'entry_header_image.dart';
@@ -238,6 +239,31 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
     ctx.read<CommunityState>().toggleClap(_pub!.id);
   }
 
+  void _openShareSheet(BuildContext ctx) {
+    HapticFeedback.lightImpact();
+    final pubEntry = _pub ??
+        PublishedEntry(
+          userId: SupabaseService.instance.userId ?? '',
+          title: widget.entry.title,
+          content: widget.entry.content,
+          blocksJson: widget.entry.blocksJson,
+          headerImage: widget.entry.headerImage,
+          displayName: ctx.read<CommunityState>().profileDisplayName,
+        );
+    final dark = ctx.read<AppState>().isDarkMode;
+    final profileImagePath = ctx.read<CommunityState>().profileImagePath;
+    showModalBottomSheet<void>(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SanctuaryShareSheet(
+        entry: pubEntry,
+        isDark: dark,
+        profileImagePath: profileImagePath,
+      ),
+    );
+  }
+
   void _showComments(BuildContext ctx) {
     if (_pub == null) return;
     showModalBottomSheet<void>(
@@ -256,57 +282,34 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
     if (!_loaded) return const SizedBox.shrink();
     final bottomPad = MediaQuery.of(context).padding.bottom;
 
-    // Not published — show a simple glassmorphic share pill at bottom-right
+    // Not published — small circular glassmorphic share button
     if (_pub == null) {
       return Positioned(
         bottom: bottomPad + 28,
         right: 20,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(30),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-            child: GestureDetector(
-              onTap: () {
-                HapticFeedback.lightImpact();
-                final title = widget.entry.title;
-                final preview = widget.entry.preview(200);
-                Share.share(
-                  title.isNotEmpty ? '$title\n\n$preview' : preview,
-                  subject: title.isNotEmpty ? title : 'Journal Entry',
-                );
-              },
+        child: GestureDetector(
+          onTap: () => _openShareSheet(context),
+          child: ClipOval(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                width: 52,
+                height: 52,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.14),
-                  borderRadius: BorderRadius.circular(30),
+                  color: Colors.white.withOpacity(0.15),
+                  shape: BoxShape.circle,
                   border: Border.all(
-                      color: Colors.white.withOpacity(0.25), width: 0.5),
+                      color: Colors.white.withOpacity(0.28), width: 0.5),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
+                      color: Colors.black.withOpacity(0.14),
                       blurRadius: 20,
                       offset: const Offset(0, 4),
                     ),
                   ],
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.ios_share_outlined,
-                        size: 16, color: Colors.white.withOpacity(0.9)),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Share',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                    ),
-                  ],
-                ),
+                child: Icon(Icons.ios_share_outlined,
+                    size: 20, color: Colors.white.withOpacity(0.9)),
               ),
             ),
           ),
@@ -418,15 +421,9 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                       width: 0.5,
                       height: 22,
                       color: Colors.white.withOpacity(0.3)),
-                  // ── Share ───────────────────────────────────────────────
+                  // ── Share ───────────────────────────────────────────────────────────────
                   GestureDetector(
-                    onTap: () {
-                      HapticFeedback.lightImpact();
-                      Share.share(
-                        _pub!.title.isEmpty ? 'Sanctuary' : _pub!.title,
-                        subject: _pub!.title.isEmpty ? 'Sanctuary' : _pub!.title,
-                      );
-                    },
+                    onTap: () => _openShareSheet(context),
                     child: Padding(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 14, vertical: 10),
