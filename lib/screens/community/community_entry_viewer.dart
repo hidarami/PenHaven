@@ -56,7 +56,6 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   double _imageBrightness = 1.0;
   bool _showBrightnessSlider = false;
   bool _isBookmarked = false;
-  bool _reflectionsOpen = false;
   List<Map<String, dynamic>> _reflections = [];
   bool _reflectionsLoading = false;
   int _clapCount = 0;
@@ -72,6 +71,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     _schedulePillHide();
     _scrollCtrl.addListener(_onScroll);
     _loadBookmark();
+    _loadReflections();
     // Record unique view (silently — table must exist in Supabase)
     SupabaseService.instance.recordView(_entry.id);
   }
@@ -320,11 +320,6 @@ void _openWriteBack() {
         _reflectionsLoading = false;
       });
     }
-  }
-
-  void _toggleReflections() {
-    setState(() => _reflectionsOpen = !_reflectionsOpen);
-    if (_reflectionsOpen && _reflections.isEmpty) _loadReflections();
   }
 
   void _showMoreMenu(BuildContext ctx) {
@@ -633,9 +628,8 @@ void _openWriteBack() {
                     child: _buildBody(dark, fontName),
                   ),
 
-                  // Reflections section (Write Backs)
-                  if (_reflectionsOpen)
-                    _ReflectionsFeedSection(
+                  // Reflections section (Write Backs) — always shown
+                  _ReflectionsFeedSection(
                       reflections: _reflections,
                       loading: _reflectionsLoading,
                       isDark: dark,
@@ -699,16 +693,13 @@ void _openWriteBack() {
                   ignoring: !_pillVisible,
                   child: Center(
                     child: _ActionPill(
-                      entry: _entry,
-                      hasClapped: _hasClapped,
-                      clapCount: _clapCount,
-                      reflectionCount: _reflections.length,
-                      reflectionsOpen: _reflectionsOpen,
-                      onClap: _handleClap,
-                      onToggleReflections: _toggleReflections,
-                      onWriteBack: _openWriteBack,
-                      onShare: _handleShare,
-                    ),
+                        entry: _entry,
+                        hasClapped: _hasClapped,
+                        clapCount: _clapCount,
+                        onClap: _handleClap,
+                        onWriteBack: _openWriteBack,
+                        onShare: _handleShare,
+                      ),
                   ),
                 ),
               ),
@@ -743,10 +734,7 @@ class _ActionPill extends StatelessWidget {
   final PublishedEntry entry;
   final bool hasClapped;
   final int clapCount;
-  final int reflectionCount;
-  final bool reflectionsOpen;
   final VoidCallback onClap;
-  final VoidCallback onToggleReflections;
   final VoidCallback onWriteBack;
   final VoidCallback? onShare;
 
@@ -754,10 +742,7 @@ class _ActionPill extends StatelessWidget {
     required this.entry,
     required this.hasClapped,
     required this.clapCount,
-    required this.reflectionCount,
-    required this.reflectionsOpen,
     required this.onClap,
-    required this.onToggleReflections,
     required this.onWriteBack,
     this.onShare,
   });
@@ -829,33 +814,6 @@ class _ActionPill extends StatelessWidget {
 
             _divider(),
 
-            // ── Reflections (Write Backs count) ────────────────────
-            GestureDetector(
-              onTap: onToggleReflections,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(
-                    reflectionsOpen
-                        ? Icons.auto_stories_rounded
-                        : Icons.auto_stories_outlined,
-                    size: 16,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                  if (reflectionCount > 0) ...[
-                    const SizedBox(width: 5),
-                    Text('$reflectionCount',
-                        style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.9))),
-                  ],
-                ]),
-              ),
-            ),
-
-            _divider(),
-
             // ── Write Back ──────────────────────────────────────────
             GestureDetector(
               onTap: onWriteBack,
@@ -889,11 +847,6 @@ class _ActionPill extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _formatCount(int n) {
-    if (n >= 1000) return '${(n / 1000).toStringAsFixed(1)}k';
-    return '$n';
   }
 }
 
