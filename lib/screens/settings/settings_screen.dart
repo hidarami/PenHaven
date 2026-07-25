@@ -4,16 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/lock_service.dart';
 import '../lock/pin_setup_screen.dart';
-import '../../theme/app_typography.dart';
-import '../../data/backup_service.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
 import 'settings_section.dart';
 import 'settings_tile.dart';
-import 'about_section.dart';
-import 'fonts_screen.dart';
-import 'themes_screen.dart';
 
 /// Settings screen — full-screen push, no back button (swipe left-to-right).
 /// Covers: Appearance, Privacy, Tracking, About.
@@ -28,7 +23,6 @@ class SettingsScreen extends StatelessWidget {
     final bg = atmosphereState.backgroundFor(isDark);
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
-    final surfaceBg = atmosphereState.backgroundFor(isDark);
 
     return GestureDetector(
       // Swipe left-to-right to go back (no back button — spec rule)
@@ -38,7 +32,7 @@ class SettingsScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
-        backgroundColor: surfaceBg,
+        backgroundColor: bg,
         body: SafeArea(
           child: CustomScrollView(
             slivers: [
@@ -74,38 +68,6 @@ class SettingsScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 28)),
 
-              // ── APPEARANCE ────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  label: 'APPEARANCE',
-                  isDark: isDark,
-                  bg: bg,
-                  children: [
-                    SettingsToggleTile(
-                      icon: Icons.dark_mode_outlined,
-                      label: 'Dark Mode',
-                      description: 'Switch between warm light and warm dark.',
-                      value: isDark,
-                      isDark: isDark,
-                      bg: bg,
-                      onChanged: (v) => appState.setDarkMode(v),
-                    ),
-                    SettingsToggleTile(
-                      icon: Icons.wb_twilight_rounded,
-                      label: 'Dynamic Atmosphere',
-                      description:
-                          'App breathes with time of day and weather. Turn off for a static look.',
-                      value: atmosphereState.isDynamicTheme,
-                      isDark: isDark,
-                      bg: bg,
-                      onChanged: (v) => atmosphereState.setDynamicTheme(v),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
               // ── PRIVACY ──────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: SettingsSection(
@@ -130,119 +92,12 @@ class SettingsScreen extends StatelessWidget {
                 ),
               ),
 
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-              // ── THEME ──────────────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  label: 'THEME',
-                  isDark: isDark,
-                  bg: bg,
-                  children: [
-                    SettingsNavTile(
-                      icon: Icons.palette_outlined,
-                      label: _themeLabel(atmosphereState),
-                      description:
-                          'Manual themes override the atmosphere background.',
-                      isDark: isDark,
-                      bg: bg,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const ThemesScreen()),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-              // ── READING FONT ───────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  label: 'READING FONT',
-                  isDark: isDark,
-                  bg: bg,
-                  children: [
-                    SettingsNavTile(
-                      icon: Icons.font_download_outlined,
-                      label: AppTypography
-                              .fontDisplayNames[appState.preferredFont] ??
-                          'Crimson Pro',
-                      description:
-                          'Choose how your journal entries feel to read.',
-                      isDark: isDark,
-                      bg: bg,
-                      onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const FontsScreen()),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-              // ── DATA ─────────────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: SettingsSection(
-                  label: 'DATA',
-                  isDark: isDark,
-                  bg: bg,
-                  children: [
-                    SettingsNavTile(
-                      icon: Icons.backup_outlined,
-                      label: 'Full Backup (JSON)',
-                      description: 'Export all data as a restorable JSON file.',
-                      isDark: isDark,
-                      bg: bg,
-                      onTap: () => BackupService.instance.exportBackup(context),
-                    ),
-                    SettingsNavTile(
-                      icon: Icons.download_outlined,
-                      label: 'Export Entries as JSON',
-                      description:
-                          'Export all journal entries as a readable JSON file.',
-                      isDark: isDark,
-                      bg: bg,
-                      onTap: () =>
-                          BackupService.instance.exportEntriesAsJson(context),
-                    ),
-                    SettingsNavTile(
-                      icon: Icons.delete_sweep_outlined,
-                      label: 'Clear Deleted Entries',
-                      description: 'Permanently remove everything in the bin.',
-                      isDark: isDark,
-                      bg: bg,
-                      isDestructive: true,
-                      onTap: () =>
-                          _confirmClearBin(context, appState, isDark, bg),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SliverToBoxAdapter(child: SizedBox(height: 20)),
-
-              // ── ABOUT ─────────────────────────────────────────────────
-              SliverToBoxAdapter(
-                child: AboutSection(isDark: isDark, bg: bg),
-              ),
-
               const SliverToBoxAdapter(child: SizedBox(height: 48)),
             ],
           ),
         ),
       ),
     );
-  }
-
-  /// Returns display label for current theme selection.
-  String _themeLabel(AtmosphereState atmo) {
-    if (atmo.manualTheme == null) return 'Dynamic (Auto)';
-    for (final t in AppColors.manualThemes) {
-      if (t.key == atmo.manualTheme) return t.name;
-    }
-    return 'Dynamic (Auto)';
   }
 
   void _setupLock(BuildContext context) async {
@@ -373,59 +228,5 @@ class SettingsScreen extends StatelessWidget {
       await LockService.instance.removePin();
       appState.setLockEnabled(false);
     }
-  }
-
-  // ── Handlers ─────────────────────────────────────────────────────────────
-
-  void _confirmClearBin(
-    BuildContext context,
-    AppState appState,
-    bool isDark,
-    Color bg,
-  ) {
-    final textColor = AppColors.readableText(bg);
-    final mutedColor = AppColors.readableMuted(bg);
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        backgroundColor: isDark ? AppColors.warmDark : AppColors.warmWhite,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text(
-          'Clear deleted entries?',
-          style: GoogleFonts.crimsonPro(
-            fontSize: 22,
-            fontWeight: FontWeight.w700,
-            color: textColor,
-          ),
-        ),
-        content: Text(
-          'This cannot be undone. All entries in the bin will be permanently erased.',
-          style: GoogleFonts.inter(fontSize: 14, color: mutedColor),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: GoogleFonts.inter(color: AppColors.aqua),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              appState.clearDeletedEntries();
-              Navigator.pop(context);
-            },
-            child: Text(
-              'Clear All',
-              style: GoogleFonts.inter(
-                color: Colors.redAccent.withOpacity(0.85),
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
   }
 }

@@ -1271,6 +1271,7 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
   bool _sharing = false;
   final _previewKey = GlobalKey();
   late TextEditingController _quoteTextCtrl;
+  int _quoteAspect = 0; // 0 = 1:1 square, 1 = 3:4 portrait
 
   @override
   void initState() {
@@ -1296,7 +1297,8 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
         return _QuoteShareCard(
             entry: widget.entry,
             profileImagePath: widget.profileImagePath,
-            customText: _quoteTextCtrl.text);
+            customText: _quoteTextCtrl.text,
+            isSquare: _quoteAspect == 0);
       default:
         return _PaperShareCard(
             entry: widget.entry,
@@ -1347,9 +1349,18 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
     final mutedColor =
         widget.isDark ? AppColors.mutedDark : AppColors.mutedLight;
     final bottomPad = MediaQuery.of(context).padding.bottom;
-    final screenH = MediaQuery.of(context).size.height;
-    // Quote format uses taller preview to approach 9:16
-    final cardH = _selected == 2 ? (screenH * 0.44).clamp(220.0, 520.0) : 200.0;
+    final cardW = MediaQuery.of(context).size.width - 40;
+    // Dynamic card height per format and sub-option
+    final double cardH;
+    if (_selected == 2) {
+      // Quote Story: 1:1 or 3:4
+      cardH = _quoteAspect == 0 ? cardW : cardW * 4.0 / 3.0;
+    } else if (_selected == 3) {
+      // Paper: 2:3 portrait
+      cardH = cardW * 3.0 / 2.0;
+    } else {
+      cardH = 200.0;
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -1423,6 +1434,40 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
               ),
               const SizedBox(height: 14),
 
+              // ── Aspect ratio picker for Quote Story ──────────────
+              if (_selected == 2) ...[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('ASPECT RATIO',
+                          style: GoogleFonts.inter(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: mutedColor,
+                              letterSpacing: 1.5)),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        _SizeChip(
+                          label: '1 : 1  Square',
+                          selected: _quoteAspect == 0,
+                          onTap: () => setState(() => _quoteAspect = 0),
+                          mutedColor: mutedColor,
+                        ),
+                        const SizedBox(width: 10),
+                        _SizeChip(
+                          label: '3 : 4  Portrait',
+                          selected: _quoteAspect == 1,
+                          onTap: () => setState(() => _quoteAspect = 1),
+                          mutedColor: mutedColor,
+                        ),
+                      ]),
+                    ],
+                  ),
+                ),
+              ],
+
               // ── Custom text editor for Quote / Paper formats ──────
               if (_selected == 2 || _selected == 3)
                 Padding(
@@ -1489,15 +1534,18 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
                 ),
               ),
 
-              // ── Stories hint ─────────────────────────────────────
-              if (_selected == 2)
+              // ── Format hint ──────────────────────────────────────
+              if (_selected == 2 || _selected == 3)
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
-                  child: Text('Optimised for Instagram & TikTok Stories',
-                      style: GoogleFonts.inter(
-                          fontSize: 10,
-                          color: mutedColor,
-                          fontStyle: FontStyle.italic)),
+                  child: Text(
+                    _selected == 2
+                        ? 'Great for Instagram & TikTok Stories'
+                        : 'Great for portrait sharing · 2:3 ratio',
+                    style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: mutedColor,
+                        fontStyle: FontStyle.italic)),
                 ),
               const SizedBox(height: 16),
 
@@ -1825,55 +1873,146 @@ class _MagazineShareCard extends StatelessWidget {
   }
 }
 
-// ── Card 3: Quote Story — dark vertical, Instagram/TikTok format ──────────────
+// ── Auto-fit text: reduces font size until text fits the given constraints ────
+
+class _AutoFitText extends StatelessWidget {
+  final String text;
+  final TextStyle baseStyle;
+  final BoxConstraints constraints;
+
+  const _AutoFitText({
+    required this.text,
+    required this.baseStyle,
+    required this.constraints,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (constraints.maxHeight.isInfinite || constraints.maxWidth.isInfinite) {
+      return Text(text, style: baseStyle);
+    }
+    double fontSize = baseStyle.fontSize ?? 14.0;
+    const double minFontSize = 7.0;
+    TextStyle style = baseStyle;
+    while (fontSize > minFontSize) {
+      final tp = TextPainter(
+        text: TextSpan(text: text, style: style),
+        textDirection: TextDirection.ltr,
+        maxLines: null,
+      )..layout(maxWidth: constraints.maxWidth);
+      if (tp.height <= constraints.maxHeight) break;
+      fontSize -= 0.5;
+      style = baseStyle.copyWith(fontSize: fontSize);
+    }
+    return Text(text, style: style);
+  }
+}
+
+// ── Size chip for aspect ratio selector ───────────────────────────────────────
+
+class _SizeChip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Color mutedColor;
+
+  const _SizeChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.mutedColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? AppColors.aqua.withOpacity(0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: selected
+                ? AppColors.aqua.withOpacity(0.5)
+                : mutedColor.withOpacity(0.3),
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+            color: selected ? AppColors.aqua : mutedColor,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Card 3: Quote Story — dark, 1:1 or 3:4, auto-sizing text ─────────────────
 
 class _QuoteShareCard extends StatelessWidget {
   final PublishedEntry entry;
   final String? profileImagePath;
   final String? customText;
-  const _QuoteShareCard({required this.entry, this.profileImagePath, this.customText});
+  final bool isSquare; // true = 1:1, false = 3:4
+
+  const _QuoteShareCard({
+    required this.entry,
+    this.profileImagePath,
+    this.customText,
+    this.isSquare = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final quote = (customText?.trim().isNotEmpty == true) ? customText! : entry.preview(200);
+    final quote = (customText?.trim().isNotEmpty == true)
+        ? customText!
+        : entry.preview(240);
 
     return Container(
       color: const Color(0xFF060C16),
-      padding: const EdgeInsets.fromLTRB(22, 24, 22, 22),
+      padding: const EdgeInsets.fromLTRB(22, 18, 22, 18),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Sanctuary branding top
+          // Sanctuary branding
           const _SanctuaryMark(light: true),
-          const SizedBox(height: 28),
-          // Decorative large quotation mark
+          SizedBox(height: isSquare ? 14 : 22),
+          // Decorative quotation mark
           Text('"',
               style: GoogleFonts.crimsonPro(
-                  fontSize: 64,
+                  fontSize: isSquare ? 48 : 64,
                   color: const Color(0xFF7BA591).withOpacity(0.35),
                   height: 0.8)),
-          const SizedBox(height: 8),
-          // Quote text (main content)
+          const SizedBox(height: 6),
+          // Auto-sized quote text
           Expanded(
-            child: Text(
-              quote,
-              style: GoogleFonts.crimsonPro(
-                  fontSize: 17, color: const Color(0xFFF0EBE3), height: 1.78),
-              overflow: TextOverflow.fade,
+            child: LayoutBuilder(
+              builder: (ctx, constraints) => _AutoFitText(
+                text: quote,
+                baseStyle: GoogleFonts.crimsonPro(
+                    fontSize: isSquare ? 15 : 17,
+                    color: const Color(0xFFF0EBE3),
+                    height: 1.75),
+                constraints: constraints,
+              ),
             ),
           ),
-          const SizedBox(height: 20),
-          // Divider
+          const SizedBox(height: 12),
           Container(height: 0.5, color: Colors.white.withOpacity(0.12)),
-          const SizedBox(height: 14),
-          // Attribution
+          const SizedBox(height: 10),
           Text('— ${entry.authorLabel}',
               style: GoogleFonts.inter(
                   fontSize: 10,
                   color: const Color(0xFF6B6058),
                   letterSpacing: 0.3)),
           if (entry.category != null && entry.category!.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 3),
             Text(
               entry.category!.toUpperCase(),
               style: GoogleFonts.inter(
@@ -1889,16 +2028,22 @@ class _QuoteShareCard extends StatelessWidget {
   }
 }
 
-// ── Card 4: Paper — clean minimal warm cream ──────────────────────────────────
+// ── Card 4: Paper — warm cream, 2:3 portrait, auto-sizing body text ───────────
 
 class _PaperShareCard extends StatelessWidget {
   final PublishedEntry entry;
   final String? profileImagePath;
   final String? customText;
-  const _PaperShareCard({required this.entry, this.profileImagePath, this.customText});
+
+  const _PaperShareCard(
+      {required this.entry, this.profileImagePath, this.customText});
 
   @override
   Widget build(BuildContext context) {
+    final bodyText = (customText?.trim().isNotEmpty == true)
+        ? customText!
+        : entry.preview(200);
+
     return Container(
       color: const Color(0xFFFEF8EC),
       padding: const EdgeInsets.all(20),
@@ -1929,12 +2074,17 @@ class _PaperShareCard extends StatelessWidget {
           const SizedBox(height: 12),
           Container(height: 0.5, color: const Color(0xFFDED9D2)),
           const SizedBox(height: 12),
+          // Auto-sized body text to fill remaining card space
           Expanded(
-            child: Text(
-              (customText?.trim().isNotEmpty == true) ? customText! : entry.preview(110),
-              style: GoogleFonts.crimsonPro(
-                  fontSize: 12, color: const Color(0xFF8A8178), height: 1.65),
-              overflow: TextOverflow.fade,
+            child: LayoutBuilder(
+              builder: (ctx, constraints) => _AutoFitText(
+                text: bodyText,
+                baseStyle: GoogleFonts.crimsonPro(
+                    fontSize: 13,
+                    color: const Color(0xFF8A8178),
+                    height: 1.65),
+                constraints: constraints,
+              ),
             ),
           ),
           const SizedBox(height: 10),

@@ -7,6 +7,7 @@ import '../providers/app_state.dart';
 import '../providers/atmosphere_state.dart';
 import '../theme/app_colors.dart';
 import 'home_screen.dart';
+import 'onboarding/onboarding_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SPLASH SCREEN — Liquid "Flow" water animation
@@ -122,9 +123,11 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 500));
     if (_disposed || !mounted) return;
 
+    final goHome = appState.hasSeenOnboarding;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, anim, __) => const HomeScreen(),
+        pageBuilder: (_, anim, __) =>
+            goHome ? const HomeScreen() : const OnboardingScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 500),

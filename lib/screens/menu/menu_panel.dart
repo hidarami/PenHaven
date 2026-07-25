@@ -11,6 +11,7 @@ import '../../providers/atmosphere_state.dart';
 import '../../providers/community_state.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
+import '../settings/appearance_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/themes_screen.dart';
 import '../settings/about_section.dart';
@@ -280,7 +281,7 @@ class MenuPanel extends StatelessWidget {
               _MenuItem(
                 icon: Icons.settings_outlined,
                 label: 'Settings',
-                subtitle: 'Customize your experience',
+                subtitle: 'Privacy, app lock & security',
                 isDark: isDark,
                 textColor: textColor,
                 mutedColor: mutedColor,
@@ -293,39 +294,26 @@ class MenuPanel extends StatelessWidget {
               _MenuItem(
                 icon: Icons.palette_outlined,
                 label: 'Appearance',
-                subtitle: 'Theme, font, and more',
+                subtitle: 'Theme, font, dark mode & atmosphere',
                 isDark: isDark,
                 textColor: textColor,
                 mutedColor: mutedColor,
                 onTap: () {
                   Navigator.of(context).pop();
-                  _navigate(const ThemesScreen());
+                  _navigate(const AppearanceScreen());
                 },
               ),
 
               _MenuItem(
                 icon: Icons.download_outlined,
                 label: 'Backup & Export',
-                subtitle: 'Keep your writings safe',
+                subtitle: 'Full backup, export & data management',
                 isDark: isDark,
                 textColor: textColor,
                 mutedColor: mutedColor,
                 onTap: () {
                   Navigator.of(context).pop();
-                  BackupService.instance.exportBackup(outerContext);
-                },
-              ),
-
-              _MenuItem(
-                icon: Icons.shield_outlined,
-                label: 'Privacy',
-                subtitle: 'Your data and security',
-                isDark: isDark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _navigate(const SettingsScreen());
+                  _showBackupSheet(isDark, bg);
                 },
               ),
 
@@ -387,6 +375,72 @@ class MenuPanel extends StatelessWidget {
 ),
 ),
 );
+  }
+
+  void _showBackupSheet(bool isDark, Color bg) {
+    final textColor = AppColors.readableText(bg);
+    final mutedColor = AppColors.readableMuted(bg);
+    showModalBottomSheet<void>(
+      context: outerContext,
+      backgroundColor: bg,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: mutedColor.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Backup & Export',
+                  style: GoogleFonts.crimsonPro(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: textColor)),
+              const SizedBox(height: 4),
+              Text('Protect and export your writing.',
+                  style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
+              const SizedBox(height: 20),
+              _BackupTile(
+                icon: Icons.backup_outlined,
+                label: 'Full Backup (JSON)',
+                subtitle: 'Export all data as a restorable file',
+                textColor: textColor,
+                mutedColor: mutedColor,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  BackupService.instance.exportBackup(outerContext);
+                },
+              ),
+              _BackupTile(
+                icon: Icons.download_outlined,
+                label: 'Export Entries as JSON',
+                subtitle: 'Readable export of all journal entries',
+                textColor: textColor,
+                mutedColor: mutedColor,
+                onTap: () {
+                  Navigator.pop(ctx);
+                  BackupService.instance.exportEntriesAsJson(outerContext);
+                },
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   void _showAbout(bool isDark, Color bg) {
@@ -476,6 +530,59 @@ class _MenuItem extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Backup tile ────────────────────────────────────────────────────────────
+
+class _BackupTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String subtitle;
+  final Color textColor;
+  final Color mutedColor;
+  final VoidCallback onTap;
+
+  const _BackupTile({
+    required this.icon,
+    required this.label,
+    required this.subtitle,
+    required this.textColor,
+    required this.mutedColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: mutedColor),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textColor)),
+                  Text(subtitle,
+                      style:
+                          GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                size: 16, color: mutedColor.withOpacity(0.4)),
+          ],
         ),
       ),
     );
