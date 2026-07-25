@@ -92,3 +92,28 @@
 | write_backs        | origin_header_image | text                     |
 | write_backs        | inspiration_author  | text                     |
 | write_backs        | inspiration_title   | text                     |
+
+CREATE OR REPLACE FUNCTION increment_reflection_clap(p_id text)
+RETURNS void AS $$
+  UPDATE write_backs SET clap_count = clap_count + 1 WHERE id = p_id;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION decrement_reflection_clap(p_id text)
+RETURNS void AS $$
+  UPDATE write_backs SET clap_count = GREATEST(0, clap_count - 1) WHERE id = p_id;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION increment_clap_count(p_entry_id text)
+RETURNS void AS $$
+  UPDATE published_entries SET clap_count = clap_count + 1 WHERE id = p_entry_id;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION decrement_clap_count(p_entry_id text)
+RETURNS void AS $$
+  UPDATE published_entries SET clap_count = GREATEST(0, clap_count - 1) WHERE id = p_entry_id;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION increment_comment_count(p_entry_id text)
+RETURNS void AS $$
+  UPDATE published_entries SET comment_count = comment_count + 1 WHERE id = p_entry_id;
+$$ LANGUAGE sql;

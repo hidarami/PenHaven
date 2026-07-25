@@ -617,6 +617,63 @@ class SupabaseService {
     }
   }
 
+  /// Submit write back from a raw map (used when creating from an Entry).
+  Future<bool> submitWriteBackMap(Map<String, dynamic> map) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client?.from('write_backs').upsert(map);
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] submitWriteBackMap: $e');
+      return false;
+    }
+  }
+
+  Future<bool> updateWriteBack(String id, Map<String, dynamic> updates) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client
+          ?.from('write_backs')
+          .update(updates)
+          .eq('id', id)
+          .eq('user_id', userId!);
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] updateWriteBack: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteWriteBack(String id) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client
+          ?.from('write_backs')
+          .delete()
+          .eq('id', id)
+          .eq('user_id', userId!);
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] deleteWriteBack: $e');
+      return false;
+    }
+  }
+
+  Future<bool> publishWriteBack(String id) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client
+          ?.from('write_backs')
+          .update({'is_private': false})
+          .eq('id', id)
+          .eq('user_id', userId!);
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] publishWriteBack: $e');
+      return false;
+    }
+  }
+
   /// Fetch public reflections for an origin entry.
   Future<List<Map<String, dynamic>>> getReflectionsForEntry(
       String originEntryId) async {

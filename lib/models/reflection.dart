@@ -80,6 +80,7 @@ class Reflection {
         'origin_entry_id': originEntryId,
         'inspiration_id': inspirationId,
         'user_id': userId,
+        'origin_author_id': null, // set by caller when available
         'title': title,
         'content': content,
         'blocks_json': blocksJson,

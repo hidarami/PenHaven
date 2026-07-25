@@ -359,6 +359,44 @@ class CommunityState extends ChangeNotifier {
     }
   }
 
+  /// Submit from a raw map (created via EditorScreen with ReflectionHeaderBlock).
+  Future<bool> submitWriteBackMap(Map<String, dynamic> map) async {
+    try {
+      final ok = await SupabaseService.instance.submitWriteBackMap(map);
+      if (ok) {
+        loadFeed(refresh: true);
+        loadReceivedWriteBacks();
+      }
+      return ok;
+    } catch (e) {
+      debugPrint('[CommunityState] submitWriteBackMap: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteWriteBack(String id) async {
+    final ok = await SupabaseService.instance.deleteWriteBack(id);
+    if (ok) {
+      _myWriteBacks.removeWhere((r) => r['id'] == id);
+      _receivedWriteBacks.removeWhere((r) => r['id'] == id);
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  Future<bool> publishPrivateWriteBack(String id) async {
+    final ok = await SupabaseService.instance.publishWriteBack(id);
+    if (ok) {
+      final idx = _myWriteBacks.indexWhere((r) => r['id'] == id);
+      if (idx != -1) {
+        _myWriteBacks[idx] = {..._myWriteBacks[idx], 'is_private': false};
+        notifyListeners();
+      }
+      loadFeed(refresh: true);
+    }
+    return ok;
+  }
+
   Future<void> toggleReflectionClap(String reflectionId, bool wasClapped) async {
     try {
       if (wasClapped) {

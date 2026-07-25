@@ -24,6 +24,7 @@ enum BlockType {
   divider,
   checklistItem,
   bulletList,
+  reflectionHeader,
 }
 
 // ── Format attributes for inline rich text ────────────────────────────────────
@@ -182,6 +183,8 @@ abstract class EditorBlock {
         return ChecklistBlock.fromMap(map);
       case BlockType.bulletList:
         return TextBlock.fromMap(map);
+      case BlockType.reflectionHeader:
+        return ReflectionHeaderBlock.fromMap(map);
     }
   }
 }
@@ -429,6 +432,62 @@ class DividerBlock extends EditorBlock {
 
   factory DividerBlock.fromMap(Map<String, dynamic> m) =>
       DividerBlock(id: m['id'] as String);
+}
+
+// ── Reflection header block ────────────────────────────────────────────────────
+
+class ReflectionHeaderBlock extends EditorBlock {
+  final String originEntryId;
+  final String originTitle;
+  final String originAuthor;
+  final String? originAuthorId; // Supabase UUID of origin author
+  final String? originExcerpt;
+  final String? originHeaderImage;
+  final String? inspirationId;
+  final String? inspirationAuthor;
+  final String? inspirationTitle;
+
+  const ReflectionHeaderBlock({
+    required String id,
+    required this.originEntryId,
+    required this.originTitle,
+    required this.originAuthor,
+    this.originAuthorId,
+    this.originExcerpt,
+    this.originHeaderImage,
+    this.inspirationId,
+    this.inspirationAuthor,
+    this.inspirationTitle,
+  }) : super(id: id, type: BlockType.reflectionHeader);
+
+  @override
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'type': type.name,
+        'originEntryId': originEntryId,
+        'originTitle': originTitle,
+        'originAuthor': originAuthor,
+        'originAuthorId': originAuthorId,
+        'originExcerpt': originExcerpt,
+        'originHeaderImage': originHeaderImage,
+        'inspirationId': inspirationId,
+        'inspirationAuthor': inspirationAuthor,
+        'inspirationTitle': inspirationTitle,
+      };
+
+  factory ReflectionHeaderBlock.fromMap(Map<String, dynamic> m) =>
+      ReflectionHeaderBlock(
+        id: m['id'] as String,
+        originEntryId: m['originEntryId'] as String? ?? '',
+        originTitle: m['originTitle'] as String? ?? '',
+        originAuthor: m['originAuthor'] as String? ?? '',
+        originAuthorId: m['originAuthorId'] as String?,
+        originExcerpt: m['originExcerpt'] as String?,
+        originHeaderImage: m['originHeaderImage'] as String?,
+        inspirationId: m['inspirationId'] as String?,
+        inspirationAuthor: m['inspirationAuthor'] as String?,
+        inspirationTitle: m['inspirationTitle'] as String?,
+      );
 }
 
 // ── Checklist block ───────────────────────────────────────────────────────────

@@ -331,10 +331,11 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                       clapCount: _clapCount,
                       replyCount: _replyCount,
                       respondOpen: _respondOpen,
+                      isPublic: !_reflection.isPrivate,
                       onClap: _handleClap,
                       onRespond: _toggleRespond,
-                      onWriteBack: _openWriteBack,
-                      onShare: () {},
+                      onWriteBack: _reflection.isPrivate ? null : _openWriteBack,
+                      onShare: _reflection.isPrivate ? null : () {},
                     ),
                   ),
                 ),
@@ -381,9 +382,10 @@ class _ReflectionActionPill extends StatelessWidget {
   final int clapCount;
   final int replyCount;
   final bool respondOpen;
+  final bool isPublic;
   final VoidCallback onClap;
   final VoidCallback onRespond;
-  final VoidCallback onWriteBack;
+  final VoidCallback? onWriteBack;
   final VoidCallback? onShare;
 
   const _ReflectionActionPill({
@@ -391,9 +393,10 @@ class _ReflectionActionPill extends StatelessWidget {
     required this.clapCount,
     required this.replyCount,
     required this.respondOpen,
+    this.isPublic = true,
     required this.onClap,
     required this.onRespond,
-    required this.onWriteBack,
+    this.onWriteBack,
     this.onShare,
   });
 
@@ -461,6 +464,7 @@ class _ReflectionActionPill extends StatelessWidget {
                 ]),
               ),
             ),
+            if (isPublic) ...[
             _divider(),
             // Write Back
             GestureDetector(
@@ -489,6 +493,7 @@ class _ReflectionActionPill extends StatelessWidget {
                     size: 16, color: Colors.white.withOpacity(0.9)),
               ),
             ),
+            ], // end isPublic
           ]),
         ),
       ),

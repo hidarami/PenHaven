@@ -46,6 +46,9 @@ class _EditorScreenState extends State<EditorScreen> {
   bool _isPublished = false;
   bool _updatingSanctuary = false;
 
+  bool get _isReflectionEntry =>
+      _blocks.isNotEmpty && _blocks.first is ReflectionHeaderBlock;
+
   @override
   void initState() {
     super.initState();
@@ -251,6 +254,65 @@ class _EditorScreenState extends State<EditorScreen> {
     await ExportSheet.show(context, _entry, dark);
   }
 
+  // ── Reflection: Submit to Sanctuary ───────────────────────────────────────
+  Future<void> _submitReflectionToSanctuary() async {
+    if (!SupabaseService.instance.isAuthenticated) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to publish to Sanctuary.')),
+      );
+      return;
+    }
+    await _performSave();
+    if (!mounted) return;
+    final headerBlock = _blocks.first as ReflectionHeaderBlock;
+    final communityState = context.read<CommunityState>();
+    final appState = context.read<AppState>();
+    final email = SupabaseService.instance.userEmail;
+    final displayName =
+        communityState.profileDisplayName ?? email?.split('@').first;
+
+    final map = <String, dynamic>{
+      'id': _entry.id,
+      'origin_entry_id': headerBlock.originEntryId,
+      'inspiration_id': headerBlock.inspirationId,
+      'user_id': SupabaseService.instance.userId,
+      'origin_author_id': headerBlock.originAuthorId,
+      'title': _titleController.text.trim(),
+      'content': _entry.content,
+      'blocks_json': serializeBlocks(_blocks),
+      'is_private': false,
+      'is_anonymous': false,
+      'display_name': displayName,
+      'header_image': _entry.headerImage,
+      'category': null,
+      'clap_count': 0,
+      'reply_count': 0,
+      'origin_title': headerBlock.originTitle,
+      'origin_author': headerBlock.originAuthor,
+      'origin_excerpt': headerBlock.originExcerpt,
+      'origin_header_image': headerBlock.originHeaderImage,
+      'inspiration_author': headerBlock.inspirationAuthor,
+      'inspiration_title': headerBlock.inspirationTitle,
+    };
+
+    final ok = await communityState.submitWriteBackMap(map);
+    if (!mounted) return;
+    if (ok) {
+      final published = _entry.copyWith(moodColor: 'reflection');
+      await appState.saveEntry(published);
+      setState(() => _entry = published);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Reflection published to Sanctuary ✓')),
+      );
+      communityState.loadFeed(refresh: true);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to publish. Check your connection.')),
+      );
+    }
+  }
+
   // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
@@ -283,6 +345,9 @@ class _EditorScreenState extends State<EditorScreen> {
                   isPublished: _isPublished,
                   updatingSanctuary: _updatingSanctuary,
                   onUpdateSanctuary: _updateSanctuary,
+                  isReflectionEntry: _isReflectionEntry,
+                  onSubmitReflection:
+                      _isReflectionEntry ? _submitReflectionToSanctuary : null,
                 ),
 
                 // Scrollable content
@@ -384,6 +449,8 @@ class _EditorBar extends StatelessWidget {
   final bool isPublished;
   final bool updatingSanctuary;
   final VoidCallback? onUpdateSanctuary;
+  final bool isReflectionEntry;
+  final VoidCallback? onSubmitReflection;
 
   const _EditorBar({
     required this.entry,
@@ -395,6 +462,8 @@ class _EditorBar extends StatelessWidget {
     this.isPublished = false,
     this.updatingSanctuary = false,
     this.onUpdateSanctuary,
+    this.isReflectionEntry = false,
+    this.onSubmitReflection,
   });
 
   @override
@@ -471,6 +540,35 @@ class _EditorBar extends StatelessWidget {
           children: [
             const SizedBox(height: 8),
             // ── Export ────────────────────────────────────────────────────
+            // Reflection-specific: Submit to Sanctuary
+            if (isReflectionEntry && entry.moodColor != 'reflection')
+              ListTile(
+                leading: const Icon(Icons.public_rounded, color: AppColors.aqua),
+                title: const Text('Publish to Sanctuary',
+                    style: TextStyle(color: AppColors.aqua)),
+                subtitle: const Text('Share this reflection with the community'),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  onSubmitReflection?.call();
+                },
+              ),
+            if (isReflectionEntry && entry.moodColor == 'reflection')
+              ListTile(
+                leading: const Icon(Icons.public_off_outlined),
+                title: const Text('Remove from Sanctuary'),
+                onTap: () async {
+                  Navigator.pop(ctx);
+                  await SupabaseService.instance.deleteWriteBack(entry.id);
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Removed from Sanctuary.')),
+                    );
+                  }
+                },
+              ),
+            if (isReflectionEntry) const Divider(height: 1),
+
             ListTile(
               leading: const Icon(Icons.ios_share_outlined),
               title: const Text('Share / Export'),
@@ -521,6 +619,10 @@ class _EditorBar extends StatelessWidget {
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
+              // If published reflection, also remove from Sanctuary
+              if (entry.moodColor == 'reflection') {
+                await SupabaseService.instance.deleteWriteBack(entry.id);
+              }
               await appState.deleteEntry(entry.id);
               if (context.mounted) {
                 Navigator.of(context)

@@ -43,6 +43,9 @@ class EditorCanvas extends StatefulWidget {
 class EditorCanvasState extends State<EditorCanvas> {
   late List<EditorBlock> _blocks;
 
+  bool get _isReflectionEntry =>
+      _blocks.isNotEmpty && _blocks.first is ReflectionHeaderBlock;
+
   // Exposed for toolbar use
   List<EditorBlock> get blocks => _blocks;
   String textAlignment = 'justify';
@@ -520,6 +523,14 @@ class EditorCanvasState extends State<EditorCanvas> {
 
   Widget _buildBlock(
       EditorBlock block, int idx, Color textColor, Color mutedColor) {
+    // ── Reflection header (pinned, non-removable) ─────────────────────────
+    if (block is ReflectionHeaderBlock) {
+      return _ReflectionHeaderWidget(
+        key: ValueKey('block_${block.id}'),
+        block: block,
+        isDark: widget.isDark,
+      );
+    }
     // ── Checklist block ───────────────────────────────────────────────────
     if (block is ChecklistBlock) {
       return _ChecklistBlockWidget(
@@ -1593,6 +1604,9 @@ class BlocksReadView extends StatelessWidget {
 
   Widget _buildBlock(EditorBlock block) {
     debugPrint('[BlocksReadView] Building block type: ${block.type}');
+    if (block is ReflectionHeaderBlock) {
+      return _ReflectionHeaderWidget(block: block, isDark: isDark);
+    }
     if (block is ChecklistBlock) {
       return _ChecklistReadView(block: block, isDark: isDark);
     } else if (block is TextBlock) {
@@ -1794,5 +1808,111 @@ class _TextBlockReadView extends StatelessWidget {
       default:
         return TextAlign.justify;
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REFLECTION HEADER WIDGET
+// Pinned "Reflection on" card — non-removable in both edit and read modes.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ReflectionHeaderWidget extends StatelessWidget {
+  final ReflectionHeaderBlock block;
+  final bool isDark;
+
+  const _ReflectionHeaderWidget({super.key, required this.block, required this.isDark});
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    final cardBg =
+        isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
+    final borderColor =
+        isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.07);
+    final hasImage = block.originHeaderImage != null &&
+        block.originHeaderImage!.isNotEmpty &&
+        File(block.originHeaderImage!).existsSync();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(
+          'Reflection on',
+          style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: mutedColor,
+              letterSpacing: 0.3),
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: borderColor)),
+          child: Row(children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: SizedBox(
+                width: 60,
+                height: 60,
+                child: hasImage
+                    ? Image.file(File(block.originHeaderImage!), fit: BoxFit.cover)
+                    : Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                              colors: [Color(0xFF0D1A28), Color(0xFF1A3045)]),
+                        ),
+                        child: const Icon(Icons.auto_stories_outlined,
+                            color: Colors.white30, size: 22),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(
+                  block.originTitle.isEmpty ? 'Untitled' : block.originTitle,
+                  style: GoogleFonts.crimsonPro(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                      height: 1.2),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 3),
+                Text('by ${block.originAuthor}',
+                    style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                if (block.originExcerpt != null &&
+                    block.originExcerpt!.isNotEmpty) ...[
+                  const SizedBox(height: 5),
+                  Text(
+                    '"${block.originExcerpt}"',
+                    style: GoogleFonts.crimsonPro(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: mutedColor,
+                        height: 1.45),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ]),
+            ),
+          ]),
+        ),
+        if (block.inspirationTitle != null && block.inspirationTitle!.isNotEmpty) ...[
+          const SizedBox(height: 8),
+          Text(
+            'Inspired by ${block.inspirationAuthor ?? "someone"}\'s reflection',
+            style: GoogleFonts.inter(
+                fontSize: 12, color: AppColors.aqua, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ]),
+    );
   }
 }
