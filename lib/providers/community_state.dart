@@ -25,17 +25,20 @@ class CommunityState extends ChangeNotifier {
   // ── Profile cache ──────────────────────────────────────────────────────────
   String? _profileDisplayName;
   String? _profileImagePath;
+  String? _profileBannerPath;
   String? get profileDisplayName => _profileDisplayName;
   String? get profileImagePath => _profileImagePath;
+  String? get profileBannerPath => _profileBannerPath;
 
   Future<void> loadProfile() async {
     final prefs = await SharedPreferences.getInstance();
     _profileDisplayName = prefs.getString('communityDisplayName');
     _profileImagePath = prefs.getString('communityProfileImage');
+    _profileBannerPath = prefs.getString('communityProfileBanner');
     notifyListeners();
   }
 
-  Future<void> saveProfile({String? name, String? imagePath}) async {
+  Future<void> saveProfile({String? name, String? imagePath, String? bannerPath}) async {
     final prefs = await SharedPreferences.getInstance();
     if (name != null) {
       _profileDisplayName = name;
@@ -44,6 +47,10 @@ class CommunityState extends ChangeNotifier {
     if (imagePath != null) {
       _profileImagePath = imagePath;
       await prefs.setString('communityProfileImage', imagePath);
+    }
+    if (bannerPath != null) {
+      _profileBannerPath = bannerPath;
+      await prefs.setString('communityProfileBanner', bannerPath);
     }
     notifyListeners();
   }

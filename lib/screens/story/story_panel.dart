@@ -90,8 +90,6 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
     );
   }
 
-  Future<void> _onRefresh() async => _addEntry(context);
-
   void _showStoryOptions(BuildContext context, Story story) {
     final appState = context.read<AppState>();
     final dark = appState.isDarkMode;
@@ -228,82 +226,78 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
     return Stack(
       children: [
         // ── Main scrollable content ────────────────────────────────────
-        RefreshIndicator(
-          onRefresh: _onRefresh,
-          child: CustomScrollView(
-            controller: _scrollController,
-            physics: const BouncingScrollPhysics(
-                parent: AlwaysScrollableScrollPhysics()),
-            slivers: [
-              SliverToBoxAdapter(
-                child: SizedBox(height: topPad + 60),
-              ),
+        CustomScrollView(
+          controller: _scrollController,
+          physics: const BouncingScrollPhysics(),
+          slivers: [
+            SliverToBoxAdapter(
+              child: SizedBox(height: topPad + 60),
+            ),
 
-              // ── Hero Card ──────────────────────────────────────────
+            // ── Hero Card ──────────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: _HeroCard(
+                  story: story,
+                  entryCount: widget.appState.entryCount,
+                  dark: dark,
+                  onTap: () => _showStoryOptions(context, story),
+                ),
+              ),
+            ),
+
+            // ── Section header ─────────────────────────────────────
+            if (entries.isNotEmpty)
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  child: _HeroCard(
-                    story: story,
-                    entryCount: widget.appState.entryCount,
-                    dark: dark,
-                    onTap: () => _showStoryOptions(context, story),
+                  padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Recent Entries',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${entries.length} ${entries.length == 1 ? "entry" : "entries"}',
+                        style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: mutedColor.withOpacity(0.7)),
+                      ),
+                    ],
                   ),
                 ),
               ),
 
-              // ── Section header ─────────────────────────────────────
-              if (entries.isNotEmpty)
-                SliverToBoxAdapter(
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 28, 20, 12),
-                    child: Row(
-                      children: [
-                        Text(
-                          'Recent Entries',
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: textColor,
-                          ),
-                        ),
-                        const Spacer(),
-                        Text(
-                          '${entries.length} ${entries.length == 1 ? "entry" : "entries"}',
-                          style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: mutedColor.withOpacity(0.7)),
-                        ),
-                      ],
+            // ── Entry list or empty ────────────────────────────────
+            if (entries.isEmpty)
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: _EmptyState(mutedColor: mutedColor),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (context, i) => _StaggeredEntry(
+                    delay: Duration(milliseconds: i * 55),
+                    child: EntryCard(
+                      entry: entries[i],
+                      index: i,
+                      onTap: () => _openEntry(context, entries[i]),
                     ),
                   ),
+                  childCount: entries.length,
                 ),
+              ),
 
-              // ── Entry list or empty ────────────────────────────────
-              if (entries.isEmpty)
-                SliverFillRemaining(
-                  hasScrollBody: false,
-                  child: _EmptyState(mutedColor: mutedColor),
-                )
-              else
-                SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, i) => _StaggeredEntry(
-                      delay: Duration(milliseconds: i * 55),
-                      child: EntryCard(
-                        entry: entries[i],
-                        index: i,
-                        onTap: () => _openEntry(context, entries[i]),
-                      ),
-                    ),
-                    childCount: entries.length,
-                  ),
-                ),
-
-              SliverToBoxAdapter(
-                  child: SizedBox(height: botPad + 110)),
-            ],
-          ),
+            SliverToBoxAdapter(
+                child: SizedBox(height: botPad + 110)),
+          ],
         ),
 
         // ── Floating "+ New Entry" button ──────────────────────────────

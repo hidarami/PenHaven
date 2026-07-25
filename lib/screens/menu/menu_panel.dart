@@ -1,3 +1,4 @@
+// ignore_for_file: non_constant_identifier_names, constant_identifier_names
 import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';

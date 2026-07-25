@@ -72,7 +72,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       final backgroundedTime =
           DateTime.fromMillisecondsSinceEpoch(backgroundedAt);
       final elapsed = DateTime.now().difference(backgroundedTime);
-      if (elapsed.inMinutes >= 1) {
+      if (elapsed.inMinutes >= 5) {
         final appState = context.read<AppState>();
         if (appState.isLockEnabled && !appState.isLocked) {
           appState.lockApp();
@@ -89,7 +89,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     if (state == AppLifecycleState.paused) {
       // App going to background - start timer and store timestamp
       _lockTimer?.cancel();
-      _lockTimer = Timer(const Duration(minutes: 1), () async {
+      _lockTimer = Timer(const Duration(minutes: 5), () async {
         final appState = context.read<AppState>();
         if (appState.isLockEnabled && !appState.isLocked) {
           appState.lockApp();

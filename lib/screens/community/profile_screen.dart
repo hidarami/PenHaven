@@ -80,6 +80,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _pickBannerImage() async {
+    final ok = await PermissionService.instance.ensurePhotos(context);
+    if (!ok || !mounted) return;
+    final path = await ImageService.instance.pickAndSave(
+      context: context,
+      allowCrop: true,
+      cropAspectRatioX: 16,
+      cropAspectRatioY: 9,
+    );
+    if (path != null && mounted) {
+      await context.read<CommunityState>().saveProfile(bannerPath: path);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = context.watch<AppState>().isDarkMode;
@@ -102,6 +116,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final hasImage = imagePath != null &&
         imagePath.isNotEmpty &&
         File(imagePath).existsSync();
+    final bannerPath = communityState.profileBannerPath;
+    final hasBanner = bannerPath != null &&
+        bannerPath.isNotEmpty &&
+        File(bannerPath).existsSync();
     final stories = appState.stories.where((s) => !s.isDeleted).toList();
     final publications = communityState.myPosts;
     final pubCount = publications.length;
@@ -121,39 +139,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 // Banner with curved bottom
               ClipPath(
                 clipper: _BannerClipper(),
-                child: SizedBox(
-                  height: 190 + topPad,
-                  width: double.infinity,
-                  child: hasImage
-                      ? Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            ImageFiltered(
-                              imageFilter:
-                                  ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                              child: Image.file(File(imagePath!),
-                                  fit: BoxFit.cover),
-                            ),
-                            Container(color: Colors.black.withOpacity(0.28)),
-                          ],
-                        )
-                      : Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: dark
-                                  ? [
-                                      const Color(0xFF0D1A28),
-                                      const Color(0xFF1A3045)
-                                    ]
-                                  : [
-                                      const Color(0xFFB8CDE0),
-                                      const Color(0xFFD8E8F0)
-                                    ],
+                child: GestureDetector(
+                  onTap: _pickBannerImage,
+                  child: SizedBox(
+                    height: 190 + topPad,
+                    width: double.infinity,
+                    child: hasBanner
+                        ? Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              ImageFiltered(
+                                imageFilter:
+                                    ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+                                child: Image.file(File(bannerPath!),
+                                    fit: BoxFit.cover),
+                              ),
+                              Container(color: Colors.black.withOpacity(0.28)),
+                            ],
+                          )
+                        : Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: dark
+                                    ? [
+                                        const Color(0xFF0D1A28),
+                                        const Color(0xFF1A3045)
+                                      ]
+                                    : [
+                                        const Color(0xFFB8CDE0),
+                                        const Color(0xFFD8E8F0)
+                                      ],
+                              ),
                             ),
                           ),
-                        ),
+                  ),
                 ),
               ),
 
@@ -172,6 +193,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: const Icon(Icons.chevron_left_rounded,
                           color: Colors.white, size: 22),
+                    ),
+                  ),
+                ),
+
+                // Banner camera icon
+                Positioned(
+                  top: topPad + 8,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: _pickBannerImage,
+                    child: Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.30),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.camera_alt_rounded,
+                          color: Colors.white, size: 18),
                     ),
                   ),
                 ),
