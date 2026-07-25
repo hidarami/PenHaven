@@ -240,7 +240,6 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _HeroCard(
                   story: story,
-                  entryCount: widget.appState.entryCount,
                   dark: dark,
                   onTap: () => _showStoryOptions(context, story),
                 ),
@@ -325,26 +324,14 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
 
 class _HeroCard extends StatelessWidget {
   final Story story;
-  final int entryCount;
   final bool dark;
   final VoidCallback onTap;
 
   const _HeroCard({
     required this.story,
-    required this.entryCount,
     required this.dark,
     required this.onTap,
   });
-
-  String _lastEdited() {
-    final diff = DateTime.now().difference(story.updatedAt);
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays == 1) return '1d ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return DateFormat('MMM d').format(story.updatedAt);
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -403,18 +390,23 @@ class _HeroCard extends StatelessWidget {
                               blurRadius: 10)
                         ],
                       ),
-                      maxLines: 3,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '$entryCount ${entryCount == 1 ? "entry" : "entries"}  ·  Last edited ${_lastEdited()}',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: Colors.white.withOpacity(0.72),
-                        fontWeight: FontWeight.w400,
+                    if (story.description.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        story.description,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: Colors.white.withOpacity(0.78),
+                          height: 1.4,
+                          fontStyle: FontStyle.italic,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                    ),
+                    ],
                   ],
                 ),
               ),

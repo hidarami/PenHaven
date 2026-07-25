@@ -22,6 +22,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../editor/editor_canvas.dart';
 import '../../widgets/shared_widgets.dart';
+import 'public_profile_modal.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMMUNITY ENTRY VIEWER — Medium-inspired editorial layout
@@ -66,6 +67,8 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     _schedulePillHide();
     _scrollCtrl.addListener(_onScroll);
     _loadBookmark();
+    // Record unique view (silently — table must exist in Supabase)
+    SupabaseService.instance.recordView(_entry.id);
   }
 
   @override
@@ -327,20 +330,6 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                 },
               ),
 
-            // Brightness (only when local image present)
-            if (localImageExists)
-              ListTile(
-                leading:
-                    Icon(Icons.brightness_medium_outlined, color: mutedColor),
-                title: Text('Adjust image brightness',
-                    style: TextStyle(color: textColor)),
-                onTap: () {
-                  Navigator.pop(_);
-                  setState(
-                      () => _showBrightnessSlider = !_showBrightnessSlider);
-                },
-              ),
-
             ListTile(
               leading: Icon(Icons.share_outlined, color: mutedColor),
               title:
@@ -542,7 +531,15 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                   // Author row
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
-                    child: Row(
+                    child: GestureDetector(
+                      onTap: (!_entry.isOwner && !_entry.isAnonymous)
+                          ? () => PublicProfileModal.show(
+                                context,
+                                userId: _entry.userId,
+                                displayName: _entry.authorLabel,
+                              )
+                          : null,
+                      child: Row(
                       children: [
                         _AvatarCircle(
                           name: _entry.isOwner
@@ -587,6 +584,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                           ),
                         ),
                       ],
+                    ),
                     ),
                   ),
 
@@ -651,41 +649,6 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                 ],
               ),
             ),
-
-            // ── Brightness slider ─────────────────────────────────────────
-            if (_showBrightnessSlider && hasHeaderImage)
-              Positioned(
-                top: topPad + 50,
-                left: 16,
-                right: 16,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.55),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.brightness_low_rounded,
-                          size: 16, color: Colors.white70),
-                      Expanded(
-                        child: Slider(
-                          value: _imageBrightness,
-                          min: 0.3,
-                          max: 1.7,
-                          onChanged: (v) =>
-                              setState(() => _imageBrightness = v),
-                          activeColor: Colors.white,
-                          inactiveColor: Colors.white30,
-                        ),
-                      ),
-                      const Icon(Icons.brightness_high_rounded,
-                          size: 16, color: Colors.white70),
-                    ],
-                  ),
-                ),
-              ),
 
             // ── Glassmorphic action pill ──────────────────────────────────
             Positioned(

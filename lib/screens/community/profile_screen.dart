@@ -21,17 +21,15 @@ import 'community_entry_viewer.dart';
 class _BannerClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
-    // Inward curve: corners at full height, center rises up by 15%
     final path = Path();
-    final curveDepth = size.height * 0.15;
     path.moveTo(0, 0);
     path.lineTo(size.width, 0);
-    path.lineTo(size.width, size.height); // right corner at full height
-    path.quadraticBezierTo(
-      size.width / 2,
-      size.height - curveDepth, // center peak (inward = higher)
-      0,
-      size.height, // left corner at full height
+    path.lineTo(size.width, size.height);
+    // Deep fluid scoop — cubic bezier, both control points pull center sharply upward
+    path.cubicTo(
+      size.width * 0.80, size.height * 0.58,
+      size.width * 0.20, size.height * 0.58,
+      0, size.height,
     );
     path.close();
     return path;
@@ -88,55 +86,11 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
       Color textColor, Color mutedColor, bool dark, Color bg) async {
     await showDialog<void>(
       context: ctx,
-      builder: (dctx) => StatefulBuilder(
-        builder: (dctx, setDialogState) {
-          final ctrl = TextEditingController(text: state.profileBio ?? '');
-          
-          void dispose() {
-            ctrl.dispose();
-          }
-
-          return AlertDialog(
-            backgroundColor: bg,
-            title: Text('Your Bio',
-                style: GoogleFonts.crimsonPro(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: textColor)),
-            content: TextField(
-              controller: ctrl,
-              maxLines: 4,
-              maxLength: 150,
-              autofocus: true,
-              style: GoogleFonts.inter(fontSize: 14, color: textColor),
-              decoration: InputDecoration(
-                hintText: 'A sentence or two about yourself...',
-                hintStyle: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: mutedColor,
-                    fontStyle: FontStyle.italic),
-                border:
-                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-            actions: [
-              TextButton(
-                  onPressed: () {
-                    dispose();
-                    Navigator.pop(dctx);
-                  },
-                  child: const Text('Cancel')),
-              TextButton(
-                onPressed: () async {
-                  await state.saveProfile(bio: ctrl.text.trim());
-                  dispose();
-                  if (dctx.mounted) Navigator.pop(dctx);
-                },
-                child: const Text('Save'),
-              ),
-            ],
-          );
-        },
+      builder: (dctx) => _BioEditDialog(
+        state: state,
+        textColor: textColor,
+        mutedColor: mutedColor,
+        bg: bg,
       ),
     );
   }
@@ -186,8 +140,7 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
     final pubCount = publications.length;
     final appreciationsTotal =
         publications.fold<int>(0, (sum, p) => sum + p.clapCount);
-    final totalReads =
-        publications.fold<int>(0, (sum, p) => sum + p.clapCount + p.commentCount);
+    final totalReads = communityState.totalUniqueViews;
     final bio = communityState.profileBio;  
 
     return Scaffold(
@@ -204,14 +157,13 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
             child: Builder(
               builder: (ctx) {
                 final screenW = MediaQuery.of(ctx).size.width;
-                final bannerContentH = screenW * 2.0 / 3.0;
+                final bannerContentH = screenW * 9.0 / 16.0; // 16:9 — pulls content up
                 final bannerH = bannerContentH + topPad;
-                // curveDepth = 15% of full banner height, curve peak Y from top
-                final curvePeakY = bannerH - bannerH * 0.15;
-                const avatarD = 96.0; // diameter
-                const avatarR = 48.0; // radius
-                // Top 25% of avatar (24px) overlaps into banner
-                final avatarTopY = curvePeakY - (avatarR * 0.5);
+                // Cubic bezier controls at 58% → scoop tip lands at ~68.5% of bannerH
+                final scoopTipY = bannerH * 0.685;
+                const avatarD = 96.0;
+                const avatarR = 48.0;
+                final avatarTopY = scoopTipY - avatarR; // avatar center sits at scoop tip
 
                 return SizedBox(
                   height: avatarTopY + avatarD + 8,
@@ -570,6 +522,79 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
 }
 
 // ── Stat item ──────────────────────────────────────────────────────────────
+
+class _BioEditDialog extends StatefulWidget {
+  final CommunityState state;
+  final Color textColor;
+  final Color mutedColor;
+  final Color bg;
+
+  const _BioEditDialog({
+    required this.state,
+    required this.textColor,
+    required this.mutedColor,
+    required this.bg,
+  });
+
+  @override
+  State<_BioEditDialog> createState() => _BioEditDialogState();
+}
+
+class _BioEditDialogState extends State<_BioEditDialog> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.state.profileBio ?? '');
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: widget.bg,
+      title: Text('Your Bio',
+          style: GoogleFonts.crimsonPro(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: widget.textColor)),
+      content: TextField(
+        controller: _ctrl,
+        maxLines: 4,
+        maxLength: 150,
+        autofocus: true,
+        style: GoogleFonts.inter(fontSize: 14, color: widget.textColor),
+        decoration: InputDecoration(
+          hintText: 'A sentence or two about yourself...',
+          hintStyle: GoogleFonts.inter(
+              fontSize: 14,
+              color: widget.mutedColor,
+              fontStyle: FontStyle.italic),
+          border:
+              OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+        TextButton(
+          onPressed: () async {
+            await widget.state.saveProfile(bio: _ctrl.text.trim());
+            if (mounted) Navigator.pop(context);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
 
 class _StatItem extends StatelessWidget {
   final int count;

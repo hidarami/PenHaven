@@ -540,4 +540,64 @@ class SupabaseService {
       debugPrint('[Supabase] deletePublishedEntry: $e');
     }
   }
+
+  /// Records a unique view for [entryId] by the current user.
+  /// Requires in Supabase SQL editor:
+  /// CREATE TABLE community_views (
+  ///   entry_id TEXT NOT NULL, user_id TEXT NOT NULL,
+  ///   viewed_at TIMESTAMPTZ DEFAULT NOW(),
+  ///   PRIMARY KEY (entry_id, user_id)
+  /// );
+  Future<void> recordView(String entryId) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client?.from('community_views').upsert(
+        {'entry_id': entryId, 'user_id': userId},
+        onConflict: 'entry_id,user_id',
+      );
+    } catch (_) {}
+  }
+
+  /// Total unique (entry, viewer) pairs across all entries by [publisherUserId].
+  /// One user viewing two of your entries = 2 reads. Same user viewing one entry
+  /// five times = 1 read.
+  Future<int> getTotalUniqueViewsByUser(String publisherUserId) async {
+    try {
+      final entries = await _client
+          ?.from('published_entries')
+          .select('id')
+          .eq('user_id', publisherUserId);
+      if (entries == null || (entries as List).isEmpty) return 0;
+      final entryIds = (entries as List).map((e) => e['id'] as String).toList();
+      final views = await _client
+          ?.from('community_views')
+          .select('entry_id, user_id')
+          .inFilter('entry_id', entryIds);
+      if (views == null) return 0;
+      // Count unique (entry_id, user_id) pairs — already unique by primary key
+      return (views as List).length;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  /// Fetches public (non-anonymous) published entries by a specific user.
+  Future<List<PublishedEntry>> getPublicEntriesByUser(
+      String targetUserId, {int limit = 12}) async {
+    try {
+      final response = await _client
+          ?.from('published_entries')
+          .select()
+          .eq('user_id', targetUserId)
+          .eq('is_anonymous', false)
+          .order('created_at', ascending: false)
+          .limit(limit);
+      if (response == null) return [];
+      return (response as List)
+          .map((e) => PublishedEntry.fromMap(e as Map<String, dynamic>))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
 }

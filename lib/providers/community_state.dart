@@ -10,6 +10,8 @@ class CommunityState extends ChangeNotifier {
   List<PublishedEntry> _myPosts = [];
   bool _feedLoading = false;
   bool _myPostsLoading = false;
+  int _totalUniqueViews = 0;
+  int get totalUniqueViews => _totalUniqueViews;
   bool _hasMore = true;
   int _page = 0;
   static const int _pageSize = 20;
@@ -187,6 +189,8 @@ class CommunityState extends ChangeNotifier {
           e.hasClapped = clappedIds.contains(e.id);
           e.isOwner = true;
         }
+        _totalUniqueViews =
+            await SupabaseService.instance.getTotalUniqueViewsByUser(userId);
       }
     } catch (e) {
       debugPrint('[CommunityState] loadMyPosts: $e');
