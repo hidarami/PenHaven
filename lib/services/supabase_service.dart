@@ -600,4 +600,151 @@ class SupabaseService {
       return [];
     }
   }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // WRITE BACKS / REFLECTIONS
+  // ─────────────────────────────────────────────────────────────────────────
+
+  /// Submit a write back (private or public reflection).
+  Future<bool> submitWriteBack(Map<String, dynamic> map) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client?.from('write_backs').upsert(map);
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] submitWriteBack: $e');
+      return false;
+    }
+  }
+
+  /// Fetch public reflections for an origin entry.
+  Future<List<Map<String, dynamic>>> getReflectionsForEntry(
+      String originEntryId) async {
+    try {
+      final response = await _client
+          ?.from('write_backs')
+          .select()
+          .eq('origin_entry_id', originEntryId)
+          .eq('is_private', false)
+          .order('created_at', ascending: false);
+      if (response == null) return [];
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      debugPrint('[Supabase] getReflectionsForEntry: $e');
+      return [];
+    }
+  }
+
+  /// Fetch all write backs (private + public) for the current user.
+  Future<List<Map<String, dynamic>>> getMyWriteBacks() async {
+    if (!isAuthenticated) return [];
+    try {
+      final response = await _client
+          ?.from('write_backs')
+          .select()
+          .eq('user_id', userId!)
+          .order('created_at', ascending: false);
+      if (response == null) return [];
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      debugPrint('[Supabase] getMyWriteBacks: $e');
+      return [];
+    }
+  }
+
+  /// Fetch write backs received (public reflections on entries owned by user).
+  Future<List<Map<String, dynamic>>> getReceivedWriteBacks() async {
+    if (!isAuthenticated) return [];
+    try {
+      // Get the user's published entry IDs first
+      final myEntries = await _client
+          ?.from('published_entries')
+          .select('id')
+          .eq('user_id', userId!);
+      if (myEntries == null || (myEntries as List).isEmpty) return [];
+      final ids = (myEntries as List).map((e) => e['id'] as String).toList();
+      final response = await _client
+          ?.from('write_backs')
+          .select()
+          .inFilter('origin_entry_id', ids)
+          .eq('is_private', false)
+          .order('created_at', ascending: false);
+      if (response == null) return [];
+      return List<Map<String, dynamic>>.from(response as List);
+    } catch (e) {
+      debugPrint('[Supabase] getReceivedWriteBacks: $e');
+      return [];
+    }
+  }
+
+  /// Clap a reflection.
+  Future<void> clapReflection(String reflectionId) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client?.from('reflection_claps')
+          .insert({'reflection_id': reflectionId, 'user_id': userId});
+      await _client?.rpc('increment_reflection_clap', params: {'p_id': reflectionId});
+    } catch (e) {
+      debugPrint('[Supabase] clapReflection: $e');
+    }
+  }
+
+  /// Remove clap from a reflection.
+  Future<void> removereflectionClap(String reflectionId) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client?.from('reflection_claps')
+          .delete()
+          .eq('reflection_id', reflectionId)
+          .eq('user_id', userId!);
+      await _client?.rpc('decrement_reflection_clap', params: {'p_id': reflectionId});
+    } catch (e) {
+      debugPrint('[Supabase] removereflectionClap: $e');
+    }
+  }
+
+  /// Get replies for a reflection.
+  Future<List<CommunityComment>> getReflectionReplies(String reflectionId) async {
+    try {
+      final response = await _client
+          ?.from('reflection_replies')
+          .select()
+          .eq('reflection_id', reflectionId)
+          .order('created_at', ascending: true);
+      if (response == null) return [];
+      return (response as List).map((e) {
+        final m = Map<String, dynamic>.from(e as Map);
+        // Adapt to CommunityComment shape
+        m['entry_id'] = m['reflection_id'] ?? '';
+        m['body'] = m['body'] ?? '';
+        return CommunityComment.fromMap(m);
+      }).toList();
+    } catch (e) {
+      debugPrint('[Supabase] getReflectionReplies: $e');
+      return [];
+    }
+  }
+
+  /// Add a reply to a reflection.
+  Future<bool> addReflectionReply({
+    required String reflectionId,
+    required String body,
+    bool isAnonymous = false,
+    String? displayName,
+  }) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client?.from('reflection_replies').insert({
+        'reflection_id': reflectionId,
+        'user_id': userId,
+        'body': body,
+        'is_anonymous': isAnonymous,
+        'display_name': isAnonymous ? null : displayName,
+      });
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] addReflectionReply: $e');
+      return false;
+    }
+  }
 }

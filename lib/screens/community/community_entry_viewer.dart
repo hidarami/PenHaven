@@ -23,6 +23,8 @@ import '../../theme/app_typography.dart';
 import '../editor/editor_canvas.dart';
 import '../../widgets/shared_widgets.dart';
 import 'public_profile_modal.dart';
+import 'write_back_sheet.dart';
+import 'reflection_viewer.dart' show ReflectionViewer;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMMUNITY ENTRY VIEWER — Medium-inspired editorial layout
@@ -52,8 +54,11 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   bool _hasClapped = false;
   String? _viewerFontName;
   double _imageBrightness = 1.0;
-  bool _isBookmarked = false;
   bool _showBrightnessSlider = false;
+  bool _isBookmarked = false;
+  bool _reflectionsOpen = false;
+  List<Map<String, dynamic>> _reflections = [];
+  bool _reflectionsLoading = false;
   int _clapCount = 0;
   int _commentCount = 0;
 
@@ -292,6 +297,34 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
         );
       },
     );
+  }
+
+void _openWriteBack() {
+    if (!SupabaseService.instance.isAuthenticated) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to write back.')),
+      );
+      return;
+    }
+    WriteBackSheet.show(context, entry: _entry);
+  }
+
+  Future<void> _loadReflections() async {
+    if (_reflectionsLoading) return;
+    setState(() => _reflectionsLoading = true);
+    final results = await SupabaseService.instance
+        .getReflectionsForEntry(_entry.id);
+    if (mounted) {
+      setState(() {
+        _reflections = results;
+        _reflectionsLoading = false;
+      });
+    }
+  }
+
+  void _toggleReflections() {
+    setState(() => _reflectionsOpen = !_reflectionsOpen);
+    if (_reflectionsOpen && _reflections.isEmpty) _loadReflections();
   }
 
   void _showMoreMenu(BuildContext ctx) {
@@ -600,21 +633,24 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                     child: _buildBody(dark, fontName),
                   ),
 
-                  // Comments section
-                  if (_commentsOpen)
-                    _CommentsSection(
-                      comments: _comments,
-                      loading: _commentsLoading,
-                      isEntryOwner: _entry.isOwner,
-                      onDeleteComment: _deleteComment,
-                      controller: _commentCtrl,
-                      isAnon: _commentAnon,
-                      submitting: _submittingComment,
+                  // Reflections section (Write Backs)
+                  if (_reflectionsOpen)
+                    _ReflectionsFeedSection(
+                      reflections: _reflections,
+                      loading: _reflectionsLoading,
                       isDark: dark,
                       textColor: textColor,
                       mutedColor: mutedColor,
-                      onAnonChanged: (v) => setState(() => _commentAnon = v),
-                      onSubmit: _submitComment,
+                      onTapReflection: (r) {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ReflectionViewer(
+                              reflection: r,
+                              originEntry: _entry,
+                            ),
+                          ),
+                        );
+                      },
                     ),
 
                   SizedBox(height: bottomPad + 80),
@@ -666,10 +702,11 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                       entry: _entry,
                       hasClapped: _hasClapped,
                       clapCount: _clapCount,
-                      commentCount: _commentCount,
-                      commentsOpen: _commentsOpen,
+                      reflectionCount: _reflections.length,
+                      reflectionsOpen: _reflectionsOpen,
                       onClap: _handleClap,
-                      onComment: _toggleComments,
+                      onToggleReflections: _toggleReflections,
+                      onWriteBack: _openWriteBack,
                       onShare: _handleShare,
                     ),
                   ),
@@ -700,26 +737,33 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
 
 // ── Action pill — glassmorphic ────────────────────────────────────────────────
 
+// ── Action pill — glassmorphic ────────────────────────────────────────────────
+
 class _ActionPill extends StatelessWidget {
   final PublishedEntry entry;
   final bool hasClapped;
   final int clapCount;
-  final int commentCount;
-  final bool commentsOpen;
+  final int reflectionCount;
+  final bool reflectionsOpen;
   final VoidCallback onClap;
-  final VoidCallback onComment;
+  final VoidCallback onToggleReflections;
+  final VoidCallback onWriteBack;
   final VoidCallback? onShare;
 
   const _ActionPill({
     required this.entry,
     required this.hasClapped,
     required this.clapCount,
-    required this.commentCount,
-    required this.commentsOpen,
+    required this.reflectionCount,
+    required this.reflectionsOpen,
     required this.onClap,
-    required this.onComment,
+    required this.onToggleReflections,
+    required this.onWriteBack,
     this.onShare,
   });
+
+  Widget _divider() => Container(
+      width: 0.5, height: 22, color: Colors.white.withOpacity(0.3));
 
   @override
   Widget build(BuildContext context) {
@@ -732,8 +776,8 @@ class _ActionPill extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withOpacity(0.14),
             borderRadius: BorderRadius.circular(36),
-            border:
-                Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
+            border: Border.all(
+                color: Colors.white.withOpacity(0.25), width: 0.5),
             boxShadow: [
               BoxShadow(
                   color: Colors.black.withOpacity(0.12),
@@ -741,104 +785,107 @@ class _ActionPill extends StatelessWidget {
                   offset: const Offset(0, 6)),
             ],
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // ── Appreciate ─────────────────────────────────────────────
-              GestureDetector(
-                onTap: onClap,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: hasClapped
-                        ? const Color(0xFFE87FA0).withOpacity(0.15)
-                        : Colors.transparent,
-                    borderRadius: BorderRadius.circular(28),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            // ── Appreciate ─────────────────────────────────────────
+            GestureDetector(
+              onTap: onClap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: hasClapped
+                      ? const Color(0xFFE87FA0).withOpacity(0.15)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(28),
+                ),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      hasClapped
+                          ? Icons.favorite_rounded
+                          : Icons.favorite_border_rounded,
+                      key: ValueKey(hasClapped),
+                      size: 18,
+                      color: hasClapped
+                          ? const Color(0xFFE87FA0)
+                          : Colors.white.withOpacity(0.9),
+                    ),
                   ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: Icon(
-                          hasClapped
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border_rounded,
-                          key: ValueKey(hasClapped),
-                          size: 18,
-                          color: hasClapped
-                              ? const Color(0xFFE87FA0)
-                              : Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                      const SizedBox(width: 7),
-                      Text(
-                        hasClapped ? 'Appreciated' : 'Appreciate',
+                  const SizedBox(width: 7),
+                  Text(
+                    hasClapped ? 'Appreciated' : 'Appreciate',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: hasClapped
+                          ? const Color(0xFFE87FA0)
+                          : Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+
+            _divider(),
+
+            // ── Reflections (Write Backs count) ────────────────────
+            GestureDetector(
+              onTap: onToggleReflections,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(
+                    reflectionsOpen
+                        ? Icons.auto_stories_rounded
+                        : Icons.auto_stories_outlined,
+                    size: 16,
+                    color: Colors.white.withOpacity(0.9),
+                  ),
+                  if (reflectionCount > 0) ...[
+                    const SizedBox(width: 5),
+                    Text('$reflectionCount',
                         style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withOpacity(0.9))),
+                  ],
+                ]),
+              ),
+            ),
+
+            _divider(),
+
+            // ── Write Back ──────────────────────────────────────────
+            GestureDetector(
+              onTap: onWriteBack,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                child: Row(mainAxisSize: MainAxisSize.min, children: [
+                  Icon(Icons.edit_note_rounded,
+                      size: 18, color: Colors.white.withOpacity(0.9)),
+                  const SizedBox(width: 6),
+                  Text('Write Back',
+                      style: GoogleFonts.inter(
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
-                          color: hasClapped
-                              ? const Color(0xFFE87FA0)
-                              : Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                          color: Colors.white.withOpacity(0.9))),
+                ]),
               ),
+            ),
 
-              // Divider
-              Container(
-                  width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
+            _divider(),
 
-              // ── Comments ────────────────────────────────────────────────
-              GestureDetector(
-                onTap: onComment,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        commentsOpen
-                            ? Icons.chat_bubble_rounded
-                            : Icons.chat_bubble_outline_rounded,
-                        size: 17,
-                        color: Colors.white.withOpacity(0.9),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        '$commentCount',
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.9),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+            // ── Share ────────────────────────────────────────────────
+            GestureDetector(
+              onTap: onShare,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                child: Icon(Icons.ios_share_outlined,
+                    size: 17, color: Colors.white.withOpacity(0.9)),
               ),
-
-              // Divider
-              Container(
-                  width: 0.5, height: 22, color: Colors.white.withOpacity(0.3)),
-
-              // ── Share ───────────────────────────────────────────────────
-              GestureDetector(
-                onTap: onShare,
-                child: Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  child: Icon(Icons.ios_share_outlined,
-                      size: 17, color: Colors.white.withOpacity(0.9)),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ]),
         ),
       ),
     );
@@ -1949,6 +1996,186 @@ class _AutoFitText extends StatelessWidget {
       style = baseStyle.copyWith(fontSize: fontSize);
     }
     return Text(text, style: style);
+  }
+}
+
+// ── Reflections feed section (write backs on an entry) ───────────────────────
+
+class _ReflectionsFeedSection extends StatelessWidget {
+  final List<Map<String, dynamic>> reflections;
+  final bool loading;
+  final bool isDark;
+  final Color textColor;
+  final Color mutedColor;
+  final void Function(dynamic) onTapReflection;
+
+  const _ReflectionsFeedSection({
+    required this.reflections,
+    required this.loading,
+    required this.isDark,
+    required this.textColor,
+    required this.mutedColor,
+    required this.onTapReflection,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Divider(color: divColor, thickness: 0.5),
+        const SizedBox(height: 16),
+        Text('Reflections',
+            style: GoogleFonts.crimsonPro(
+                fontSize: 22, fontWeight: FontWeight.w700, color: textColor)),
+        const SizedBox(height: 4),
+        Text('Write Backs from the community.',
+            style: GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+        const SizedBox(height: 14),
+        if (loading)
+          const Center(
+              child: Padding(
+                  padding: EdgeInsets.all(24),
+                  child: CircularProgressIndicator()))
+        else if (reflections.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            child: Text(
+              'No reflections yet.\nBe the first to Write Back.',
+              style: GoogleFonts.crimsonPro(
+                  fontSize: 16,
+                  fontStyle: FontStyle.italic,
+                  color: mutedColor,
+                  height: 1.6),
+            ),
+          )
+        else
+          ...reflections.map((r) {
+            // Build a minimal Reflection from the map
+            final hasImage = (r['header_image'] as String?) != null &&
+                (r['header_image'] as String).isNotEmpty &&
+                File(r['header_image'] as String).existsSync();
+            final author = (r['is_anonymous'] as bool? ?? false)
+                ? 'Anonymous'
+                : ((r['display_name'] as String?)?.isNotEmpty == true
+                    ? r['display_name'] as String
+                    : 'A Writer');
+            final title = r['title'] as String? ?? '';
+            final content = r['content'] as String? ?? '';
+            final clapCount = (r['clap_count'] as int?) ?? 0;
+            final replyCount = (r['reply_count'] as int?) ?? 0;
+            final createdAt = r['created_at'] != null
+                ? DateTime.parse(r['created_at'] as String)
+                : DateTime.now();
+
+            final excerpt = content.isEmpty
+                ? ''
+                : content
+                    .replaceAll(RegExp(r'#{1,6}\s'), '')
+                    .replaceAll(RegExp(r'\*\*|__'), '')
+                    .replaceAll(RegExp(r'\*|_'), '')
+                    .trim();
+            final preview = excerpt.length > 120
+                ? '${excerpt.substring(0, 120)}…'
+                : excerpt;
+
+            final wordCount = content.trim().isEmpty
+                ? 0
+                : content
+                    .trim()
+                    .split(RegExp(r'\s+'))
+                    .where((w) => w.isNotEmpty)
+                    .length;
+            final readMins = (wordCount / 200).ceil().clamp(1, 99);
+
+            return GestureDetector(
+              onTap: () => onTapReflection(r),
+              behavior: HitTestBehavior.opaque,
+              child: Column(children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    // Cover or gradient
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        width: 72, height: 72,
+                        child: hasImage
+                            ? Image.file(
+                                File(r['header_image'] as String),
+                                fit: BoxFit.cover)
+                            : Container(
+                                decoration: const BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                    colors: [Color(0xFF180A28), Color(0xFF301550)],
+                                  ),
+                                ),
+                                child: const Icon(Icons.auto_stories_outlined,
+                                    color: Colors.white24, size: 24),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        if (title.isNotEmpty)
+                          Text(title,
+                              style: GoogleFonts.crimsonPro(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: textColor,
+                                  height: 1.2),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                        if (preview.isNotEmpty) ...[
+                          const SizedBox(height: 4),
+                          Text(preview,
+                              style: GoogleFonts.inter(
+                                  fontSize: 12, color: mutedColor, height: 1.45),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis),
+                        ],
+                        const SizedBox(height: 7),
+                        Row(children: [
+                          Text(author,
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: mutedColor)),
+                          const SizedBox(width: 6),
+                          Text('$readMins min',
+                              style: GoogleFonts.inter(
+                                  fontSize: 11, color: mutedColor.withOpacity(0.7))),
+                          const Spacer(),
+                          Icon(Icons.favorite_border_rounded,
+                              size: 13, color: mutedColor.withOpacity(0.5)),
+                          const SizedBox(width: 3),
+                          Text('$clapCount',
+                              style: GoogleFonts.inter(
+                                  fontSize: 11, color: mutedColor.withOpacity(0.7))),
+                          const SizedBox(width: 10),
+                          Icon(Icons.chat_bubble_outline_rounded,
+                              size: 12, color: mutedColor.withOpacity(0.5)),
+                          const SizedBox(width: 3),
+                          Text('$replyCount',
+                              style: GoogleFonts.inter(
+                                  fontSize: 11, color: mutedColor.withOpacity(0.7))),
+                        ]),
+                      ]),
+                    ),
+                  ]),
+                ),
+                Divider(color: divColor.withOpacity(0.5), height: 0),
+              ]),
+            );
+          }),
+        const SizedBox(height: 24),
+      ]),
+    );
   }
 }
 

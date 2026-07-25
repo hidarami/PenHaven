@@ -315,4 +315,69 @@ class CommunityState extends ChangeNotifier {
   }
 
   void refresh() => loadFeed(refresh: true);
+
+  // ── Write Backs / Reflections ──────────────────────────────────────────────
+
+  List<Map<String, dynamic>> _myWriteBacks = [];
+  List<Map<String, dynamic>> _receivedWriteBacks = [];
+  bool _writeBacksLoading = false;
+
+  List<Map<String, dynamic>> get myWriteBacks => _myWriteBacks;
+  List<Map<String, dynamic>> get receivedWriteBacks => _receivedWriteBacks;
+  bool get writeBacksLoading => _writeBacksLoading;
+
+  Future<void> loadMyWriteBacks() async {
+    _writeBacksLoading = true;
+    notifyListeners();
+    _myWriteBacks = await SupabaseService.instance.getMyWriteBacks();
+    _writeBacksLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadReceivedWriteBacks() async {
+    _writeBacksLoading = true;
+    notifyListeners();
+    _receivedWriteBacks = await SupabaseService.instance.getReceivedWriteBacks();
+    _writeBacksLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> submitWriteBack(dynamic reflection) async {
+    // reflection is a Reflection model — convert to map
+    try {
+      final map = reflection.toMap() as Map<String, dynamic>;
+      final ok = await SupabaseService.instance.submitWriteBack(map);
+      if (ok) {
+        // Refresh my write backs list
+        _myWriteBacks = await SupabaseService.instance.getMyWriteBacks();
+        notifyListeners();
+      }
+      return ok;
+    } catch (e) {
+      debugPrint('[CommunityState] submitWriteBack: $e');
+      return false;
+    }
+  }
+
+  Future<void> toggleReflectionClap(String reflectionId, bool wasClapped) async {
+    try {
+      if (wasClapped) {
+        await SupabaseService.instance.removereflectionClap(reflectionId);
+      } else {
+        await SupabaseService.instance.clapReflection(reflectionId);
+      }
+      // Update in myWriteBacks list
+      final idx = _myWriteBacks.indexWhere((r) => r['id'] == reflectionId);
+      if (idx != -1) {
+        final current = (_myWriteBacks[idx]['clap_count'] as int? ?? 0);
+        _myWriteBacks[idx] = {
+          ..._myWriteBacks[idx],
+          'clap_count': wasClapped ? (current - 1).clamp(0, 999999) : current + 1,
+        };
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('[CommunityState] toggleReflectionClap: $e');
+    }
+  }
 }

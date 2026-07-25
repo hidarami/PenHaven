@@ -17,6 +17,7 @@ import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import '../story_cover.dart';
 import 'community_entry_viewer.dart';
+import 'public_profile_modal.dart';
 
 class _BannerClipper extends CustomClipper<Path> {
   @override
@@ -330,6 +331,39 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
                           ),
                   ),
                 ),
+
+                const SizedBox(height: 12),
+
+                // View public profile button
+                if (SupabaseService.instance.isAuthenticated)
+                  TextButton.icon(
+                    onPressed: () {
+                      final displayName = communityState.profileDisplayName ??
+                          SupabaseService.instance.userEmail?.split('@').first ??
+                          'You';
+                      final userId = SupabaseService.instance.userId;
+                      if (userId != null) {
+                        PublicProfileModal.show(
+                          context,
+                          userId: userId,
+                          displayName: displayName,
+                        );
+                      }
+                    },
+                    icon: Icon(
+                      Icons.visibility_outlined,
+                      size: 18,
+                      color: accentColor,
+                    ),
+                    label: Text(
+                      'View my public profile',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: accentColor,
+                      ),
+                    ),
+                  ),
 
                 const SizedBox(height: 16),
 
