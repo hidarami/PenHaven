@@ -163,6 +163,18 @@ class AppState extends ChangeNotifier {
 
   Future<void> _loadStories() async {
     _stories = await StoryDao.instance.getAll();
+    // Apply saved custom drag order
+    final _orderPrefs = await SharedPreferences.getInstance();
+    final savedOrder = _orderPrefs.getStringList('storyOrder') ?? [];
+    if (savedOrder.isNotEmpty) {
+      _stories.sort((a, b) {
+        final ai = savedOrder.indexOf(a.id);
+        final bi = savedOrder.indexOf(b.id);
+        if (ai == -1) return 1;
+        if (bi == -1) return -1;
+        return ai.compareTo(bi);
+      });
+    }
     // Auto-select first story if none active
     if (_activeStory == null && _stories.isNotEmpty) {
       await selectStory(_stories.first);
@@ -212,6 +224,15 @@ class AppState extends ChangeNotifier {
       _currentEntries = [];
       if (_activeStory != null) await _loadEntriesForActiveStory();
     }
+    notifyListeners();
+  }
+
+  Future<void> reorderStories(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) newIndex--;
+    final story = _stories.removeAt(oldIndex);
+    _stories.insert(newIndex, story);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setStringList('storyOrder', _stories.map((s) => s.id).toList());
     notifyListeners();
   }
 

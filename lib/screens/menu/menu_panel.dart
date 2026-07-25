@@ -96,285 +96,294 @@ class MenuPanel extends StatelessWidget {
               child: SafeArea(
                 child: SingleChildScrollView(
                   physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const SizedBox(height: 16),
-
-              // ── Header: "Menu" + X ────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 20, 8),
-                child: Row(
-                  children: [
-                    Text('Menu',
-                        style: GoogleFonts.crimsonPro(
-                          fontSize: 26,
-                          fontWeight: FontWeight.w700,
-                          color: textColor,
-                          letterSpacing: -0.3,
-                        )),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: isDark
-                              ? Colors.white.withOpacity(0.07)
-                              : Colors.black.withOpacity(0.06),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(Icons.close_rounded,
-                            size: 17, color: mutedColor),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // ── Profile card ──────────────────────────────────
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    _navigate(const ProfileScreen());
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 16, vertical: 13),
-                    decoration: BoxDecoration(
-                      color: isDark
-                          ? Colors.white.withOpacity(0.05)
-                          : Colors.black.withOpacity(0.03),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
+                  child: DefaultTextStyle.merge(
+                    style: const TextStyle(decoration: TextDecoration.none),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Avatar
-                        ClipOval(
-                          child: hasImage
-                              ? Image.file(File(imagePath!),
-                                  width: 46, height: 46, fit: BoxFit.cover)
-                              : Container(
-                                  width: 46,
-                                  height: 46,
-                                  color: AppColors.aqua.withOpacity(0.15),
-                                  child: Center(
-                                    child: Text(
-                                      displayName.isNotEmpty
-                                          ? displayName[0].toUpperCase()
-                                          : '?',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 19,
-                                        fontWeight: FontWeight.w700,
-                                        color: AppColors.aqua,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                        const SizedBox(height: 16),
+
+                        // ── Header: "Menu" + X ────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(24, 16, 20, 8),
+                          child: Row(
                             children: [
-                              Text(
-                                displayName,
-                                style: GoogleFonts.inter(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
+                              Text('Menu',
+                                  style: GoogleFonts.crimsonPro(
+                                    fontSize: 26,
+                                    fontWeight: FontWeight.w700,
+                                    color: textColor,
+                                    letterSpacing: -0.3,
+                                    decoration: TextDecoration.none,
+                                  )),
+                              const Spacer(),
+                              GestureDetector(
+                                onTap: () => Navigator.of(context).pop(),
+                                child: Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.white.withOpacity(0.07)
+                                        : Colors.black.withOpacity(0.06),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(Icons.close_rounded,
+                                      size: 17, color: mutedColor),
                                 ),
-                              ),
-                              const SizedBox(height: 1),
-                              Text(
-                                'View profile',
-                                style: GoogleFonts.inter(
-                                    fontSize: 12, color: AppColors.aqua),
                               ),
                             ],
                           ),
                         ),
-                        Icon(Icons.chevron_right_rounded,
-                            size: 20, color: mutedColor.withOpacity(0.5)),
+
+                        // ── Profile card ──────────────────────────────────
+                        Padding(
+                          padding:
+                              const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                              _navigate(const ProfileScreen());
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 13),
+                              decoration: BoxDecoration(
+                                color: isDark
+                                    ? Colors.white.withOpacity(0.05)
+                                    : Colors.black.withOpacity(0.03),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Row(
+                                children: [
+                                  // Avatar
+                                  ClipOval(
+                                    child: hasImage
+                                        ? Image.file(File(imagePath!),
+                                            width: 46, height: 46, fit: BoxFit.cover)
+                                        : Container(
+                                            width: 46,
+                                            height: 46,
+                                            color: AppColors.aqua.withOpacity(0.15),
+                                            child: Center(
+                                              child: Text(
+                                                displayName.isNotEmpty
+                                                    ? displayName[0].toUpperCase()
+                                                    : '?',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 19,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: AppColors.aqua,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                  ),
+                                  const SizedBox(width: 14),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          displayName,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: textColor,
+                                            decoration: TextDecoration.none,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 1),
+                                        Text(
+                                          'View profile',
+                                          style: GoogleFonts.inter(
+                                              fontSize: 12, color: AppColors.aqua,
+                                              decoration: TextDecoration.none),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.chevron_right_rounded,
+                                      size: 20, color: mutedColor.withOpacity(0.5)),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 14),
+                        Divider(
+                            color: divColor,
+                            thickness: 0.5,
+                            indent: 24,
+                            endIndent: 24),
+                        const SizedBox(height: 10),
+
+                        // ── Journal section ───────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text('Journal',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: mutedColor,
+                                  letterSpacing: 0.4,
+                                  decoration: TextDecoration.none,
+                                )),
+                          ),
+                        ),
+
+                        _MenuItem(
+                          icon: Icons.menu_book_outlined,
+                          label: 'Library',
+                          subtitle: 'My stories and entries',
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            onNavigateToLibrary?.call();
+                          },
+                        ),
+
+                        _MenuItem(
+                          icon: Icons.edit_outlined,
+                          label: 'Write',
+                          subtitle: 'Create a new entry',
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            onCreateEntry?.call();
+                          },
+                        ),
+
+                        const SizedBox(height: 6),
+                        Divider(
+                            color: divColor,
+                            thickness: 0.5,
+                            indent: 24,
+                            endIndent: 24),
+                        const SizedBox(height: 10),
+
+                        // ── General section ───────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text('General',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: mutedColor,
+                                  letterSpacing: 0.4,
+                                  decoration: TextDecoration.none,
+                                )),
+                          ),
+                        ),
+
+                        _MenuItem(
+                          icon: Icons.settings_outlined,
+                          label: 'Settings',
+                          subtitle: 'Privacy, app lock & security',
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _navigate(const SettingsScreen());
+                          },
+                        ),
+
+                        _MenuItem(
+                          icon: Icons.palette_outlined,
+                          label: 'Appearance',
+                          subtitle: 'Theme, font, dark mode & atmosphere',
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _navigate(const AppearanceScreen());
+                          },
+                        ),
+
+                        _MenuItem(
+                          icon: Icons.download_outlined,
+                          label: 'Backup & Export',
+                          subtitle: 'Full backup, export & data management',
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _showBackupSheet(isDark, bg);
+                          },
+                        ),
+
+                        _MenuItem(
+                          icon: Icons.info_outline_rounded,
+                          label: 'About Sanctuary',
+                          subtitle: 'Learn more about Sanctuary',
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          onTap: () {
+                            Navigator.of(context).pop();
+                            _showAbout(isDark, bg);
+                          },
+                        ),
+
+                        const SizedBox(height: 14),
+
+                        // ── Tagline card ──────────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? Colors.white.withOpacity(0.04)
+                                  : Colors.black.withOpacity(0.03),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Icon(Icons.auto_stories_outlined,
+                                    size: 15, color: mutedColor.withOpacity(0.7)),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    'A space for thoughtful writings\nand meaningful connections.',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 12,
+                                      color: mutedColor,
+                                      height: 1.55,
+                                      fontStyle: FontStyle.italic,
+                                      decoration: TextDecoration.none,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 8),
                       ],
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: 14),
-              Divider(
-                  color: divColor,
-                  thickness: 0.5,
-                  indent: 24,
-                  endIndent: 24),
-              const SizedBox(height: 10),
-
-              // ── Journal section ───────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('Journal',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: mutedColor,
-                        letterSpacing: 0.4,
-                      )),
-                ),
-              ),
-
-              _MenuItem(
-                icon: Icons.menu_book_outlined,
-                label: 'Library',
-                subtitle: 'My stories and entries',
-                isDark: isDark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onNavigateToLibrary?.call();
-                },
-              ),
-
-              _MenuItem(
-                icon: Icons.edit_outlined,
-                label: 'Write',
-                subtitle: 'Create a new entry',
-                isDark: isDark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  onCreateEntry?.call();
-                },
-              ),
-
-              const SizedBox(height: 6),
-              Divider(
-                  color: divColor,
-                  thickness: 0.5,
-                  indent: 24,
-                  endIndent: 24),
-              const SizedBox(height: 10),
-
-              // ── General section ───────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text('General',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: mutedColor,
-                        letterSpacing: 0.4,
-                      )),
-                ),
-              ),
-
-              _MenuItem(
-                icon: Icons.settings_outlined,
-                label: 'Settings',
-                subtitle: 'Privacy, app lock & security',
-                isDark: isDark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _navigate(const SettingsScreen());
-                },
-              ),
-
-              _MenuItem(
-                icon: Icons.palette_outlined,
-                label: 'Appearance',
-                subtitle: 'Theme, font, dark mode & atmosphere',
-                isDark: isDark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _navigate(const AppearanceScreen());
-                },
-              ),
-
-              _MenuItem(
-                icon: Icons.download_outlined,
-                label: 'Backup & Export',
-                subtitle: 'Full backup, export & data management',
-                isDark: isDark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showBackupSheet(isDark, bg);
-                },
-              ),
-
-              _MenuItem(
-                icon: Icons.info_outline_rounded,
-                label: 'About Sanctuary',
-                subtitle: 'Learn more about Sanctuary',
-                isDark: isDark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () {
-                  Navigator.of(context).pop();
-                  _showAbout(isDark, bg);
-                },
-              ),
-
-              const SizedBox(height: 14),
-
-              // ── Tagline card ──────────────────────────────────
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-                child: Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.white.withOpacity(0.04)
-                        : Colors.black.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(Icons.auto_stories_outlined,
-                          size: 15, color: mutedColor.withOpacity(0.7)),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          'A space for thoughtful writings\nand meaningful connections.',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: mutedColor,
-                            height: 1.55,
-                            fontStyle: FontStyle.italic,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              const SizedBox(height: 8),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  ),
-),
-),
-);
+    );
   }
 
   void _showBackupSheet(bool isDark, Color bg) {
@@ -519,11 +528,13 @@ class _MenuItem extends StatelessWidget {
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
                           color: textColor,
+                          decoration: TextDecoration.none,
                         )),
                     Text(subtitle,
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: mutedColor,
+                          decoration: TextDecoration.none,
                         )),
                   ],
                 ),
@@ -573,10 +584,13 @@ class _BackupTile extends StatelessWidget {
                       style: GoogleFonts.inter(
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
-                          color: textColor)),
+                          color: textColor,
+                          decoration: TextDecoration.none)),
                   Text(subtitle,
-                      style:
-                          GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+                      style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: mutedColor,
+                          decoration: TextDecoration.none)),
                 ],
               ),
             ),

@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:ui';
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
@@ -168,6 +168,19 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
       await _loadComments();
     }
     if (mounted) setState(() => _submittingComment = false);
+  }
+
+  Future<void> _deleteComment(String commentId) async {
+    final ok = await context.read<CommunityState>().deleteComment(
+      commentId: commentId,
+      entryId: _entry.id,
+    );
+    if (ok && mounted) {
+      setState(() {
+        _comments.removeWhere((c) => c.id == commentId);
+        _commentCount = (_commentCount - 1).clamp(0, 999999);
+      });
+    }
   }
 
   void _handleClap() {
@@ -624,6 +637,8 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                     _CommentsSection(
                       comments: _comments,
                       loading: _commentsLoading,
+                      isEntryOwner: _entry.isOwner,
+                      onDeleteComment: _deleteComment,
                       controller: _commentCtrl,
                       isAnon: _commentAnon,
                       submitting: _submittingComment,
@@ -778,7 +793,7 @@ class _ActionPill extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(36),
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+        filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           decoration: BoxDecoration(
@@ -925,7 +940,7 @@ class _NavIconButton extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(18),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          filter: ui.ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
             width: 34,
             height: 34,
@@ -1010,6 +1025,8 @@ class _CommentsSection extends StatelessWidget {
   final Color mutedColor;
   final ValueChanged<bool> onAnonChanged;
   final VoidCallback onSubmit;
+  final bool isEntryOwner;
+  final Future<void> Function(String)? onDeleteComment;
 
   const _CommentsSection({
     required this.comments,
@@ -1022,6 +1039,8 @@ class _CommentsSection extends StatelessWidget {
     required this.mutedColor,
     required this.onAnonChanged,
     required this.onSubmit,
+    this.isEntryOwner = false,
+    this.onDeleteComment,
   });
 
   @override
@@ -1167,12 +1186,20 @@ class _CommentsSection extends StatelessWidget {
               ),
             )
           else
-            ...comments.map((c) => _CommentCard(
-                  comment: c,
-                  isDark: isDark,
-                  textColor: textColor,
-                  mutedColor: mutedColor,
-                )),
+            ...comments.map((c) {
+              final canDelete = c.userId == SupabaseService.instance.userId ||
+                  isEntryOwner;
+              return _CommentCard(
+                comment: c,
+                isDark: isDark,
+                textColor: textColor,
+                mutedColor: mutedColor,
+                canDelete: canDelete,
+                onDelete: canDelete
+                    ? () => onDeleteComment?.call(c.id)
+                    : null,
+              );
+            }),
 
           const SizedBox(height: 32),
         ],
@@ -1186,12 +1213,16 @@ class _CommentCard extends StatelessWidget {
   final bool isDark;
   final Color textColor;
   final Color mutedColor;
+  final bool canDelete;
+  final VoidCallback? onDelete;
 
   const _CommentCard({
     required this.comment,
     required this.isDark,
     required this.textColor,
     required this.mutedColor,
+    this.canDelete = false,
+    this.onDelete,
   });
 
   String _ago(DateTime dt) {
@@ -1204,47 +1235,105 @@ class _CommentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 18),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _AvatarCircle(name: comment.authorLabel, size: 30),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      comment.authorLabel,
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: textColor,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      _ago(comment.createdAt),
-                      style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
+    return GestureDetector(
+      onLongPress: canDelete
+          ? () => showDialog<void>(
+                context: context,
+                builder: (ctx) => AlertDialog(
+                  title: const Text('Delete comment?'),
+                  content: const Text('This cannot be undone.'),
+                  actions: [
+                    TextButton(
+                        onPressed: () => Navigator.pop(ctx),
+                        child: const Text('Cancel')),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(ctx);
+                        onDelete?.call();
+                      },
+                      child: const Text('Delete',
+                          style: TextStyle(color: AppColors.danger)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  comment.body,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    color: textColor.withOpacity(0.85),
-                    height: 1.55,
-                  ),
-                ),
-              ],
+              )
+          : null,
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 18),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _AvatarCircle(
+              name: comment.authorLabel,
+              size: 30,
+              imagePath: comment.profileImagePath,
             ),
-          ),
-        ],
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        comment.authorLabel,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: textColor,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _ago(comment.createdAt),
+                        style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
+                      ),
+                      if (canDelete) ...[
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: () => showDialog<void>(
+                            context: context,
+                            builder: (ctx) => AlertDialog(
+                              title: const Text('Delete comment?'),
+                              content: const Text('This cannot be undone.'),
+                              actions: [
+                                TextButton(
+                                    onPressed: () => Navigator.pop(ctx),
+                                    child: const Text('Cancel')),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(ctx);
+                                    onDelete?.call();
+                                  },
+                                  child: const Text('Delete',
+                                      style: TextStyle(color: AppColors.danger)),
+                                ),
+                              ],
+                            ),
+                          ),
+                          child: Icon(
+                            Icons.delete_outline_rounded,
+                            size: 16,
+                            color: mutedColor.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    comment.body,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: textColor.withOpacity(0.85),
+                      height: 1.55,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1310,32 +1399,48 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
   Future<void> _shareCard() async {
     setState(() => _sharing = true);
     try {
-      // Allow one frame for any animation to settle
       await Future.delayed(const Duration(milliseconds: 150));
       final boundary = _previewKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
-      if (boundary == null) {
-        setState(() => _sharing = false);
-        return;
-      }
-      // Capture at 3× for high-res social output
+      if (boundary == null) { setState(() => _sharing = false); return; }
+
       final image = await boundary.toImage(pixelRatio: 3.0);
-      final byteData = await image.toByteData(format: ImageByteFormat.png);
-      if (byteData == null) {
-        setState(() => _sharing = false);
-        return;
-      }
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) { setState(() => _sharing = false); return; }
+
       final bytes = byteData.buffer.asUint8List();
       final dir = await getTemporaryDirectory();
       final file = File(
           '${dir.path}/sanctuary_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes);
+
       if (!mounted) return;
       Navigator.pop(context);
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'image/png')],
-        subject: widget.entry.title.isEmpty ? 'Sanctuary' : widget.entry.title,
-      );
+
+      // Try to build a proper OG share link via Supabase Storage + Edge Function
+      final imageUrl = await SupabaseService.instance.uploadShareCard(
+          file.path, widget.entry.id);
+
+      if (imageUrl != null) {
+        final projectUrl = 'https://vjmzileqdrhxiklxqftv.supabase.co';
+        final isPublished = widget.entry.userId.isNotEmpty; // has a user_id = was published
+        final shareUrl = Uri.parse(
+          '$projectUrl/functions/v1/share'
+          '?entry_id=${Uri.encodeComponent(widget.entry.id)}'
+          '&img=${Uri.encodeComponent(imageUrl)}'
+          '&pub=$isPublished',
+        ).toString();
+        await Share.share(
+          shareUrl,
+          subject: widget.entry.title.isEmpty ? 'Sanctuary' : widget.entry.title,
+        );
+      } else {
+        // Fallback: share the raw image file
+        await Share.shareXFiles(
+          [XFile(file.path, mimeType: 'image/png')],
+          subject: widget.entry.title.isEmpty ? 'Sanctuary' : widget.entry.title,
+        );
+      }
     } catch (e) {
       debugPrint('[SanctuaryShare] $e');
     }
@@ -1897,7 +2002,7 @@ class _AutoFitText extends StatelessWidget {
     while (fontSize > minFontSize) {
       final tp = TextPainter(
         text: TextSpan(text: text, style: style),
-        textDirection: TextDirection.ltr,
+        textDirection: ui.TextDirection.ltr,
         maxLines: null,
       )..layout(maxWidth: constraints.maxWidth);
       if (tp.height <= constraints.maxHeight) break;

@@ -280,6 +280,18 @@ class CommunityState extends ChangeNotifier {
     return ok;
   }
 
+  Future<bool> deleteComment({required String commentId, required String entryId}) async {
+    final ok = await SupabaseService.instance.deleteComment(commentId);
+    if (ok) {
+      final idx = _feed.indexWhere((e) => e.id == entryId);
+      if (idx != -1) {
+        _feed[idx].commentCount = (_feed[idx].commentCount - 1).clamp(0, 999999);
+        notifyListeners();
+      }
+    }
+    return ok;
+  }
+
   Future<void> deletePost(String entryId) async {
     try {
       await SupabaseService.instance.deletePublishedEntry(entryId);

@@ -60,8 +60,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _initialized = true;
     final state = context.read<CommunityState>();
     await state.loadProfile();
+    await state.loadBookmarks();
     if (SupabaseService.instance.isAuthenticated) {
       await state.loadMyPosts();
+      if (state.feed.isEmpty) await state.loadFeed();
     }
     if (mounted) setState(() {});
   }
@@ -128,8 +130,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     return Scaffold(
       backgroundColor: bg,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
+      body: GestureDetector(
+        onHorizontalDragEnd: (d) {
+          if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+        },
+        child: CustomScrollView(
+        physics: const ClampingScrollPhysics(),
         slivers: [
           // ── Cover + Avatar ───────────────────────────────────────
           SliverToBoxAdapter(
@@ -137,84 +143,59 @@ class _ProfileScreenState extends State<ProfileScreen> {
               clipBehavior: Clip.none,
               children: [
                 // Banner with curved bottom
-              ClipPath(
-                clipper: _BannerClipper(),
-                child: GestureDetector(
-                  onTap: _pickBannerImage,
-                  child: SizedBox(
-                    height: 190 + topPad,
-                    width: double.infinity,
-                    child: hasBanner
-                        ? Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              ImageFiltered(
-                                imageFilter:
-                                    ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-                                child: Image.file(File(bannerPath!),
-                                    fit: BoxFit.cover),
-                              ),
-                              Container(color: Colors.black.withOpacity(0.28)),
-                            ],
-                          )
-                        : Container(
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: dark
-                                    ? [
-                                        const Color(0xFF0D1A28),
-                                        const Color(0xFF1A3045)
-                                      ]
-                                    : [
-                                        const Color(0xFFB8CDE0),
-                                        const Color(0xFFD8E8F0)
-                                      ],
-                              ),
-                            ),
-                          ),
-                  ),
-                ),
-              ),
-
-                // Back button
-                Positioned(
-                  top: topPad + 8,
-                  left: 12,
-                  child: GestureDetector(
-                    onTap: () => Navigator.of(context).pop(),
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.30),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.chevron_left_rounded,
-                          color: Colors.white, size: 22),
-                    ),
-                  ),
-                ),
-
-                // Banner camera icon
-                Positioned(
-                  top: topPad + 8,
-                  right: 12,
+                ClipPath(
+                  clipper: _BannerClipper(),
                   child: GestureDetector(
                     onTap: _pickBannerImage,
-                    child: Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.30),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.camera_alt_rounded,
-                          color: Colors.white, size: 18),
+                    child: SizedBox(
+                      height: 190 + topPad,
+                      width: double.infinity,
+                      child: hasBanner
+                          ? SizedBox(
+                              width: double.infinity,
+                              height: 190 + topPad,
+                              child: Image.file(File(bannerPath!),
+                                  fit: BoxFit.cover),
+                            )
+                          : hasImage
+                              ? Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    ImageFiltered(
+                                      imageFilter: ImageFilter.blur(
+                                          sigmaX: 44, sigmaY: 44),
+                                      child: Image.file(
+                                        File(imagePath!),
+                                        fit: BoxFit.cover,
+                                        width: double.infinity,
+                                        height: double.infinity,
+                                      ),
+                                    ),
+                                    Container(
+                                        color: Colors.black.withOpacity(0.42)),
+                                  ],
+                                )
+                              : Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: dark
+                                          ? [
+                                              const Color(0xFF0D1A28),
+                                              const Color(0xFF1A3045)
+                                            ]
+                                          : [
+                                              const Color(0xFFB8CDE0),
+                                              const Color(0xFFD8E8F0)
+                                            ],
+                                    ),
+                                  ),
+                                ),
                     ),
                   ),
                 ),
+
 
                 // Avatar — centered, overlapping bottom of banner
                 Positioned(
@@ -255,19 +236,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                         ),
                                       ),
                                     ),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 2,
-                            right: 2,
-                            child: Container(
-                              width: 26,
-                              height: 26,
-                              decoration: const BoxDecoration(
-                                  color: AppColors.aqua,
-                                  shape: BoxShape.circle),
-                              child: const Icon(Icons.camera_alt_rounded,
-                                  size: 13, color: Colors.white),
                             ),
                           ),
                         ],
@@ -316,16 +284,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               label: 'Publications',
                               textColor: textColor,
                               mutedColor: mutedColor)),
-                      Container(
-                          width: 0.5, height: 36, color: divColor),
+                      Container(width: 0.5, height: 36, color: divColor),
                       Expanded(
                           child: _StatItem(
                               count: appreciationsTotal,
                               label: 'Appreciations',
                               textColor: textColor,
                               mutedColor: mutedColor)),
-                      Container(
-                          width: 0.5, height: 36, color: divColor),
+                      Container(width: 0.5, height: 36, color: divColor),
                       Expanded(
                           child: _StatItem(
                               count: 0,
@@ -435,8 +401,61 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
+          // ── Bookmarked Entries ─────────────────────────────────────
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
+              child: Row(
+                children: [
+                  Icon(Icons.bookmark_rounded, size: 16, color: accentColor),
+                  const SizedBox(width: 8),
+                  Text('Bookmarked',
+                      style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: textColor)),
+                ],
+              ),
+            ),
+          ),
+
+          Builder(builder: (context) {
+            final bookmarked = communityState.bookmarkedEntries;
+            if (bookmarked.isEmpty) {
+              return SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Text(
+                    'Nothing bookmarked yet. Tap the bookmark icon on any entry.',
+                    style: GoogleFonts.crimsonPro(
+                        fontSize: 15,
+                        fontStyle: FontStyle.italic,
+                        color: mutedColor),
+                  ),
+                ),
+              );
+            }
+            return SliverList(
+              delegate: SliverChildBuilderDelegate(
+                (ctx, i) => _PublicationTile(
+                  entry: bookmarked[i],
+                  isDark: dark,
+                  textColor: textColor,
+                  mutedColor: mutedColor,
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(
+                        builder: (_) =>
+                            CommunityEntryViewer(entry: bookmarked[i])),
+                  ),
+                ),
+                childCount: bookmarked.length,
+              ),
+            );
+          }),
+
           const SliverToBoxAdapter(child: SizedBox(height: 80)),
         ],
+      ),
       ),
     );
   }
@@ -463,9 +482,7 @@ class _StatItem extends StatelessWidget {
       children: [
         Text('$count',
             style: GoogleFonts.inter(
-                fontSize: 18,
-                fontWeight: FontWeight.w700,
-                color: textColor)),
+                fontSize: 18, fontWeight: FontWeight.w700, color: textColor)),
         const SizedBox(height: 2),
         Text(label,
             style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
@@ -509,9 +526,7 @@ class _ProfileStoryCard extends StatelessWidget {
           Text(
             story.title,
             style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: textColor),
+                fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
@@ -550,11 +565,8 @@ class _PublicationTile extends StatelessWidget {
 
   String _readTime(String content) {
     if (content.isEmpty) return '1 min read';
-    final words = content
-        .trim()
-        .split(RegExp(r'\s+'))
-        .where((w) => w.isNotEmpty)
-        .length;
+    final words =
+        content.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
     return '${(words / 200).ceil().clamp(1, 99)} min read';
   }
 
@@ -590,8 +602,7 @@ class _PublicationTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final catColor = _catColor(entry.category);
-    final divColor =
-        isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
     final hasImage = entry.headerImage != null &&
         entry.headerImage!.isNotEmpty &&
         File(entry.headerImage!).existsSync();
@@ -635,8 +646,7 @@ class _PublicationTile extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (entry.category != null &&
-                          entry.category!.isNotEmpty)
+                      if (entry.category != null && entry.category!.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(bottom: 3),
                           child: Text(

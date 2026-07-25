@@ -127,16 +127,35 @@ class _LibraryPanelState extends State<LibraryPanel> {
                   child: stories.isEmpty
                       ? LibraryEmptyState(
                           onCreateStory: () => _createStory(context))
-                      : ListView.builder(
-                          physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.only(bottom: 100),
-                          itemCount: stories.length,
-                          itemBuilder: (context, i) => StoryCard(
-                            story: stories[i],
-                            isActive:
-                                appState.activeStory?.id == stories[i].id,
-                          ),
-                        ),
+                      : _sortBy == _SortBy.alphabetical
+                          ? ListView.builder(
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 100),
+                              itemCount: stories.length,
+                              itemBuilder: (context, i) => StoryCard(
+                                key: ValueKey(stories[i].id),
+                                story: stories[i],
+                                isActive: appState.activeStory?.id == stories[i].id,
+                              ),
+                            )
+                          : ReorderableListView.builder(
+                              buildDefaultDragHandles: false,
+                              physics: const BouncingScrollPhysics(),
+                              padding: const EdgeInsets.only(bottom: 100),
+                              itemCount: stories.length,
+                              onReorder: (oldIndex, newIndex) {
+                                context.read<AppState>().reorderStories(oldIndex, newIndex);
+                              },
+                              itemBuilder: (context, i) =>
+                                  ReorderableDelayedDragStartListener(
+                                key: ValueKey(stories[i].id),
+                                index: i,
+                                child: StoryCard(
+                                  story: stories[i],
+                                  isActive: appState.activeStory?.id == stories[i].id,
+                                ),
+                              ),
+                            ),
                 ),
               ],
             ),

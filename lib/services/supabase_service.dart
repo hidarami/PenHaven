@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -489,6 +490,40 @@ class SupabaseService {
       return pub;
     } catch (e) {
       debugPrint('[Supabase] getPublishedEntry: $e');
+      return null;
+    }
+  }
+
+  Future<bool> deleteComment(String commentId) async {
+    if (!isAuthenticated) return false;
+    try {
+      await _client?.from('community_comments').delete().eq('id', commentId);
+      return true;
+    } catch (e) {
+      debugPrint('[Supabase] deleteComment: $e');
+      return false;
+    }
+  }
+
+  /// Uploads a share card PNG to Supabase Storage and returns its public URL.
+  /// Requires a public 'share-cards' bucket in your Supabase project.
+  Future<String?> uploadShareCard(String localPath, String entryId) async {
+    try {
+      final file = File(localPath);
+      final bytes = await file.readAsBytes();
+      final storagePath =
+          'cards/${entryId}_${DateTime.now().millisecondsSinceEpoch}.png';
+      await _client?.storage.from('share-cards').uploadBinary(
+            storagePath,
+            bytes,
+            fileOptions: const FileOptions(
+                contentType: 'image/png', upsert: true),
+          );
+      return _client?.storage
+          .from('share-cards')
+          .getPublicUrl(storagePath);
+    } catch (e) {
+      debugPrint('[Supabase] uploadShareCard: $e');
       return null;
     }
   }

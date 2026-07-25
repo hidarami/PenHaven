@@ -489,6 +489,16 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
     }
   }
 
+  Future<void> _deleteComment(String commentId) async {
+    final ok = await context.read<CommunityState>().deleteComment(
+      commentId: commentId,
+      entryId: widget.entryId,
+    );
+    if (ok && mounted) {
+      setState(() => _comments.removeWhere((c) => c.id == commentId));
+    }
+  }
+
   Future<void> _submit() async {
     final body = _ctrl.text.trim();
     if (body.isEmpty || _submitting) return;
@@ -686,6 +696,11 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
                                         ? '${diff.inDays}d ago'
                                         : DateFormat('MMM d')
                                             .format(c.createdAt);
+                            final canDelete = c.userId ==
+                                SupabaseService.instance.userId;
+                            final hasProfileImage = c.profileImagePath != null &&
+                                c.profileImagePath!.isNotEmpty &&
+                                File(c.profileImagePath!).existsSync();
                             const colors = [
                               Color(0xFF7BA591),
                               Color(0xFF5B8DB8),
@@ -696,52 +711,92 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
                             final avatarColor = colors[c.authorLabel.codeUnits
                                     .fold(0, (a, b) => a + b) %
                                 colors.length];
-                            return Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Container(
-                                      width: 28,
-                                      height: 28,
-                                      decoration: BoxDecoration(
-                                          color: avatarColor,
-                                          shape: BoxShape.circle),
-                                      child: Center(
-                                          child: Text(
-                                              c.authorLabel.isNotEmpty
-                                                  ? c.authorLabel[0]
-                                                      .toUpperCase()
-                                                  : '?',
+                            return GestureDetector(
+                              onLongPress: canDelete
+                                  ? () => showDialog<void>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title:
+                                              const Text('Delete comment?'),
+                                          content: const Text(
+                                              'This cannot be undone.'),
+                                          actions: [
+                                            TextButton(
+                                                onPressed: () =>
+                                                    Navigator.pop(ctx),
+                                                child:
+                                                    const Text('Cancel')),
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(ctx);
+                                                _deleteComment(c.id);
+                                              },
+                                              child: const Text('Delete',
+                                                  style: TextStyle(
+                                                      color:
+                                                          AppColors.danger)),
+                                            ),
+                                          ],
+                                        ),
+                                      )
+                                  : null,
+                              child: Row(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: [
+                                    hasProfileImage
+                                        ? ClipOval(
+                                            child: Image.file(
+                                                File(c.profileImagePath!),
+                                                width: 28,
+                                                height: 28,
+                                                fit: BoxFit.cover))
+                                        : Container(
+                                            width: 28,
+                                            height: 28,
+                                            decoration: BoxDecoration(
+                                                color: avatarColor,
+                                                shape: BoxShape.circle),
+                                            child: Center(
+                                                child: Text(
+                                                    c.authorLabel.isNotEmpty
+                                                        ? c.authorLabel[0]
+                                                            .toUpperCase()
+                                                        : '?',
+                                                    style: GoogleFonts.inter(
+                                                        fontSize: 12,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                        color:
+                                                            Colors.white)))),
+                                    const SizedBox(width: 10),
+                                    Expanded(
+                                        child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                          Row(children: [
+                                            Text(c.authorLabel,
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 13,
+                                                    fontWeight: FontWeight.w600,
+                                                    color: textColor)),
+                                            const SizedBox(width: 6),
+                                            Text(ago,
+                                                style: GoogleFonts.inter(
+                                                    fontSize: 11,
+                                                    color: mutedColor)),
+                                          ]),
+                                          const SizedBox(height: 3),
+                                          Text(c.body,
                                               style: GoogleFonts.inter(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Colors.white)))),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                      child: Column(
-                                          crossAxisAlignment:
-                                              CrossAxisAlignment.start,
-                                          children: [
-                                        Row(children: [
-                                          Text(c.authorLabel,
-                                              style: GoogleFonts.inter(
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: textColor)),
-                                          const SizedBox(width: 6),
-                                          Text(ago,
-                                              style: GoogleFonts.inter(
-                                                  fontSize: 11,
-                                                  color: mutedColor)),
-                                        ]),
-                                        const SizedBox(height: 3),
-                                        Text(c.body,
-                                            style: GoogleFonts.inter(
-                                                fontSize: 14,
-                                                color:
-                                                    textColor.withOpacity(0.85),
-                                                height: 1.5)),
-                                      ])),
-                                ]);
+                                                  fontSize: 14,
+                                                  color: textColor
+                                                      .withOpacity(0.85),
+                                                  height: 1.5)),
+                                        ])),
+                                  ]),
+                            );
                           },
                         ),
             ),

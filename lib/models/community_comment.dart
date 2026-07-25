@@ -6,6 +6,7 @@ class CommunityComment {
   final String body;
   final bool isAnonymous;
   final DateTime createdAt;
+  final String? profileImagePath;
 
   CommunityComment({
     required this.id,
@@ -15,6 +16,7 @@ class CommunityComment {
     required this.body,
     this.isAnonymous = false,
     DateTime? createdAt,
+    this.profileImagePath,
   }) : createdAt = createdAt ?? DateTime.now();
 
   String get authorLabel => isAnonymous
@@ -32,5 +34,6 @@ class CommunityComment {
         createdAt: map['created_at'] != null
             ? DateTime.parse(map['created_at'] as String)
             : DateTime.now(),
+        profileImagePath: map['profile_image_path'] as String?,
       );
 }
