@@ -7,6 +7,7 @@ class LockNumpad extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback? onBiometric;
   final Color accentColor;
+  final bool isDark;
 
   const LockNumpad({
     super.key,
@@ -14,6 +15,7 @@ class LockNumpad extends StatelessWidget {
     required this.onDelete,
     this.onBiometric,
     this.accentColor = AppColors.aqua,
+    this.isDark = true,
   });
 
   @override
@@ -37,16 +39,19 @@ class LockNumpad extends StatelessWidget {
                 child: onBiometric != null
                     ? NumpadKey(
                         onTap: onBiometric!,
+                        isDark: isDark,
                         child: Icon(Icons.fingerprint_rounded,
                             size: 28, color: accentColor),
                       )
                     : const SizedBox(),
               ),
-              NumpadKey(label: '0', onTap: () => onDigit('0')),
+              NumpadKey(label: '0', onTap: () => onDigit('0'), isDark: isDark),
               NumpadKey(
                 onTap: onDelete,
-                child: const Icon(Icons.backspace_outlined,
-                    size: 22, color: AppColors.mutedDark),
+                isDark: isDark,
+                child: Icon(Icons.backspace_outlined,
+                    size: 22,
+                    color: isDark ? AppColors.mutedDark : AppColors.mutedLight),
               ),
             ],
           ),
@@ -58,7 +63,7 @@ class LockNumpad extends StatelessWidget {
   Widget _row(List<String> digits) => Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: digits
-            .map((d) => NumpadKey(label: d, onTap: () => onDigit(d)))
+            .map((d) => NumpadKey(label: d, onTap: () => onDigit(d), isDark: isDark))
             .toList(),
       );
 }
@@ -67,8 +72,14 @@ class NumpadKey extends StatefulWidget {
   final String? label;
   final Widget? child;
   final VoidCallback onTap;
+  final bool isDark;
 
-  const NumpadKey({super.key, this.label, this.child, required this.onTap})
+  const NumpadKey(
+      {super.key,
+      this.label,
+      this.child,
+      required this.onTap,
+      this.isDark = true})
       : assert(label != null || child != null);
 
   @override
@@ -94,8 +105,12 @@ class _NumpadKeyState extends State<NumpadKey> {
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: _pressed
-              ? Colors.white.withOpacity(0.14)
-              : Colors.white.withOpacity(0.07),
+              ? (widget.isDark
+                  ? Colors.white.withOpacity(0.14)
+                  : Colors.black.withOpacity(0.12))
+              : (widget.isDark
+                  ? Colors.white.withOpacity(0.07)
+                  : Colors.black.withOpacity(0.05)),
         ),
         alignment: Alignment.center,
         child: widget.child ??
@@ -104,7 +119,7 @@ class _NumpadKeyState extends State<NumpadKey> {
               style: GoogleFonts.inter(
                 fontSize: 26,
                 fontWeight: FontWeight.w300,
-                color: AppColors.textDark,
+                color: widget.isDark ? AppColors.textDark : AppColors.textLight,
               ),
             ),
       ),

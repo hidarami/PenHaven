@@ -14,7 +14,7 @@ import '../../theme/app_colors.dart';
 import '../settings/appearance_screen.dart';
 import '../settings/settings_screen.dart';
 import '../settings/themes_screen.dart';
-import '../settings/about_section.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../community/profile_screen.dart';
 
 class MenuPanel extends StatelessWidget {
@@ -325,15 +325,19 @@ class MenuPanel extends StatelessWidget {
                         ),
 
                         _MenuItem(
-                          icon: Icons.info_outline_rounded,
-                          label: 'About Sanctuary',
-                          subtitle: 'Learn more about Sanctuary',
+                          icon: Icons.coffee_outlined,
+                          label: 'Support on Ko-fi',
+                          subtitle: 'Buy me a coffee ☕',
                           isDark: isDark,
                           textColor: textColor,
                           mutedColor: mutedColor,
-                          onTap: () {
+                          onTap: () async {
                             Navigator.of(context).pop();
-                            _showAbout(isDark, bg);
+                            final uri = Uri.parse('https://ko-fi.com/mikecairoo');
+                            if (await canLaunchUrl(uri)) {
+                              await launchUrl(uri,
+                                  mode: LaunchMode.externalApplication);
+                            }
                           },
                         ),
 
@@ -446,28 +450,6 @@ class MenuPanel extends StatelessWidget {
               ),
               const SizedBox(height: 8),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showAbout(bool isDark, Color bg) {
-    showModalBottomSheet(
-      context: outerContext,
-      backgroundColor: bg,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => DraggableScrollableSheet(
-        expand: false,
-        initialChildSize: 0.65,
-        builder: (ctx, sc) => SingleChildScrollView(
-          controller: sc,
-          child: Padding(
-            padding: const EdgeInsets.only(top: 20, bottom: 40),
-            child: AboutSection(isDark: isDark, bg: bg),
           ),
         ),
       ),

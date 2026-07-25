@@ -129,6 +129,8 @@ class _LockScreenState extends State<LockScreen> {
   @override
   Widget build(BuildContext context) {
     final accent = context.watch<AtmosphereState>().accentColor;
+    final dark = context.watch<AppState>().isDarkMode;
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
 
     if (_showPinEntry) {
       return _PinEntryView(
@@ -142,6 +144,8 @@ class _LockScreenState extends State<LockScreen> {
         onBiometric:
             (_bioAvailable && _bioEnabled) ? _tryBiometricUnlock : null,
         accentColor: accent,
+        isDark: dark,
+        bg: bg,
       );
     }
 
@@ -151,6 +155,8 @@ class _LockScreenState extends State<LockScreen> {
       onRetry: _tryBiometricUnlock,
       onUsePin: () => setState(() => _showPinEntry = true),
       accentColor: accent,
+      isDark: dark,
+      bg: bg,
     );
   }
 }
@@ -163,6 +169,8 @@ class _BiometricView extends StatelessWidget {
   final VoidCallback onRetry;
   final VoidCallback onUsePin;
   final Color accentColor;
+  final bool isDark;
+  final Color bg;
 
   const _BiometricView({
     required this.attempting,
@@ -170,12 +178,16 @@ class _BiometricView extends StatelessWidget {
     required this.onRetry,
     required this.onUsePin,
     this.accentColor = AppColors.aqua,
+    this.isDark = true,
+    this.bg = AppColors.warmDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
     return Scaffold(
-      backgroundColor: AppColors.warmDark,
+      backgroundColor: bg,
       body: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: attempting ? null : onRetry,
@@ -189,7 +201,7 @@ class _BiometricView extends StatelessWidget {
                   style: GoogleFonts.crimsonPro(
                     fontSize: 52,
                     fontWeight: FontWeight.w300,
-                    color: AppColors.textDark,
+                    color: textColor,
                     letterSpacing: 6,
                   ),
                 ),
@@ -198,7 +210,7 @@ class _BiometricView extends StatelessWidget {
                   'your sanctuary',
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color: AppColors.textDark.withOpacity(0.4),
+                    color: textColor.withOpacity(0.4),
                     letterSpacing: 3,
                   ),
                 ),
@@ -227,7 +239,7 @@ class _BiometricView extends StatelessWidget {
                     'Tap to unlock',
                     style: GoogleFonts.inter(
                       fontSize: 14,
-                      color: AppColors.mutedDark,
+                      color: mutedColor,
                     ),
                   ),
                 if (statusMessage != null && !attempting) ...[
@@ -238,10 +250,10 @@ class _BiometricView extends StatelessWidget {
                       statusMessage!,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.inter(
-                        fontSize: 12,
-                        color: AppColors.textDark.withOpacity(0.45),
-                        height: 1.5,
-                      ),
+                      fontSize: 12,
+                      color: textColor.withOpacity(0.45),
+                      height: 1.5,
+                    ),
                     ),
                   ),
                 ],
@@ -278,6 +290,8 @@ class _PinEntryView extends StatelessWidget {
   final bool showBiometric;
   final VoidCallback? onBiometric;
   final Color accentColor;
+  final bool isDark;
+  final Color bg;
 
   const _PinEntryView({
     required this.pinInput,
@@ -289,12 +303,16 @@ class _PinEntryView extends StatelessWidget {
     this.showBiometric = false,
     this.onBiometric,
     this.accentColor = AppColors.aqua,
+    this.isDark = true,
+    this.bg = AppColors.warmDark,
   });
 
   @override
   Widget build(BuildContext context) {
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
     return Scaffold(
-      backgroundColor: AppColors.warmDark,
+      backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
@@ -306,7 +324,7 @@ class _PinEntryView extends StatelessWidget {
               style: GoogleFonts.crimsonPro(
                 fontSize: 30,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textDark,
+                color: textColor,
               ),
             ),
             const SizedBox(height: 8),
@@ -314,7 +332,7 @@ class _PinEntryView extends StatelessWidget {
               'Unlock Flow to continue',
               style: GoogleFonts.inter(
                 fontSize: 13,
-                color: AppColors.mutedDark,
+                color: mutedColor,
               ),
             ),
 
@@ -333,7 +351,9 @@ class _PinEntryView extends StatelessWidget {
                     shape: BoxShape.circle,
                     color: i < pinInput.length
                         ? accentColor
-                        : Colors.white.withOpacity(0.18),
+                        : (isDark
+                            ? Colors.white.withOpacity(0.18)
+                            : Colors.black.withOpacity(0.15)),
                   ),
                 );
               }),
@@ -373,7 +393,10 @@ class _PinEntryView extends StatelessWidget {
             const SizedBox(height: 24),
 
             LockNumpad(
-                onDigit: onDigit, onDelete: onDelete, accentColor: accentColor),
+                onDigit: onDigit,
+                onDelete: onDelete,
+                accentColor: accentColor,
+                isDark: isDark),
 
             // ── Biometric retry (shown when bio is configured) ─────────────
             if (showBiometric && onBiometric != null) ...[
@@ -406,7 +429,7 @@ class _PinEntryView extends StatelessWidget {
                 'Forgot PIN?',
                 style: GoogleFonts.inter(
                   fontSize: 12,
-                  color: AppColors.mutedDark.withOpacity(0.65),
+                  color: mutedColor.withOpacity(0.65),
                 ),
               ),
             ),

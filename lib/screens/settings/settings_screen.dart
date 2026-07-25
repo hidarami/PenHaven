@@ -4,9 +4,11 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../services/lock_service.dart';
 import '../lock/pin_setup_screen.dart';
+import '../onboarding/onboarding_screen.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
+import 'about_section.dart';
 import 'settings_section.dart';
 import 'settings_tile.dart';
 
@@ -90,6 +92,42 @@ class SettingsScreen extends StatelessWidget {
                     ),
                   ],
                 ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+              // ── HELP ─────────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  label: 'HELP',
+                  isDark: isDark,
+                  bg: bg,
+                  children: [
+                    SettingsNavTile(
+                      icon: Icons.play_circle_outline_rounded,
+                      label: 'View Tutorial Again',
+                      description: 'Restart the onboarding walkthrough.',
+                      isDark: isDark,
+                      bg: bg,
+                      onTap: () async {
+                        await context.read<AppState>().resetOnboarding();
+                        if (!context.mounted) return;
+                        Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(
+                              builder: (_) => const OnboardingScreen()),
+                          (route) => false,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
+              // ── ABOUT ─────────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: AboutSection(isDark: isDark, bg: bg),
               ),
 
               const SliverToBoxAdapter(child: SizedBox(height: 48)),

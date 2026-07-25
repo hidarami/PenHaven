@@ -297,8 +297,6 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
-    final isFeatured = communityState.featuredEntryId == _entry.id;
-    final featuredLabel = communityState.featuredUntilLabel;
     // Check if this entry has a local header image
     final localImageExists = _entry.headerImage != null &&
         _entry.headerImage!.isNotEmpty &&
@@ -328,34 +326,6 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                   if (mounted) Navigator.of(ctx).pop();
                 },
               ),
-
-            // Feature / Unfeature
-            ListTile(
-              leading: Icon(
-                isFeatured ? Icons.star_rounded : Icons.star_outline_rounded,
-                color: isFeatured ? Colors.amber : mutedColor,
-              ),
-              title: Text(
-                isFeatured ? 'Remove from Featured' : 'Feature this entry',
-                style: TextStyle(color: textColor),
-              ),
-              subtitle: isFeatured && featuredLabel != null
-                  ? Text(featuredLabel,
-                      style: TextStyle(color: mutedColor, fontSize: 12))
-                  : Text('Pin to "Featured Reflection" section',
-                      style: TextStyle(color: mutedColor, fontSize: 12)),
-              onTap: () {
-                Navigator.pop(_);
-                if (isFeatured) {
-                  communityState.clearFeatured();
-                  ScaffoldMessenger.of(ctx).showSnackBar(
-                    const SnackBar(content: Text('Featured entry cleared.')),
-                  );
-                } else {
-                  _showFeatureDurationPicker(ctx, communityState);
-                }
-              },
-            ),
 
             // Brightness (only when local image present)
             if (localImageExists)
@@ -1187,14 +1157,18 @@ class _CommentsSection extends StatelessWidget {
             )
           else
             ...comments.map((c) {
-              final canDelete = c.userId == SupabaseService.instance.userId ||
-                  isEntryOwner;
+              final currentUserId = SupabaseService.instance.userId;
+              final canDelete = c.userId == currentUserId || isEntryOwner;
+              final isCurrentUser = c.userId == currentUserId;
               return _CommentCard(
                 comment: c,
                 isDark: isDark,
                 textColor: textColor,
                 mutedColor: mutedColor,
                 canDelete: canDelete,
+                currentUserImagePath: isCurrentUser
+                    ? context.read<CommunityState>().profileImagePath
+                    : null,
                 onDelete: canDelete
                     ? () => onDeleteComment?.call(c.id)
                     : null,
@@ -1215,6 +1189,7 @@ class _CommentCard extends StatelessWidget {
   final Color mutedColor;
   final bool canDelete;
   final VoidCallback? onDelete;
+  final String? currentUserImagePath;
 
   const _CommentCard({
     required this.comment,
@@ -1223,6 +1198,7 @@ class _CommentCard extends StatelessWidget {
     required this.mutedColor,
     this.canDelete = false,
     this.onDelete,
+    this.currentUserImagePath,
   });
 
   String _ago(DateTime dt) {
@@ -1266,7 +1242,7 @@ class _CommentCard extends StatelessWidget {
             _AvatarCircle(
               name: comment.authorLabel,
               size: 30,
-              imagePath: comment.profileImagePath,
+              imagePath: currentUserImagePath ?? comment.profileImagePath,
             ),
             const SizedBox(width: 12),
             Expanded(

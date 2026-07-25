@@ -21,15 +21,17 @@ import 'community_entry_viewer.dart';
 class _BannerClipper extends CustomClipper<Path> {
   @override
   Path getClip(Size size) {
+    // Inward curve: corners at full height, center rises up by 15%
     final path = Path();
+    final curveDepth = size.height * 0.15;
     path.moveTo(0, 0);
     path.lineTo(size.width, 0);
-    path.lineTo(size.width, size.height - 28);
+    path.lineTo(size.width, size.height); // right corner at full height
     path.quadraticBezierTo(
       size.width / 2,
-      size.height + 28,
+      size.height - curveDepth, // center peak (inward = higher)
       0,
-      size.height - 28,
+      size.height, // left corner at full height
     );
     path.close();
     return path;
@@ -82,6 +84,63 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+Future<void> _editBio(BuildContext ctx, CommunityState state,
+      Color textColor, Color mutedColor, bool dark, Color bg) async {
+    await showDialog<void>(
+      context: ctx,
+      builder: (dctx) => StatefulBuilder(
+        builder: (dctx, setDialogState) {
+          final ctrl = TextEditingController(text: state.profileBio ?? '');
+          
+          void dispose() {
+            ctrl.dispose();
+          }
+
+          return AlertDialog(
+            backgroundColor: bg,
+            title: Text('Your Bio',
+                style: GoogleFonts.crimsonPro(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w700,
+                    color: textColor)),
+            content: TextField(
+              controller: ctrl,
+              maxLines: 4,
+              maxLength: 150,
+              autofocus: true,
+              style: GoogleFonts.inter(fontSize: 14, color: textColor),
+              decoration: InputDecoration(
+                hintText: 'A sentence or two about yourself...',
+                hintStyle: GoogleFonts.inter(
+                    fontSize: 14,
+                    color: mutedColor,
+                    fontStyle: FontStyle.italic),
+                border:
+                    OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    dispose();
+                    Navigator.pop(dctx);
+                  },
+                  child: const Text('Cancel')),
+              TextButton(
+                onPressed: () async {
+                  await state.saveProfile(bio: ctrl.text.trim());
+                  dispose();
+                  if (dctx.mounted) Navigator.pop(dctx);
+                },
+                child: const Text('Save'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   Future<void> _pickBannerImage() async {
     final ok = await PermissionService.instance.ensurePhotos(context);
     if (!ok || !mounted) return;
@@ -127,6 +186,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     final pubCount = publications.length;
     final appreciationsTotal =
         publications.fold<int>(0, (sum, p) => sum + p.clapCount);
+    final totalReads =
+        publications.fold<int>(0, (sum, p) => sum + p.clapCount + p.commentCount);
+    final bio = communityState.profileBio;  
 
     return Scaffold(
       backgroundColor: bg,
@@ -137,125 +199,141 @@ class _ProfileScreenState extends State<ProfileScreen> {
         child: CustomScrollView(
         physics: const ClampingScrollPhysics(),
         slivers: [
-          // ── Cover + Avatar ───────────────────────────────────────
+          // ── Cover + Avatar (3:2 ratio, inward curve) ──────────────
           SliverToBoxAdapter(
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Banner with curved bottom
-                ClipPath(
-                  clipper: _BannerClipper(),
-                  child: GestureDetector(
-                    onTap: _pickBannerImage,
-                    child: SizedBox(
-                      height: 190 + topPad,
-                      width: double.infinity,
-                      child: hasBanner
-                          ? SizedBox(
-                              width: double.infinity,
-                              height: 190 + topPad,
-                              child: Image.file(File(bannerPath!),
-                                  fit: BoxFit.cover),
-                            )
-                          : hasImage
-                              ? Stack(
-                                  fit: StackFit.expand,
-                                  children: [
-                                    ImageFiltered(
-                                      imageFilter: ImageFilter.blur(
-                                          sigmaX: 44, sigmaY: 44),
-                                      child: Image.file(
-                                        File(imagePath!),
-                                        fit: BoxFit.cover,
-                                        width: double.infinity,
-                                        height: double.infinity,
-                                      ),
-                                    ),
-                                    Container(
-                                        color: Colors.black.withOpacity(0.42)),
-                                  ],
-                                )
-                              : Container(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                      colors: dark
-                                          ? [
-                                              const Color(0xFF0D1A28),
-                                              const Color(0xFF1A3045)
-                                            ]
-                                          : [
-                                              const Color(0xFFB8CDE0),
-                                              const Color(0xFFD8E8F0)
-                                            ],
-                                    ),
-                                  ),
-                                ),
-                    ),
-                  ),
-                ),
+            child: Builder(
+              builder: (ctx) {
+                final screenW = MediaQuery.of(ctx).size.width;
+                final bannerContentH = screenW * 2.0 / 3.0;
+                final bannerH = bannerContentH + topPad;
+                // curveDepth = 15% of full banner height, curve peak Y from top
+                final curvePeakY = bannerH - bannerH * 0.15;
+                const avatarD = 96.0; // diameter
+                const avatarR = 48.0; // radius
+                // Top 25% of avatar (24px) overlaps into banner
+                final avatarTopY = curvePeakY - (avatarR * 0.5);
 
-
-                // Avatar — centered, overlapping bottom of banner
-                Positioned(
-                  bottom: -48,
-                  left: 0,
-                  right: 0,
-                  child: Center(
-                    child: GestureDetector(
-                      onTap: _pickProfileImage,
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 96,
-                            height: 96,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: dark ? AppColors.warmDark : Colors.white,
-                                width: 4,
-                              ),
-                            ),
-                            child: ClipOval(
-                              child: hasImage
-                                  ? Image.file(File(imagePath!),
-                                      width: 96, height: 96, fit: BoxFit.cover)
-                                  : Container(
-                                      color: accentColor.withOpacity(0.18),
-                                      child: Center(
-                                        child: Text(
-                                          displayName.isNotEmpty
-                                              ? displayName[0].toUpperCase()
-                                              : '?',
-                                          style: GoogleFonts.crimsonPro(
-                                            fontSize: 38,
-                                            fontWeight: FontWeight.w700,
-                                            color: accentColor,
+                return SizedBox(
+                  height: avatarTopY + avatarD + 8,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      // Banner
+                      ClipPath(
+                        clipper: _BannerClipper(),
+                        child: GestureDetector(
+                          onTap: _pickBannerImage,
+                          child: SizedBox(
+                            height: bannerH,
+                            width: double.infinity,
+                            child: hasBanner
+                                ? Image.file(File(bannerPath!),
+                                    width: double.infinity,
+                                    height: bannerH,
+                                    fit: BoxFit.cover)
+                                : hasImage
+                                    ? Stack(fit: StackFit.expand, children: [
+                                        ImageFiltered(
+                                          imageFilter: ImageFilter.blur(
+                                              sigmaX: 44, sigmaY: 44),
+                                          child: Image.file(File(imagePath!),
+                                              fit: BoxFit.cover),
+                                        ),
+                                        Container(
+                                            color:
+                                                Colors.black.withOpacity(0.42)),
+                                      ])
+                                    : Container(
+                                        decoration: BoxDecoration(
+                                          gradient: LinearGradient(
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                            colors: dark
+                                                ? [
+                                                    const Color(0xFF0D1A28),
+                                                    const Color(0xFF1A3045)
+                                                  ]
+                                                : [
+                                                    const Color(0xFFB8CDE0),
+                                                    const Color(0xFFD8E8F0)
+                                                  ],
                                           ),
                                         ),
                                       ),
-                                    ),
+                          ),
+                        ),
+                      ),
+
+                      // Avatar positioned at curve center peak
+                      // Top 25% (24px) is inside banner, 75% hangs below
+                      Positioned(
+                        top: avatarTopY,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: GestureDetector(
+                            onTap: _pickProfileImage,
+                            child: Container(
+                              width: avatarD,
+                              height: avatarD,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: dark
+                                      ? AppColors.warmDark
+                                      : Colors.white,
+                                  width: 4,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.15),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
+                              ),
+                              child: ClipOval(
+                                child: hasImage
+                                    ? Image.file(File(imagePath!),
+                                        width: avatarD,
+                                        height: avatarD,
+                                        fit: BoxFit.cover)
+                                    : Container(
+                                        color: accentColor.withOpacity(0.18),
+                                        child: Center(
+                                          child: Text(
+                                            displayName.isNotEmpty
+                                                ? displayName[0].toUpperCase()
+                                                : '?',
+                                            style: GoogleFonts.crimsonPro(
+                                              fontSize: 38,
+                                              fontWeight: FontWeight.w700,
+                                              color: accentColor,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                              ),
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ),
-              ],
+                );
+              },
             ),
           ),
 
-          // Spacer for avatar overlap
-          const SliverToBoxAdapter(child: SizedBox(height: 62)),
+          const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
-          // ── Name, Handle, Stats ──────────────────────────────────
+          // ── Name, Handle, Bio, Stats ──────────────────────────────
           SliverToBoxAdapter(
             child: Column(
               children: [
                 Text(
                   displayName,
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.crimsonPro(
                     fontSize: 28,
                     fontWeight: FontWeight.w700,
@@ -271,7 +349,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: accentColor,
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 8),
+
+                // Bio — tap to edit
+                GestureDetector(
+                  onTap: () => _editBio(
+                      context, communityState, textColor, mutedColor, dark, bg),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 36),
+                    child: bio != null && bio.isNotEmpty
+                        ? Text(
+                            bio,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.crimsonPro(
+                              fontSize: 15,
+                              fontStyle: FontStyle.italic,
+                              color: textColor.withOpacity(0.7),
+                              height: 1.5,
+                            ),
+                          )
+                        : Text(
+                            'Tap to add a bio...',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: accentColor.withOpacity(0.6),
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+                  ),
+                ),
+
+                const SizedBox(height: 16),
 
                 // Stats row
                 Padding(
@@ -294,14 +402,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Container(width: 0.5, height: 36, color: divColor),
                       Expanded(
                           child: _StatItem(
-                              count: 0,
-                              label: 'Followers',
+                              count: totalReads,
+                              label: 'Reads',
                               textColor: textColor,
                               mutedColor: mutedColor)),
                     ],
                   ),
                 ),
-                const SizedBox(height: 22),
+                const SizedBox(height: 16),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 20),
                   child: Divider(color: divColor, thickness: 0.5),
@@ -334,7 +442,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             ),
             SliverToBoxAdapter(
               child: SizedBox(
-                height: 170,
+                height: 160,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -510,37 +618,65 @@ class _ProfileStoryCard extends StatelessWidget {
     return Container(
       width: 118,
       margin: const EdgeInsets.only(right: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: StoryCoverWidget(
-              storyTitle: story.title,
-              imagePath: story.coverImage,
-              width: 118,
-              height: 118,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            story.title,
-            style: GoogleFonts.inter(
-                fontSize: 12, fontWeight: FontWeight.w600, color: textColor),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-          FutureBuilder<int>(
-            future: EntryDao.instance.countByStory(story.id),
-            builder: (ctx, snap) {
-              final count = snap.data ?? 0;
-              return Text(
-                '$count ${count == 1 ? "entry" : "entries"}',
-                style: GoogleFonts.inter(fontSize: 10, color: mutedColor),
-              );
-            },
-          ),
-        ],
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(12),
+        child: FutureBuilder<int>(
+          future: EntryDao.instance.countByStory(story.id),
+          builder: (ctx, snap) {
+            final count = snap.data ?? 0;
+            return Stack(
+              children: [
+                StoryCoverWidget(
+                  storyTitle: story.title,
+                  imagePath: story.coverImage,
+                  width: 118,
+                  height: 158,
+                ),
+                // Gradient + text overlay inside image
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    padding: const EdgeInsets.fromLTRB(8, 20, 8, 8),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, Color(0xCC000000)],
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          story.title,
+                          style: GoogleFonts.inter(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          '$count ${count == 1 ? "entry" : "entries"}',
+                          style: GoogleFonts.inter(
+                            fontSize: 9,
+                            color: Colors.white.withOpacity(0.7),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        ),
       ),
     );
   }

@@ -143,6 +143,13 @@ class AppState extends ChangeNotifier {
     await prefs.setBool('hasSeenOnboarding', true);
   }
 
+  Future<void> resetOnboarding() async {
+    _hasSeenOnboarding = false;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenOnboarding', false);
+  }
+
   Future<void> setConfetti(bool value) async {
     _isConfettiEnabled = value;
     notifyListeners();

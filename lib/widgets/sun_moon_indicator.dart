@@ -268,24 +268,16 @@ class _RainPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 7),
     );
 
-    // Cloud — slightly larger and bolder
-    final cloudPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.5
-      ..strokeCap = StrokeCap.round;
-
-    final cloudPath = Path();
-    cloudPath.moveTo(center.dx - 10, center.dy - 3);
-    cloudPath.arcToPoint(Offset(center.dx - 6, center.dy - 8),
-        radius: const Radius.circular(5));
-    cloudPath.arcToPoint(Offset(center.dx + 1, center.dy - 9),
-        radius: const Radius.circular(4));
-    cloudPath.arcToPoint(Offset(center.dx + 10, center.dy - 3),
-        radius: const Radius.circular(5.5));
-    cloudPath.arcToPoint(Offset(center.dx - 10, center.dy - 3),
-        radius: const Radius.circular(9), clockwise: false);
-    canvas.drawPath(cloudPath, cloudPaint);
+    // Cloud — reliable path combine
+    canvas.drawPath(
+      _buildCloudPath(center.dx, center.dy - 5),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
 
     // 3 rain streaks — each with own speed/length to feel like random droplets
     final streakData = [
@@ -477,6 +469,34 @@ class _GoldenHourPainter extends CustomPainter {
       old.pulse != pulse || old.color != color;
 }
 
+// ── Cloud Path Helper ─────────────────────────────────────────────────────────
+// Uses Path.combine (union of circles + rounded rect) for a guaranteed
+// correct cloud outline — avoids arcToPoint radius constraints entirely.
+
+Path _buildCloudPath(double cx, double cy, {double scale = 1.0}) {
+  final s = scale;
+  final leftBump = Path()
+    ..addOval(Rect.fromCircle(
+        center: Offset(cx - 5.0 * s, cy - 2.0 * s), radius: 4.5 * s));
+  final centerBump = Path()
+    ..addOval(Rect.fromCircle(
+        center: Offset(cx + 0.5 * s, cy - 5.5 * s), radius: 6.0 * s));
+  final rightBump = Path()
+    ..addOval(Rect.fromCircle(
+        center: Offset(cx + 6.0 * s, cy - 2.0 * s), radius: 4.5 * s));
+  final body = Path()
+    ..addRRect(RRect.fromRectAndRadius(
+        Rect.fromCenter(
+            center: Offset(cx, cy + 2.5 * s),
+            width: 21.0 * s,
+            height: 8.0 * s),
+        Radius.circular(4.0 * s)));
+  var cloud = Path.combine(PathOperation.union, leftBump, centerBump);
+  cloud = Path.combine(PathOperation.union, cloud, rightBump);
+  cloud = Path.combine(PathOperation.union, cloud, body);
+  return cloud;
+}
+
 // ── Cloudy Day Painter ────────────────────────────────────────────────────────
 
 class _CloudyPainter extends CustomPainter {
@@ -488,43 +508,27 @@ class _CloudyPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
-    final cy = size.height / 2;
-    final drift = math.sin(pulse * math.pi * 2) * 1.4;
+    final cy = size.height / 2 + 1;
 
-    // Back cloud — dimmer, drifts right
-    _drawCloud(
-        canvas,
-        Offset(cx + 4 + drift, cy - 1),
-        8.5,
-        Paint()
-          ..color = color.withOpacity(0.42)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.2
-          ..strokeCap = StrokeCap.round);
+    // Subtle glow
+    canvas.drawCircle(
+      Offset(cx, cy - 2),
+      13,
+      Paint()
+        ..color = color.withOpacity(0.10 + pulse * 0.08)
+        ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 8),
+    );
 
-    // Front cloud — solid, drifts left
-    _drawCloud(
-        canvas,
-        Offset(cx - 2 - drift * 0.4, cy + 2),
-        10.5,
-        Paint()
-          ..color = color
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4
-          ..strokeCap = StrokeCap.round);
-  }
-
-  void _drawCloud(Canvas canvas, Offset c, double r, Paint paint) {
-    final path = Path();
-    path.moveTo(c.dx - r, c.dy);
-    path.arcToPoint(Offset(c.dx - r * 0.4, c.dy - r * 0.55),
-        radius: Radius.circular(r * 0.55));
-    path.arcToPoint(Offset(c.dx + r * 0.2, c.dy - r * 0.65),
-        radius: Radius.circular(r * 0.45));
-    path.arcToPoint(Offset(c.dx + r, c.dy), radius: Radius.circular(r * 0.6));
-    path.arcToPoint(Offset(c.dx - r, c.dy),
-        radius: Radius.circular(r * 0.85), clockwise: false);
-    canvas.drawPath(path, paint);
+    // Cloud outline using reliable path
+    canvas.drawPath(
+      _buildCloudPath(cx, cy),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
   }
 
   @override
@@ -568,26 +572,17 @@ class _CloudyNightPainter extends CustomPainter {
           ..color = color
           ..style = PaintingStyle.fill);
 
-    // Cloud drifting over moon
+    // Cloud drifting over moon — reliable path combine
     final drift = math.sin(pulse * math.pi * 2) * 0.9;
-    final cloudPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.3
-      ..strokeCap = StrokeCap.round;
-
-    final base = Offset(cx - 1 + drift, cy + 3);
-    final cloudPath = Path();
-    cloudPath.moveTo(base.dx - 10, base.dy);
-    cloudPath.arcToPoint(Offset(base.dx - 5, base.dy - 6),
-        radius: const Radius.circular(5.5));
-    cloudPath.arcToPoint(Offset(base.dx + 2, base.dy - 7),
-        radius: const Radius.circular(4.5));
-    cloudPath.arcToPoint(Offset(base.dx + 10, base.dy),
-        radius: const Radius.circular(5.5));
-    cloudPath.arcToPoint(Offset(base.dx - 10, base.dy),
-        radius: const Radius.circular(9), clockwise: false);
-    canvas.drawPath(cloudPath, cloudPaint);
+    canvas.drawPath(
+      _buildCloudPath(cx - 1 + drift, cy + 3, scale: 0.88),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.3
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
   }
 
   @override
@@ -621,24 +616,16 @@ class _ThunderstormPainter extends CustomPainter {
         ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 10),
     );
 
-    // Heavy cloud — thicker stroke
-    final cloudPaint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.7
-      ..strokeCap = StrokeCap.round;
-
-    final cloudPath = Path();
-    cloudPath.moveTo(center.dx - 10, center.dy - 3);
-    cloudPath.arcToPoint(Offset(center.dx - 6, center.dy - 8.5),
-        radius: const Radius.circular(5));
-    cloudPath.arcToPoint(Offset(center.dx + 1, center.dy - 9.5),
-        radius: const Radius.circular(4.5));
-    cloudPath.arcToPoint(Offset(center.dx + 10, center.dy - 3),
-        radius: const Radius.circular(5.5));
-    cloudPath.arcToPoint(Offset(center.dx - 10, center.dy - 3),
-        radius: const Radius.circular(9), clockwise: false);
-    canvas.drawPath(cloudPath, cloudPaint);
+    // Heavy cloud — reliable path combine
+    canvas.drawPath(
+      _buildCloudPath(center.dx, center.dy - 5),
+      Paint()
+        ..color = color
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.7
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round,
+    );
 
     // 5 heavy rain streaks — each with own speed/length for natural droplet feel
     final streakData = [
