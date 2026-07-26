@@ -34,6 +34,6 @@ class CommunityComment {
         createdAt: map['created_at'] != null
             ? DateTime.parse(map['created_at'] as String)
             : DateTime.now(),
-        profileImagePath: map['profile_image_path'] as String?,
+        profileImagePath: map['profile_image_url'] as String?,
       );
 }

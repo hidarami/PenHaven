@@ -329,6 +329,7 @@ class SupabaseService {
     bool isAnonymous = false,
     String? displayName,
     String? category,
+    String? profileImageUrl,
   }) async {
     if (!isAuthenticated) throw Exception('Not authenticated');
     final map = {
@@ -341,6 +342,7 @@ class SupabaseService {
       'display_name': isAnonymous ? null : displayName,
       'header_image': entry.headerImage,
       'category': category,
+      'profile_image_url': isAnonymous ? null : profileImageUrl,
     };
     await _client?.from('published_entries').upsert(map);
   }
@@ -453,6 +455,7 @@ class SupabaseService {
     required String body,
     bool isAnonymous = false,
     String? displayName,
+    String? profileImageUrl,
   }) async {
     if (!isAuthenticated) return false;
     try {
@@ -462,6 +465,7 @@ class SupabaseService {
         'body': body,
         'is_anonymous': isAnonymous,
         'display_name': isAnonymous ? null : displayName,
+        'profile_image_url': isAnonymous ? null : profileImageUrl,
       });
       await _client
           ?.rpc('increment_comment_count', params: {'p_entry_id': entryId});
@@ -502,6 +506,63 @@ class SupabaseService {
     } catch (e) {
       debugPrint('[Supabase] deleteComment: $e');
       return false;
+    }
+  }
+
+  /// Uploads the user's profile photo to Supabase Storage and returns its
+  /// public URL. This is what makes avatars visible to OTHER users —
+  /// local file paths only work on the owner's own device.
+  Future<String?> uploadProfileImage(String localPath) async {
+    if (!isAuthenticated) return null;
+    try {
+      final file = File(localPath);
+      final bytes = await file.readAsBytes();
+      final storagePath = 'avatars/$userId.png';
+      await _client?.storage.from('profile-images').uploadBinary(
+            storagePath,
+            bytes,
+            fileOptions: const FileOptions(
+                contentType: 'image/png', upsert: true),
+          );
+      // Cache-bust so the new photo shows immediately everywhere
+      final base =
+          _client?.storage.from('profile-images').getPublicUrl(storagePath);
+      return base == null
+          ? null
+          : '$base?t=${DateTime.now().millisecondsSinceEpoch}';
+    } catch (e) {
+      debugPrint('[Supabase] uploadProfileImage: $e');
+      return null;
+    }
+  }
+
+  /// Updates this user's avatar URL on every past row they own, so changing
+  /// your profile photo updates it everywhere retroactively (not just new posts).
+  Future<void> backfillProfileImageUrl(String url) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client
+          ?.from('published_entries')
+          .update({'profile_image_url': url})
+          .eq('user_id', userId!)
+          .eq('is_anonymous', false);
+      await _client
+          ?.from('write_backs')
+          .update({'profile_image_url': url})
+          .eq('user_id', userId!)
+          .eq('is_anonymous', false);
+      await _client
+          ?.from('community_comments')
+          .update({'profile_image_url': url})
+          .eq('user_id', userId!)
+          .eq('is_anonymous', false);
+      await _client
+          ?.from('reflection_replies')
+          .update({'profile_image_url': url})
+          .eq('user_id', userId!)
+          .eq('is_anonymous', false);
+    } catch (e) {
+      debugPrint('[Supabase] backfillProfileImageUrl: $e');
     }
   }
 
@@ -837,6 +898,7 @@ class SupabaseService {
     required String body,
     bool isAnonymous = false,
     String? displayName,
+    String? profileImageUrl,
   }) async {
     if (!isAuthenticated) return false;
     try {
@@ -846,6 +908,7 @@ class SupabaseService {
         'body': body,
         'is_anonymous': isAnonymous,
         'display_name': isAnonymous ? null : displayName,
+        'profile_image_url': isAnonymous ? null : profileImageUrl,
       });
       return true;
     } catch (e) {

@@ -168,7 +168,9 @@ class _EditorScreenState extends State<EditorScreen> {
         builder: (ctx) => AlertDialog(
           title: const Text('Leave Reflection?'),
           content: const Text(
-              'Publish to Sanctuary, keep as a private draft, or discard?'),
+              'Publish to Sanctuary, keep as a private draft, or discard?\n\n'
+              'Note: even a private reflection can be read by the author of '
+              'the entry you wrote back on — they just can\'t edit or delete it.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, 'discard'),
@@ -339,6 +341,7 @@ class _EditorScreenState extends State<EditorScreen> {
       'display_name': displayName,
       'header_image': _entry.headerImage,
       'category': originCategory,
+      'profile_image_url': communityState.profileImageUrl,
       'clap_count': 0,
       'reply_count': 0,
       'origin_title': headerBlock.originTitle,

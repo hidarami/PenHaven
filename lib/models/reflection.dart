@@ -30,6 +30,7 @@ class Reflection {
   // Breadcrumb only — if written from another reflection
   String? inspirationAuthor;
   String? inspirationTitle;
+  String? authorImageUrl;
 
   Reflection({
     String? id,
@@ -55,6 +56,7 @@ class Reflection {
     this.originHeaderImage,
     this.inspirationAuthor,
     this.inspirationTitle,
+    this.authorImageUrl,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
 
@@ -98,6 +100,7 @@ class Reflection {
         'origin_header_image': originHeaderImage,
         'inspiration_author': inspirationAuthor,
         'inspiration_title': inspirationTitle,
+        'profile_image_url': authorImageUrl,
       };
 
   factory Reflection.fromMap(Map<String, dynamic> map) => Reflection(
@@ -124,5 +127,6 @@ class Reflection {
         originHeaderImage: map['origin_header_image'] as String?,
         inspirationAuthor: map['inspiration_author'] as String?,
         inspirationTitle: map['inspiration_title'] as String?,
+        authorImageUrl: map['profile_image_url'] as String?,
       );
 }

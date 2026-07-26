@@ -1992,6 +1992,27 @@ class _AuthorAvatar extends StatelessWidget {
           ),
         );
       }
+    } else if (entry.authorImageUrl != null && entry.authorImageUrl!.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          entry.authorImageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(color: authorColor, shape: BoxShape.circle),
+            child: Center(
+              child: Text(authorInitial,
+                  style: GoogleFonts.inter(
+                      fontSize: size * 0.40,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white)),
+            ),
+          ),
+        ),
+      );
     }
     return Container(
       width: size,

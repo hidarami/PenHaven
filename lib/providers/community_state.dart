@@ -39,10 +39,12 @@ class CommunityState extends ChangeNotifier {
   // ── Profile cache ──────────────────────────────────────────────────────────
   String? _profileDisplayName;
   String? _profileImagePath;
+  String? _profileImageUrl;
   String? _profileBannerPath;
   String? _profileBio;
   String? get profileDisplayName => _profileDisplayName;
   String? get profileImagePath => _profileImagePath;
+  String? get profileImageUrl => _profileImageUrl;
   String? get profileBannerPath => _profileBannerPath;
   String? get profileBio => _profileBio;
 
@@ -50,6 +52,7 @@ class CommunityState extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _profileDisplayName = prefs.getString('communityDisplayName');
     _profileImagePath = prefs.getString('communityProfileImage');
+    _profileImageUrl = prefs.getString('communityProfileImageUrl');
     _profileBannerPath = prefs.getString('communityProfileBanner');
     _profileBio = prefs.getString('communityProfileBio');
     notifyListeners();
@@ -64,6 +67,17 @@ class CommunityState extends ChangeNotifier {
     if (imagePath != null) {
       _profileImagePath = imagePath;
       await prefs.setString('communityProfileImage', imagePath);
+      notifyListeners();
+      // Upload so OTHER users can see this avatar too. This is the piece
+      // that was missing before — local paths never left the device.
+      final url = await SupabaseService.instance.uploadProfileImage(imagePath);
+      if (url != null) {
+        _profileImageUrl = url;
+        await prefs.setString('communityProfileImageUrl', url);
+        // Refresh this user's avatar on every record they've already created
+        // so old posts/comments/replies show the new photo too.
+        await SupabaseService.instance.backfillProfileImageUrl(url);
+      }
     }
     if (bannerPath != null) {
       _profileBannerPath = bannerPath;
@@ -224,6 +238,7 @@ class CommunityState extends ChangeNotifier {
         isAnonymous: isAnonymous,
         displayName: displayName,
         category: category,
+        profileImageUrl: _profileImageUrl,
       );
       await loadFeed(refresh: true);
       await loadMyPosts();
@@ -237,7 +252,9 @@ class CommunityState extends ChangeNotifier {
   Future<void> toggleClap(String entryId) async {
     final feedIdx = _feed.indexWhere((e) => e.id == entryId);
     final myIdx = _myPosts.indexWhere((e) => e.id == entryId);
-    if (feedIdx == -1 && myIdx == -1) return;
+    final reflIdxMine = _myWriteBacks.indexWhere((r) => r['id'] == entryId);
+    final reflIdxRecv = _receivedWriteBacks.indexWhere((r) => r['id'] == entryId);
+    if (feedIdx == -1 && myIdx == -1 && reflIdxMine == -1 && reflIdxRecv == -1) return;
 
     // Use feed entry as source of truth for clap state
     final target = feedIdx != -1 ? _feed[feedIdx] : _myPosts[myIdx];
@@ -254,6 +271,8 @@ class CommunityState extends ChangeNotifier {
           (_myPosts[myIdx].clapCount + (wasClapped ? -1 : 1)).clamp(0, 999999);
     }
     notifyListeners();
+
+    _patchReflectionClapCount(entryId, wasClapped);
 
     try {
       if (wasClapped) {
@@ -292,6 +311,7 @@ class CommunityState extends ChangeNotifier {
       body: body,
       isAnonymous: isAnonymous,
       displayName: displayName,
+      profileImageUrl: _profileImageUrl,
     );
     if (ok) {
       final idx = _feed.indexWhere((e) => e.id == entryId);
@@ -417,18 +437,28 @@ class CommunityState extends ChangeNotifier {
       } else {
         await SupabaseService.instance.clapReflection(reflectionId);
       }
-      // Update in myWriteBacks list
-      final idx = _myWriteBacks.indexWhere((r) => r['id'] == reflectionId);
-      if (idx != -1) {
-        final current = (_myWriteBacks[idx]['clap_count'] as int? ?? 0);
-        _myWriteBacks[idx] = {
-          ..._myWriteBacks[idx],
-          'clap_count': wasClapped ? (current - 1).clamp(0, 999999) : current + 1,
-        };
-        notifyListeners();
-      }
+      _patchReflectionClapCount(reflectionId, wasClapped);
     } catch (e) {
       debugPrint('[CommunityState] toggleReflectionClap: $e');
     }
+  }
+
+  /// Patches the clap count for [reflectionId] across every list that may
+  /// hold a copy of it (my write backs, received write backs, feed cache),
+  /// so every screen shows the same number without needing a refetch.
+  void _patchReflectionClapCount(String reflectionId, bool wasClapped) {
+    void patch(List<Map<String, dynamic>> list) {
+      final idx = list.indexWhere((r) => r['id'] == reflectionId);
+      if (idx != -1) {
+        final current = (list[idx]['clap_count'] as int? ?? 0);
+        list[idx] = {
+          ...list[idx],
+          'clap_count': wasClapped ? (current - 1).clamp(0, 999999) : current + 1,
+        };
+      }
+    }
+    patch(_myWriteBacks);
+    patch(_receivedWriteBacks);
+    notifyListeners();
   }
 }

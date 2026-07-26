@@ -15,6 +15,7 @@ class PublishedEntry {
   final DateTime createdAt;
   bool hasClapped;
   bool isOwner;
+  String? authorImageUrl;
 
   PublishedEntry({
     String? id,
@@ -31,6 +32,7 @@ class PublishedEntry {
     DateTime? createdAt,
     this.hasClapped = false,
     this.isOwner = false,
+    this.authorImageUrl,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now();
 
@@ -63,6 +65,7 @@ class PublishedEntry {
         'clap_count': clapCount,
         'comment_count': commentCount,
         'created_at': createdAt.toIso8601String(),
+        'profile_image_url': authorImageUrl,
       };
 
   factory PublishedEntry.fromMap(Map<String, dynamic> map) => PublishedEntry(
@@ -80,5 +83,6 @@ class PublishedEntry {
         createdAt: map['created_at'] != null
             ? DateTime.parse(map['created_at'] as String)
             : DateTime.now(),
+        authorImageUrl: map['profile_image_url'] as String?,
       );
 }

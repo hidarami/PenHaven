@@ -23,6 +23,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../editor/editor_canvas.dart';
 import '../../widgets/shared_widgets.dart';
+import '../../widgets/action_pill.dart';
 import 'public_profile_modal.dart';
 import 'write_back_sheet.dart';
 import 'reflection_viewer.dart' show ReflectionViewer;
@@ -378,6 +379,7 @@ void _openWriteBack() {
       body: body,
       isAnonymous: _replyAnon,
       displayName: displayName,
+      profileImageUrl: context.read<CommunityState>().profileImageUrl,
     );
     if (ok && mounted) {
       _replyCtrl.clear();
@@ -644,6 +646,7 @@ void _openWriteBack() {
                           imagePath: _entry.isOwner
                               ? context.read<CommunityState>().profileImagePath
                               : null,
+                          imageUrl: _entry.isOwner ? null : _entry.authorImageUrl,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -835,17 +838,16 @@ void _openWriteBack() {
                 child: IgnorePointer(
                   ignoring: !_pillVisible,
                   child: Center(
-                    child: _ActionPill(
-                        entry: _entry,
-                        hasClapped: _hasClapped,
-                        clapCount: _clapCount,
-                        onClap: _handleClap,
-                        onWriteBack: _openWriteBack,
-                        onShare: _handleShare,
-                        onRespond:
-                            _writeBackData != null ? _toggleReplies : null,
-                        respondOpen: _repliesOpen,
-                      ),
+                    child: ActionPill(
+                      hasClapped: _hasClapped,
+                      onClap: _handleClap,
+                      onWriteBack: _writeBackData != null && (_writeBackData!['is_private'] as bool? ?? false)
+                          ? null
+                          : _openWriteBack,
+                      onShare: _handleShare,
+                      onRespond: _writeBackData != null ? _toggleReplies : () => _toggleComments(),
+                      respondActive: _writeBackData != null ? _repliesOpen : _commentsOpen,
+                    ),
                   ),
                 ),
               ),
@@ -874,164 +876,6 @@ void _openWriteBack() {
       return FlowMarkdownBody(data: _entry.content, selectable: true);
     }
     return const SizedBox.shrink();
-  }
-}
-
-// ── Action pill — glassmorphic ────────────────────────────────────────────────
-
-// ── Action pill — glassmorphic ────────────────────────────────────────────────
-
-class _ActionPill extends StatelessWidget {
-  final PublishedEntry entry;
-  final bool hasClapped;
-  final int clapCount;
-  final VoidCallback onClap;
-  final VoidCallback onWriteBack;
-  final VoidCallback? onShare;
-  final VoidCallback? onRespond;
-  final bool respondOpen;
-
-  const _ActionPill({
-    required this.entry,
-    required this.hasClapped,
-    required this.clapCount,
-    required this.onClap,
-    required this.onWriteBack,
-    this.onShare,
-    this.onRespond,
-    this.respondOpen = false,
-  });
-
-  Widget _divider() => Container(
-      width: 0.5, height: 22, color: Colors.white.withOpacity(0.3));
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(36),
-      child: BackdropFilter(
-        filter: ui.ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(36),
-            border: Border.all(
-                color: Colors.white.withOpacity(0.25), width: 0.5),
-            boxShadow: [
-              BoxShadow(
-                  color: Colors.black.withOpacity(0.12),
-                  blurRadius: 28,
-                  offset: const Offset(0, 6)),
-            ],
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-            // ── Appreciate ─────────────────────────────────────────
-            GestureDetector(
-              onTap: onClap,
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: hasClapped
-                      ? const Color(0xFFE87FA0).withOpacity(0.15)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      hasClapped
-                          ? Icons.favorite_rounded
-                          : Icons.favorite_border_rounded,
-                      key: ValueKey(hasClapped),
-                      size: 18,
-                      color: hasClapped
-                          ? const Color(0xFFE87FA0)
-                          : Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  const SizedBox(width: 7),
-                  Text(
-                    hasClapped ? 'Appreciated' : 'Appreciate',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: hasClapped
-                          ? const Color(0xFFE87FA0)
-                          : Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                ]),
-              ),
-            ),
-
-            if (onRespond != null) ...[
-              _divider(),
-              // ── Respond ──────────────────────────────────────────
-              GestureDetector(
-                onTap: onRespond,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
-                  child: Row(mainAxisSize: MainAxisSize.min, children: [
-                    Icon(
-                      respondOpen
-                          ? Icons.chat_bubble_rounded
-                          : Icons.chat_bubble_outline_rounded,
-                      size: 17,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                    const SizedBox(width: 6),
-                    Text('Respond',
-                        style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white.withOpacity(0.9))),
-                  ]),
-                ),
-              ),
-            ],
-
-            _divider(),
-
-            // ── Write Back ──────────────────────────────────────────
-            GestureDetector(
-              onTap: onWriteBack,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.edit_note_rounded,
-                      size: 18, color: Colors.white.withOpacity(0.9)),
-                  const SizedBox(width: 6),
-                  Text('Write Back',
-                      style: GoogleFonts.inter(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.9))),
-                ]),
-              ),
-            ),
-
-            _divider(),
-
-            // ── Share ────────────────────────────────────────────────
-            GestureDetector(
-              onTap: onShare,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Icon(Icons.ios_share_outlined,
-                    size: 17, color: Colors.white.withOpacity(0.9)),
-              ),
-            ),
-          ]),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -1084,7 +928,8 @@ class _AvatarCircle extends StatelessWidget {
   final String name;
   final double size;
   final String? imagePath;
-  const _AvatarCircle({required this.name, required this.size, this.imagePath});
+  final String? imageUrl;
+  const _AvatarCircle({required this.name, required this.size, this.imagePath, this.imageUrl});
 
   Color _color(String n) {
     const colors = [
@@ -1112,6 +957,21 @@ class _AvatarCircle extends StatelessWidget {
             width: size, height: size, fit: BoxFit.cover),
       );
     }
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(
+          imageUrl!,
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _initialCircle(initial),
+        ),
+      );
+    }
+    return _initialCircle(initial);
+  }
+
+  Widget _initialCircle(String initial) {
     return Container(
       width: size,
       height: size,
@@ -1390,7 +1250,8 @@ class _CommentCard extends StatelessWidget {
             _AvatarCircle(
               name: comment.authorLabel,
               size: 30,
-              imagePath: currentUserImagePath ?? comment.profileImagePath,
+              imagePath: currentUserImagePath,
+              imageUrl: currentUserImagePath == null ? comment.profileImagePath : null,
             ),
             const SizedBox(width: 12),
             Expanded(

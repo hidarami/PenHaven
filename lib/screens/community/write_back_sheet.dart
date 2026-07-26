@@ -136,7 +136,9 @@ class WriteBackSheet extends StatelessWidget {
                 icon: Icons.lock_outline_rounded,
                 title: 'Private Journal',
                 subtitle:
-                    'Only you can read this. Saved to your story entries for personal reflection.',
+                    'Saved to your story entries. The author of the original entry can '
+                    'still read and appreciate/respond to it, but no one else can — '
+                    'and they cannot edit or delete it.',
                 accentColor: AppColors.teal,
                 dark: dark,
                 textColor: textColor,

@@ -513,8 +513,7 @@ class _ReceivedReflectionCard extends StatelessWidget {
                   final rawUserId = item['user_id'];
                   final isSelf = rawUserId != null &&
                       rawUserId.toString() == SupabaseService.instance.userId;
-                  final selfImg =
-                      ctx.watch<CommunityState>().profileImagePath;
+                  final selfImg = ctx.watch<CommunityState>().profileImagePath;
                   final hasSelfImg = isSelf &&
                       selfImg != null &&
                       selfImg.isNotEmpty &&
@@ -523,6 +522,15 @@ class _ReceivedReflectionCard extends StatelessWidget {
                     return ClipOval(
                       child: Image.file(File(selfImg!),
                           width: 18, height: 18, fit: BoxFit.cover),
+                    );
+                  }
+                  final otherUrl = item['profile_image_url'] as String?;
+                  if (!isSelf && otherUrl != null && otherUrl.isNotEmpty) {
+                    return ClipOval(
+                      child: Image.network(otherUrl,
+                          width: 18, height: 18, fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) =>
+                              _LibraryAvatarCircle(name: author, size: 18)),
                     );
                   }
                   return _LibraryAvatarCircle(name: author, size: 18);

@@ -22,6 +22,7 @@ import '../../providers/community_state.dart';
 import 'entry_header_image.dart';
 import 'entry_content.dart';
 import 'entry_footer.dart';
+import '../../widgets/action_pill.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTRY READ SCREEN
@@ -337,150 +338,12 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
       left: 0,
       right: 0,
       child: Center(
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(36),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.14),
-                borderRadius: BorderRadius.circular(36),
-                border: Border.all(
-                    color: Colors.white.withOpacity(0.25), width: 0.5),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.12),
-                      blurRadius: 28,
-                      offset: const Offset(0, 6)),
-                ],
-              ),
-              child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // ── Appreciate ─────────────────────────────────────────
-                  GestureDetector(
-                    onTap: () => _handleClap(context),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _hasClapped
-                            ? const Color(0xFFE87FA0).withOpacity(0.15)
-                            : Colors.transparent,
-                        borderRadius: BorderRadius.circular(28),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedSwitcher(
-                            duration: const Duration(milliseconds: 200),
-                            child: Icon(
-                              _hasClapped
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              key: ValueKey(_hasClapped),
-                              size: 18,
-                              color: _hasClapped
-                                  ? const Color(0xFFE87FA0)
-                                  : Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                          const SizedBox(width: 7),
-                          Text(
-                            _hasClapped ? 'Appreciated' : 'Appreciate',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: _hasClapped
-                                  ? const Color(0xFFE87FA0)
-                                  : Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  // Divider
-                  Container(
-                      width: 0.5,
-                      height: 22,
-                      color: Colors.white.withOpacity(0.3)),
-                  // ── Comments ────────────────────────────────────────────
-                  GestureDetector(
-                    onTap: () => _showComments(context),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.chat_bubble_outline_rounded,
-                              size: 17, color: Colors.white.withOpacity(0.9)),
-                          const SizedBox(width: 6),
-                          Text(
-                            '$_commentCount',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white.withOpacity(0.9),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (_writeBackData != null) ...[
-                    // Divider
-                    Container(
-                        width: 0.5,
-                        height: 22,
-                        color: Colors.white.withOpacity(0.3)),
-                    // ── Respond ──────────────────────────────────────────
-                    GestureDetector(
-                      onTap: () => _showReplies(context),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 14, vertical: 10),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.chat_bubble_outline_rounded,
-                                size: 16, color: Colors.white.withOpacity(0.9)),
-                            const SizedBox(width: 6),
-                            Text('Respond',
-                                style: GoogleFonts.inter(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                    color: Colors.white.withOpacity(0.9))),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                  // Divider
-                  Container(
-                      width: 0.5,
-                      height: 22,
-                      color: Colors.white.withOpacity(0.3)),
-                  // ── Share ───────────────────────────────────────────────────────────────
-                  GestureDetector(
-                    onTap: () => _openShareSheet(context),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      child: Icon(Icons.ios_share_outlined,
-                          size: 17, color: Colors.white.withOpacity(0.9)),
-                    ),
-                  ),
-                ],
-              ),
-              ),
-            ),
-          ),
+        child: ActionPill(
+          hasClapped: _hasClapped,
+          onClap: () => _handleClap(context),
+          onRespond: () => _showComments(context),
+          onWriteBack: null,
+          onShare: () => _openShareSheet(context),
         ),
       ),
     );
@@ -548,6 +411,7 @@ class _InlineRepliesSheetState extends State<_InlineRepliesSheet> {
       body: body,
       isAnonymous: _isAnon,
       displayName: displayName,
+      profileImageUrl: context.read<CommunityState>().profileImageUrl,
     );
     if (ok && mounted) {
       _ctrl.clear();

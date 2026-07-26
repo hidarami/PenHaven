@@ -18,6 +18,7 @@ import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/shared_widgets.dart';
+import '../../widgets/action_pill.dart';
 import '../editor/editor_canvas.dart';
 import 'community_entry_viewer.dart'
     show SanctuaryShareSheet, CommunityEntryViewer;
@@ -145,6 +146,7 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
       body: body,
       isAnonymous: _replyAnon,
       displayName: displayName,
+      profileImageUrl: context.read<CommunityState>().profileImageUrl,
     );
     if (ok && mounted) {
       _replyCtrl.clear();
@@ -152,6 +154,38 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
       await _loadReplies();
     }
     if (mounted) setState(() => _submittingReply = false);
+  }
+
+  void _showShareSheetForReflection(BuildContext context) {
+    final origin = widget.originEntry ??
+        PublishedEntry(
+          id: _reflection.originEntryId,
+          userId: '',
+          title: _reflection.originTitle ?? '',
+          content: _reflection.originExcerpt ?? '',
+          displayName: _reflection.originAuthor,
+          headerImage: _reflection.originHeaderImage,
+        );
+    final dark = context.read<AppState>().isDarkMode;
+    final profileImagePath = context.read<CommunityState>().profileImagePath;
+    final asPublished = PublishedEntry(
+      id: _reflection.id,
+      userId: _reflection.userId,
+      title: _reflection.title,
+      content: _reflection.content,
+      blocksJson: _reflection.blocksJson,
+      isAnonymous: _reflection.isAnonymous,
+      displayName: _reflection.displayName,
+      headerImage: _reflection.headerImage,
+      category: _reflection.category,
+    );
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => SanctuaryShareSheet(
+          entry: asPublished, isDark: dark, profileImagePath: profileImagePath),
+    );
   }
 
   void _openWriteBack() {
@@ -205,19 +239,21 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  SizedBox(height: topPad + 24),
-
-                  // ── Header image — the reflection's own header, if any ──
-                  if (_reflection.headerImage != null &&
-                      _reflection.headerImage!.isNotEmpty &&
-                      File(_reflection.headerImage!).existsSync())
-                    Image.file(
-                      File(_reflection.headerImage!),
-                      width: double.infinity,
-                      height: 260,
-                      fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
-                    ),
+                  Builder(builder: (_) {
+                    final hasHeader = _reflection.headerImage != null &&
+                        _reflection.headerImage!.isNotEmpty &&
+                        File(_reflection.headerImage!).existsSync();
+                    if (hasHeader) {
+                      return Image.file(
+                        File(_reflection.headerImage!),
+                        width: double.infinity,
+                        height: 260,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => SizedBox(height: topPad + 60),
+                      );
+                    }
+                    return SizedBox(height: topPad + 60);
+                  }),
 
                   const SizedBox(height: 8),
 
@@ -249,6 +285,10 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                                   SupabaseService.instance.userId)
                               ? context.watch<CommunityState>().profileImagePath
                               : null,
+                          imageUrl: (_reflection.userId ==
+                                  SupabaseService.instance.userId)
+                              ? null
+                              : _reflection.authorImageUrl,
                         ),
                         const SizedBox(width: 10),
                         Expanded(
@@ -395,16 +435,15 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                 child: IgnorePointer(
                   ignoring: !_pillVisible,
                   child: Center(
-                    child: _ReflectionActionPill(
+                    child: ActionPill(
                       hasClapped: _hasClapped,
-                      clapCount: _clapCount,
-                      replyCount: _replyCount,
-                      respondOpen: _respondOpen,
-                      isPublic: !_reflection.isPrivate,
                       onClap: _handleClap,
                       onRespond: _toggleRespond,
+                      respondActive: _respondOpen,
                       onWriteBack: _reflection.isPrivate ? null : _openWriteBack,
-                      onShare: _reflection.isPrivate ? null : () {},
+                      onShare: _reflection.isPrivate
+                          ? null
+                          : () => _showShareSheetForReflection(context),
                     ),
                   ),
                 ),
@@ -446,135 +485,6 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
     if (d.inDays < 1) return 'Today';
     if (d.inDays < 7) return DateFormat('EEEE').format(dt);
     return DateFormat('MMM d, yyyy').format(dt);
-  }
-}
-
-// ── Reflection action pill ─────────────────────────────────────────────────────
-
-class _ReflectionActionPill extends StatelessWidget {
-  final bool hasClapped;
-  final int clapCount;
-  final int replyCount;
-  final bool respondOpen;
-  final bool isPublic;
-  final VoidCallback onClap;
-  final VoidCallback onRespond;
-  final VoidCallback? onWriteBack;
-  final VoidCallback? onShare;
-
-  const _ReflectionActionPill({
-    required this.hasClapped,
-    required this.clapCount,
-    required this.replyCount,
-    required this.respondOpen,
-    this.isPublic = true,
-    required this.onClap,
-    required this.onRespond,
-    this.onWriteBack,
-    this.onShare,
-  });
-
-  Widget _divider() => Container(
-      width: 0.5, height: 22, color: Colors.white.withOpacity(0.3));
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(36),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-          decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.14),
-            borderRadius: BorderRadius.circular(36),
-            border: Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
-          ),
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-            // Appreciate
-            GestureDetector(
-              onTap: onClap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(
-                    hasClapped ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                    size: 16,
-                    color: hasClapped
-                        ? const Color(0xFFE87FA0)
-                        : Colors.white.withOpacity(0.9),
-                  ),
-                  const SizedBox(width: 5),
-                  Text('Appreciate',
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: hasClapped
-                              ? const Color(0xFFE87FA0)
-                              : Colors.white.withOpacity(0.9))),
-                ]),
-              ),
-            ),
-            _divider(),
-            // Respond
-            GestureDetector(
-              onTap: onRespond,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(
-                    respondOpen
-                        ? Icons.chat_bubble_rounded
-                        : Icons.chat_bubble_outline_rounded,
-                    size: 15,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                  const SizedBox(width: 5),
-                  Text('Respond',
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.9))),
-                ]),
-              ),
-            ),
-            if (isPublic) ...[
-            _divider(),
-            // Write Back
-            GestureDetector(
-              onTap: onWriteBack,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Row(mainAxisSize: MainAxisSize.min, children: [
-                  Icon(Icons.edit_note_rounded,
-                      size: 16, color: Colors.white.withOpacity(0.9)),
-                  const SizedBox(width: 5),
-                  Text('Write Back',
-                      style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white.withOpacity(0.9))),
-                ]),
-              ),
-            ),
-            _divider(),
-            // Share
-            GestureDetector(
-              onTap: onShare,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Icon(Icons.ios_share_outlined,
-                    size: 16, color: Colors.white.withOpacity(0.9)),
-              ),
-            ),
-            ], // end isPublic
-          ]),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -714,10 +624,16 @@ class _ReplyCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSelf = reply.userId == SupabaseService.instance.userId;
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _AvatarCircle(name: reply.authorLabel, size: 28),
+        _AvatarCircle(
+          name: reply.authorLabel,
+          size: 28,
+          imagePath: isSelf ? context.watch<CommunityState>().profileImagePath : null,
+          imageUrl: isSelf ? null : reply.profileImagePath,
+        ),
         const SizedBox(width: 10),
         Expanded(
           child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -751,8 +667,9 @@ class _AvatarCircle extends StatelessWidget {
   final String name;
   final double size;
   final String? imagePath;
+  final String? imageUrl;
 
-  const _AvatarCircle({required this.name, required this.size, this.imagePath});
+  const _AvatarCircle({required this.name, required this.size, this.imagePath, this.imageUrl});
 
   Color _color(String n) {
     const colors = [
@@ -773,18 +690,27 @@ class _AvatarCircle extends StatelessWidget {
             width: size, height: size, fit: BoxFit.cover),
       );
     }
-    return Container(
-      width: size, height: size,
-      decoration: BoxDecoration(color: _color(name), shape: BoxShape.circle),
-      child: Center(
-        child: Text(initial,
-            style: GoogleFonts.inter(
-                fontSize: size * 0.42,
-                fontWeight: FontWeight.w700,
-                color: Colors.white)),
-      ),
-    );
+    if (imageUrl != null && imageUrl!.isNotEmpty) {
+      return ClipOval(
+        child: Image.network(imageUrl!,
+            width: size, height: size, fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _fallback(initial)),
+      );
+    }
+    return _fallback(initial);
   }
+
+  Widget _fallback(String initial) => Container(
+        width: size, height: size,
+        decoration: BoxDecoration(color: _color(name), shape: BoxShape.circle),
+        child: Center(
+          child: Text(initial,
+              style: GoogleFonts.inter(
+                  fontSize: size * 0.42,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white)),
+        ),
+      );
 }
 
 class _NavBtn extends StatelessWidget {

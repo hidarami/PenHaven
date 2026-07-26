@@ -1,150 +1,141 @@
-| table_name         | column_name         | data_type                |
-| ------------------ | ------------------- | ------------------------ |
-| community_claps    | id                  | uuid                     |
-| community_claps    | entry_id            | text                     |
-| community_claps    | user_id             | uuid                     |
-| community_claps    | created_at          | timestamp with time zone |
-| community_comments | id                  | uuid                     |
-| community_comments | entry_id            | text                     |
-| community_comments | user_id             | uuid                     |
-| community_comments | display_name        | text                     |
-| community_comments | body                | text                     |
-| community_comments | is_anonymous        | boolean                  |
-| community_comments | created_at          | timestamp with time zone |
-| entries            | id                  | text                     |
-| entries            | user_id             | uuid                     |
-| entries            | storyId             | text                     |
-| entries            | title               | text                     |
-| entries            | content             | text                     |
-| entries            | createdAt           | text                     |
-| entries            | updatedAt           | text                     |
-| entries            | timeSpentSeconds    | integer                  |
-| entries            | moodColor           | text                     |
-| entries            | headerImage         | text                     |
-| entries            | headerImageRatio    | text                     |
-| entries            | images              | text                     |
-| entries            | isDeleted           | integer                  |
-| entries            | blocks_json         | text                     |
-| entries            | textAlignment       | text                     |
-| published_entries  | id                  | text                     |
-| published_entries  | user_id             | uuid                     |
-| published_entries  | title               | text                     |
-| published_entries  | content             | text                     |
-| published_entries  | blocks_json         | text                     |
-| published_entries  | is_anonymous        | boolean                  |
-| published_entries  | display_name        | text                     |
-| published_entries  | clap_count          | integer                  |
-| published_entries  | comment_count       | integer                  |
-| published_entries  | created_at          | timestamp with time zone |
-| published_entries  | updated_at          | timestamp with time zone |
-| published_entries  | header_image        | text                     |
-| published_entries  | category            | text                     |
-| reflection_claps   | reflection_id       | text                     |
-| reflection_claps   | user_id             | uuid                     |
-| reflection_replies | id                  | text                     |
-| reflection_replies | reflection_id       | text                     |
-| reflection_replies | user_id             | uuid                     |
-| reflection_replies | body                | text                     |
-| reflection_replies | is_anonymous        | boolean                  |
-| reflection_replies | display_name        | text                     |
-| reflection_replies | created_at          | timestamp with time zone |
-| stories            | id                  | text                     |
-| stories            | user_id             | uuid                     |
-| stories            | title               | text                     |
-| stories            | description         | text                     |
-| stories            | createdAt           | text                     |
-| stories            | updatedAt           | text                     |
-| stories            | isLocked            | integer                  |
-| stories            | isDeleted           | integer                  |
-| time_capsules      | id                  | text                     |
-| time_capsules      | user_id             | uuid                     |
-| time_capsules      | message             | text                     |
-| time_capsules      | createdAt           | text                     |
-| time_capsules      | openAt              | text                     |
-| time_capsules      | isOpened            | integer                  |
-| todos              | id                  | text                     |
-| todos              | user_id             | uuid                     |
-| todos              | title               | text                     |
-| todos              | isCompleted         | integer                  |
-| todos              | createdAt           | text                     |
-| todos              | deadline            | text                     |
-| todos              | isArchived          | integer                  |
-| todos              | completedAt         | text                     |
-| write_backs        | id                  | text                     |
-| write_backs        | origin_entry_id     | text                     |
-| write_backs        | inspiration_id      | text                     |
-| write_backs        | user_id             | uuid                     |
-| write_backs        | origin_author_id    | uuid                     |
-| write_backs        | title               | text                     |
-| write_backs        | content             | text                     |
-| write_backs        | blocks_json         | text                     |
-| write_backs        | is_private          | boolean                  |
-| write_backs        | is_anonymous        | boolean                  |
-| write_backs        | display_name        | text                     |
-| write_backs        | header_image        | text                     |
-| write_backs        | category            | text                     |
-| write_backs        | clap_count          | integer                  |
-| write_backs        | reply_count         | integer                  |
-| write_backs        | created_at          | timestamp with time zone |
-| write_backs        | origin_title        | text                     |
-| write_backs        | origin_author       | text                     |
-| write_backs        | origin_excerpt      | text                     |
-| write_backs        | origin_header_image | text                     |
-| write_backs        | inspiration_author  | text                     |
-| write_backs        | inspiration_title   | text                     |
+| table_name         | column_name         | data_type                | is_nullable | column_default            |
+| ------------------ | ------------------- | ------------------------ | ----------- | ------------------------- |
+| community_claps    | id                  | uuid                     | NO          | gen_random_uuid()         |
+| community_claps    | entry_id            | text                     | NO          | null                      |
+| community_claps    | user_id             | uuid                     | NO          | null                      |
+| community_claps    | created_at          | timestamp with time zone | NO          | now()                     |
+| community_comments | id                  | uuid                     | NO          | gen_random_uuid()         |
+| community_comments | entry_id            | text                     | NO          | null                      |
+| community_comments | user_id             | uuid                     | NO          | null                      |
+| community_comments | display_name        | text                     | YES         | null                      |
+| community_comments | body                | text                     | NO          | null                      |
+| community_comments | is_anonymous        | boolean                  | NO          | false                     |
+| community_comments | created_at          | timestamp with time zone | NO          | now()                     |
+| community_comments | profile_image_url   | text                     | YES         | null                      |
+| community_views    | entry_id            | text                     | NO          | null                      |
+| community_views    | user_id             | uuid                     | NO          | null                      |
+| community_views    | viewed_at           | timestamp with time zone | YES         | now()                     |
+| entries            | id                  | text                     | NO          | null                      |
+| entries            | user_id             | uuid                     | NO          | null                      |
+| entries            | storyId             | text                     | NO          | null                      |
+| entries            | title               | text                     | NO          | ''::text                  |
+| entries            | content             | text                     | NO          | ''::text                  |
+| entries            | createdAt           | text                     | NO          | null                      |
+| entries            | updatedAt           | text                     | NO          | null                      |
+| entries            | timeSpentSeconds    | integer                  | NO          | 0                         |
+| entries            | moodColor           | text                     | NO          | 'default'::text           |
+| entries            | headerImage         | text                     | YES         | null                      |
+| entries            | headerImageRatio    | text                     | YES         | null                      |
+| entries            | images              | text                     | NO          | '[]'::text                |
+| entries            | isDeleted           | integer                  | NO          | 0                         |
+| entries            | blocks_json         | text                     | YES         | null                      |
+| entries            | textAlignment       | text                     | NO          | 'justify'::text           |
+| published_entries  | id                  | text                     | NO          | null                      |
+| published_entries  | user_id             | uuid                     | NO          | null                      |
+| published_entries  | title               | text                     | NO          | ''::text                  |
+| published_entries  | content             | text                     | NO          | ''::text                  |
+| published_entries  | blocks_json         | text                     | YES         | null                      |
+| published_entries  | is_anonymous        | boolean                  | NO          | false                     |
+| published_entries  | display_name        | text                     | YES         | null                      |
+| published_entries  | clap_count          | integer                  | NO          | 0                         |
+| published_entries  | comment_count       | integer                  | NO          | 0                         |
+| published_entries  | created_at          | timestamp with time zone | NO          | now()                     |
+| published_entries  | updated_at          | timestamp with time zone | NO          | now()                     |
+| published_entries  | header_image        | text                     | YES         | null                      |
+| published_entries  | category            | text                     | YES         | null                      |
+| published_entries  | profile_image_url   | text                     | YES         | null                      |
+| reflection_claps   | reflection_id       | text                     | NO          | null                      |
+| reflection_claps   | user_id             | uuid                     | NO          | null                      |
+| reflection_claps   | created_at          | timestamp with time zone | YES         | now()                     |
+| reflection_replies | id                  | text                     | NO          | (gen_random_uuid())::text |
+| reflection_replies | reflection_id       | text                     | NO          | null                      |
+| reflection_replies | user_id             | uuid                     | NO          | null                      |
+| reflection_replies | body                | text                     | NO          | null                      |
+| reflection_replies | is_anonymous        | boolean                  | YES         | false                     |
+| reflection_replies | display_name        | text                     | YES         | null                      |
+| reflection_replies | created_at          | timestamp with time zone | YES         | now()                     |
+| reflection_replies | profile_image_url   | text                     | YES         | null                      |
+| stories            | id                  | text                     | NO          | null                      |
+| stories            | user_id             | uuid                     | NO          | null                      |
+| stories            | title               | text                     | NO          | null                      |
+| stories            | description         | text                     | NO          | ''::text                  |
+| stories            | createdAt           | text                     | NO          | null                      |
+| stories            | updatedAt           | text                     | NO          | null                      |
+| stories            | isLocked            | integer                  | NO          | 0                         |
+| stories            | isDeleted           | integer                  | NO          | 0                         |
+| time_capsules      | id                  | text                     | NO          | null                      |
+| time_capsules      | user_id             | uuid                     | NO          | null                      |
+| time_capsules      | message             | text                     | NO          | null                      |
+| time_capsules      | createdAt           | text                     | NO          | null                      |
+| time_capsules      | openAt              | text                     | NO          | null                      |
+| time_capsules      | isOpened            | integer                  | NO          | 0                         |
+| todos              | id                  | text                     | NO          | null                      |
+| todos              | user_id             | uuid                     | NO          | null                      |
+| todos              | title               | text                     | NO          | null                      |
+| todos              | isCompleted         | integer                  | NO          | 0                         |
+| todos              | createdAt           | text                     | NO          | null                      |
+| todos              | deadline            | text                     | YES         | null                      |
+| todos              | isArchived          | integer                  | NO          | 0                         |
+| todos              | completedAt         | text                     | YES         | null                      |
+| write_backs        | id                  | text                     | NO          | null                      |
+| write_backs        | origin_entry_id     | text                     | NO          | null                      |
+| write_backs        | inspiration_id      | text                     | YES         | null                      |
+| write_backs        | user_id             | uuid                     | NO          | null                      |
+| write_backs        | origin_author_id    | uuid                     | YES         | null                      |
+| write_backs        | title               | text                     | YES         | ''::text                  |
+| write_backs        | content             | text                     | YES         | ''::text                  |
+| write_backs        | blocks_json         | text                     | YES         | null                      |
+| write_backs        | is_private          | boolean                  | NO          | true                      |
+| write_backs        | is_anonymous        | boolean                  | NO          | false                     |
+| write_backs        | display_name        | text                     | YES         | null                      |
+| write_backs        | header_image        | text                     | YES         | null                      |
+| write_backs        | category            | text                     | YES         | null                      |
+| write_backs        | clap_count          | integer                  | YES         | 0                         |
+| write_backs        | reply_count         | integer                  | YES         | 0                         |
+| write_backs        | created_at          | timestamp with time zone | YES         | now()                     |
+| write_backs        | origin_title        | text                     | YES         | null                      |
+| write_backs        | origin_author       | text                     | YES         | null                      |
+| write_backs        | origin_excerpt      | text                     | YES         | null                      |
+| write_backs        | origin_header_image | text                     | YES         | null                      |
+| write_backs        | inspiration_author  | text                     | YES         | null                      |
+| write_backs        | inspiration_title   | text                     | YES         | null                      |
+| write_backs        | profile_image_url   | text                     | YES         | null                      |
 
-CREATE OR REPLACE FUNCTION increment_reflection_clap(p_id text)
-RETURNS void AS $$
-  UPDATE write_backs SET clap_count = clap_count + 1 WHERE id = p_id;
-$$ LANGUAGE sql;
+| table_name         | column_name    | referenced_table  | referenced_column |
+| ------------------ | -------------- | ----------------- | ----------------- |
+| community_claps    | entry_id       | published_entries | id                |
+| community_comments | entry_id       | published_entries | id                |
+| reflection_claps   | reflection_id  | write_backs       | id                |
+| reflection_replies | reflection_id  | write_backs       | id                |
+| write_backs        | inspiration_id | write_backs       | id                |
 
-CREATE OR REPLACE FUNCTION decrement_reflection_clap(p_id text)
-RETURNS void AS $$
-  UPDATE write_backs SET clap_count = GREATEST(0, clap_count - 1) WHERE id = p_id;
-$$ LANGUAGE sql;
-
-CREATE OR REPLACE FUNCTION increment_clap_count(p_entry_id text)
-RETURNS void AS $$
-  UPDATE published_entries SET clap_count = clap_count + 1 WHERE id = p_entry_id;
-$$ LANGUAGE sql;
-
-CREATE OR REPLACE FUNCTION decrement_clap_count(p_entry_id text)
-RETURNS void AS $$
-  UPDATE published_entries SET clap_count = GREATEST(0, clap_count - 1) WHERE id = p_entry_id;
-$$ LANGUAGE sql;
-
-CREATE OR REPLACE FUNCTION increment_comment_count(p_entry_id text)
-RETURNS void AS $$
-  UPDATE published_entries SET comment_count = comment_count + 1 WHERE id = p_entry_id;
-$$ LANGUAGE sql;
-
--- MISSING: community_views table (referenced in code but absent from schema)
-CREATE TABLE IF NOT EXISTS community_views (
-  entry_id  TEXT        NOT NULL,
-  user_id   UUID        NOT NULL,
-  viewed_at TIMESTAMPTZ DEFAULT NOW(),
-  PRIMARY KEY (entry_id, user_id)
-);
-
--- MISSING: reflection reply count increment function
-CREATE OR REPLACE FUNCTION increment_reply_count(p_id text)
-RETURNS void AS $$
-  UPDATE write_backs SET reply_count = reply_count + 1 WHERE id = p_id;
-$$ LANGUAGE sql;
-
-CREATE OR REPLACE FUNCTION decrement_reply_count(p_id text)
-RETURNS void AS $$
-  UPDATE write_backs SET reply_count = GREATEST(0, reply_count - 1) WHERE id = p_id;
-$$ LANGUAGE sql;
-
--- MISSING: add created_at to reflection_claps if not present
-ALTER TABLE reflection_claps
-  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
-
--- NOTE: The following columns are TEXT but should ideally be UUID.
--- They work as-is since Uuid().v4() produces valid UUID strings stored as text.
--- To migrate cleanly in future, change these to UUID type:
---   write_backs.id, write_backs.origin_entry_id, write_backs.inspiration_id
---   published_entries.id, entries.id, stories.id
---   reflection_replies.id
--- Do NOT change these now without a full data migration — existing rows have text UUIDs.
+| schemaname | tablename          | policyname                                                | cmd    | permissive | roles    | qual                                                                                                                                                                   | with_check             |
+| ---------- | ------------------ | --------------------------------------------------------- | ------ | ---------- | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------- |
+| public     | community_claps    | Anyone reads claps                                        | SELECT | PERMISSIVE | {public} | true                                                                                                                                                                   | null                   |
+| public     | community_claps    | Auth users clap                                           | INSERT | PERMISSIVE | {public} | null                                                                                                                                                                   | (auth.uid() = user_id) |
+| public     | community_claps    | Users unclap                                              | DELETE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | community_comments | Anyone reads comments                                     | SELECT | PERMISSIVE | {public} | true                                                                                                                                                                   | null                   |
+| public     | community_comments | Auth users comment                                        | INSERT | PERMISSIVE | {public} | null                                                                                                                                                                   | (auth.uid() = user_id) |
+| public     | community_comments | Entry authors can delete comments on their entries        | DELETE | PERMISSIVE | {public} | ((auth.uid() = user_id) OR (auth.uid() IN ( SELECT published_entries.user_id
+   FROM published_entries
+  WHERE (published_entries.id = community_comments.entry_id)))) | null                   |
+| public     | community_comments | Users delete own                                          | DELETE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | entries            | Users own their entries                                   | ALL    | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | published_entries  | Anyone reads entries                                      | SELECT | PERMISSIVE | {public} | true                                                                                                                                                                   | null                   |
+| public     | published_entries  | Auth users publish                                        | INSERT | PERMISSIVE | {public} | null                                                                                                                                                                   | (auth.uid() = user_id) |
+| public     | published_entries  | Authors delete                                            | DELETE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | published_entries  | Authors update                                            | UPDATE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | reflection_claps   | Reflection claps visible to all                           | SELECT | PERMISSIVE | {public} | true                                                                                                                                                                   | null                   |
+| public     | reflection_claps   | Users can delete their own claps                          | DELETE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | reflection_claps   | Users can insert their own claps                          | INSERT | PERMISSIVE | {public} | null                                                                                                                                                                   | (auth.uid() = user_id) |
+| public     | reflection_replies | Replies visible to all                                    | SELECT | PERMISSIVE | {public} | true                                                                                                                                                                   | null                   |
+| public     | reflection_replies | Users can delete their own replies                        | DELETE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | reflection_replies | Users can insert replies                                  | INSERT | PERMISSIVE | {public} | null                                                                                                                                                                   | (auth.uid() = user_id) |
+| public     | stories            | Users own their stories                                   | ALL    | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | time_capsules      | Users own their capsules                                  | ALL    | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | todos              | Users own their todos                                     | ALL    | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | write_backs        | Private write backs visible to writer and original author | SELECT | PERMISSIVE | {public} | ((is_private = true) AND ((auth.uid() = user_id) OR (auth.uid() = origin_author_id)))                                                                                  | null                   |
+| public     | write_backs        | Public reflections visible to all                         | SELECT | PERMISSIVE | {public} | (is_private = false)                                                                                                                                                   | null                   |
+| public     | write_backs        | Users can delete their own                                | DELETE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
+| public     | write_backs        | Users can insert their own                                | INSERT | PERMISSIVE | {public} | null                                                                                                                                                                   | (auth.uid() = user_id) |
+| public     | write_backs        | Users can update their own                                | UPDATE | PERMISSIVE | {public} | (auth.uid() = user_id)                                                                                                                                                 | null                   |
