@@ -101,10 +101,10 @@ class Reflection {
       };
 
   factory Reflection.fromMap(Map<String, dynamic> map) => Reflection(
-        id: map['id'] as String,
-        originEntryId: map['origin_entry_id'] as String,
+        id: map['id'] as String? ?? '',
+        originEntryId: map['origin_entry_id'] as String? ?? '',
         inspirationId: map['inspiration_id'] as String?,
-        userId: map['user_id'].toString(),
+        userId: (map['user_id'] ?? '').toString(),
         title: map['title'] as String? ?? '',
         content: map['content'] as String? ?? '',
         blocksJson: map['blocks_json'] as String?,

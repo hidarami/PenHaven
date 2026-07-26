@@ -6,6 +6,18 @@ import '../models/entry.dart';
 import '../services/supabase_service.dart';
 
 class CommunityState extends ChangeNotifier {
+  // Auto-load profile from SharedPreferences immediately on creation.
+  // This ensures avatar/username are available before any screen calls loadProfile().
+  CommunityState() {
+    SharedPreferences.getInstance().then((prefs) {
+      _profileDisplayName = prefs.getString('communityDisplayName');
+      _profileImagePath = prefs.getString('communityProfileImage');
+      _profileBannerPath = prefs.getString('communityProfileBanner');
+      _profileBio = prefs.getString('communityProfileBio');
+      notifyListeners();
+    });
+  }
+
   List<PublishedEntry> _feed = [];
   List<PublishedEntry> _myPosts = [];
   bool _feedLoading = false;

@@ -393,6 +393,7 @@ class _ReflectionsTab extends StatelessWidget {
       separatorBuilder: (_, __) =>
           Divider(color: divColor, thickness: 0.5, height: 0),
       itemBuilder: (ctx, i) => _ReceivedReflectionCard(
+        key: ValueKey(items[i].hashCode),
         item: items[i],
         dark: dark,
         textColor: textColor,
@@ -409,7 +410,7 @@ class _ReceivedReflectionCard extends StatelessWidget {
   final Color mutedColor;
 
   const _ReceivedReflectionCard({
-    super.key,
+    required super.key,
     required this.item,
     required this.dark,
     required this.textColor,
@@ -464,7 +465,7 @@ class _ReceivedReflectionCard extends StatelessWidget {
               width: 72,
               height: 72,
               child: hasImage
-                  ? Image.file(File(headerImage!), fit: BoxFit.cover)
+                  ? Image.file(File(headerImage), fit: BoxFit.cover)
                   : Container(
                       decoration: const BoxDecoration(
                         gradient: LinearGradient(

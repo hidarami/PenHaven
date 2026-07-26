@@ -157,6 +157,51 @@ class _EditorScreenState extends State<EditorScreen> {
             _blocks.every(
                 (b) => b is TextBlock && (b as TextBlock).text.trim().isEmpty));
 
+    // Reflection draft: ask to publish, save draft, or discard before exiting
+    if (_isReflectionEntry &&
+        !isEmpty &&
+        _entry.moodColor == 'reflection_draft' &&
+        mounted) {
+      final choice = await showDialog<String>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('Leave Reflection?'),
+          content: const Text(
+              'Publish to Sanctuary, keep as a private draft, or discard?'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'discard'),
+              child: const Text('Discard',
+                  style: TextStyle(color: AppColors.danger)),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'draft'),
+              child: const Text('Keep Draft'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, 'publish'),
+              child:
+                  const Text('Publish', style: TextStyle(color: AppColors.aqua)),
+            ),
+          ],
+        ),
+      );
+      if (!mounted) return;
+      if (choice == 'publish') {
+        await _submitReflectionToSanctuary();
+        return;
+      } else if (choice == 'discard') {
+        try {
+          await context.read<AppState>().deleteEntry(_entry.id);
+        } catch (_) {}
+        editorState.reset();
+        if (mounted) Navigator.of(context).pop(null);
+        return;
+      }
+      // 'draft' or dismissed: fall through to normal save
+    }
+
     if (isEmpty) {
       // Delete empty entry instead of saving
       try {
@@ -272,6 +317,14 @@ class _EditorScreenState extends State<EditorScreen> {
     final displayName =
         communityState.profileDisplayName ?? email?.split('@').first;
 
+    // Inherit category from the original published entry
+    String? originCategory;
+    try {
+      final orig = await SupabaseService.instance
+          .getPublishedEntry(headerBlock.originEntryId);
+      originCategory = orig?.category;
+    } catch (_) {}
+
     final map = <String, dynamic>{
       'id': _entry.id,
       'origin_entry_id': headerBlock.originEntryId,
@@ -285,7 +338,7 @@ class _EditorScreenState extends State<EditorScreen> {
       'is_anonymous': false,
       'display_name': displayName,
       'header_image': _entry.headerImage,
-      'category': null,
+      'category': originCategory,
       'clap_count': 0,
       'reply_count': 0,
       'origin_title': headerBlock.originTitle,

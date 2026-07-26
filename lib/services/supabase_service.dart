@@ -610,6 +610,22 @@ class SupabaseService {
     if (!isAuthenticated) return false;
     try {
       await _client?.from('write_backs').upsert(map);
+      // If public, also upsert into the main sanctuary feed
+      if (!(map['is_private'] as bool? ?? true)) {
+        await _client?.from('published_entries').upsert({
+          'id': map['id'],
+          'user_id': userId,
+          'title': map['title'] ?? '',
+          'content': map['content'] ?? '',
+          'blocks_json': map['blocks_json'],
+          'is_anonymous': map['is_anonymous'] ?? false,
+          'display_name': map['display_name'],
+          'header_image': map['header_image'],
+          'category': map['category'],
+          'clap_count': 0,
+          'comment_count': 0,
+        });
+      }
       return true;
     } catch (e) {
       debugPrint('[Supabase] submitWriteBack: $e');
@@ -622,6 +638,22 @@ class SupabaseService {
     if (!isAuthenticated) return false;
     try {
       await _client?.from('write_backs').upsert(map);
+      // If public, also upsert into the main sanctuary feed
+      if (!(map['is_private'] as bool? ?? true)) {
+        await _client?.from('published_entries').upsert({
+          'id': map['id'],
+          'user_id': userId,
+          'title': map['title'] ?? '',
+          'content': map['content'] ?? '',
+          'blocks_json': map['blocks_json'],
+          'is_anonymous': map['is_anonymous'] ?? false,
+          'display_name': map['display_name'],
+          'header_image': map['header_image'],
+          'category': map['category'],
+          'clap_count': 0,
+          'comment_count': 0,
+        });
+      }
       return true;
     } catch (e) {
       debugPrint('[Supabase] submitWriteBackMap: $e');

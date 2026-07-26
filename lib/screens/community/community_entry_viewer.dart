@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../models/community_comment.dart';
 import '../../models/published_entry.dart';
 import '../../models/editor_block.dart';
+import '../../models/reflection.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../providers/community_state.dart';
@@ -54,7 +55,6 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   bool _hasClapped = false;
   String? _viewerFontName;
   double _imageBrightness = 1.0;
-  bool _showBrightnessSlider = false;
   bool _isBookmarked = false;
   List<Map<String, dynamic>> _reflections = [];
   bool _reflectionsLoading = false;
@@ -636,14 +636,20 @@ void _openWriteBack() {
                       textColor: textColor,
                       mutedColor: mutedColor,
                       onTapReflection: (r) {
-                        Navigator.of(context).push(
-                          MaterialPageRoute(
-                            builder: (_) => ReflectionViewer(
-                              reflection: r,
-                              originEntry: _entry,
-                            ),
-                          ),
-                        );
+                        try {
+                          final reflection = Reflection.fromMap(
+                              r as Map<String, dynamic>);
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                                builder: (_) => ReflectionViewer(
+                                      reflection: reflection,
+                                      originEntry: _entry,
+                                    )),
+                          );
+                        } catch (e) {
+                          debugPrint(
+                              '[CommunityEntryViewer] reflection parse: $e');
+                        }
                       },
                     ),
 
@@ -2007,9 +2013,13 @@ class _ReflectionsFeedSection extends StatelessWidget {
         else
           ...reflections.map((r) {
             // Build a minimal Reflection from the map
-            final hasImage = (r['header_image'] as String?) != null &&
-                (r['header_image'] as String).isNotEmpty &&
-                File(r['header_image'] as String).existsSync();
+            // Prefer reflection header image, fall back to origin entry's header image
+    final headerImgPath = ((r['header_image'] as String?)?.isNotEmpty == true
+        ? r['header_image'] as String
+        : r['origin_header_image'] as String?) ??
+        '';
+    final hasImage =
+        headerImgPath.isNotEmpty && File(headerImgPath).existsSync();
             final author = (r['is_anonymous'] as bool? ?? false)
                 ? 'Anonymous'
                 : ((r['display_name'] as String?)?.isNotEmpty == true

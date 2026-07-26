@@ -117,3 +117,34 @@ CREATE OR REPLACE FUNCTION increment_comment_count(p_entry_id text)
 RETURNS void AS $$
   UPDATE published_entries SET comment_count = comment_count + 1 WHERE id = p_entry_id;
 $$ LANGUAGE sql;
+
+-- MISSING: community_views table (referenced in code but absent from schema)
+CREATE TABLE IF NOT EXISTS community_views (
+  entry_id  TEXT        NOT NULL,
+  user_id   UUID        NOT NULL,
+  viewed_at TIMESTAMPTZ DEFAULT NOW(),
+  PRIMARY KEY (entry_id, user_id)
+);
+
+-- MISSING: reflection reply count increment function
+CREATE OR REPLACE FUNCTION increment_reply_count(p_id text)
+RETURNS void AS $$
+  UPDATE write_backs SET reply_count = reply_count + 1 WHERE id = p_id;
+$$ LANGUAGE sql;
+
+CREATE OR REPLACE FUNCTION decrement_reply_count(p_id text)
+RETURNS void AS $$
+  UPDATE write_backs SET reply_count = GREATEST(0, reply_count - 1) WHERE id = p_id;
+$$ LANGUAGE sql;
+
+-- MISSING: add created_at to reflection_claps if not present
+ALTER TABLE reflection_claps
+  ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
+
+-- NOTE: The following columns are TEXT but should ideally be UUID.
+-- They work as-is since Uuid().v4() produces valid UUID strings stored as text.
+-- To migrate cleanly in future, change these to UUID type:
+--   write_backs.id, write_backs.origin_entry_id, write_backs.inspiration_id
+--   published_entries.id, entries.id, stories.id
+--   reflection_replies.id
+-- Do NOT change these now without a full data migration — existing rows have text UUIDs.

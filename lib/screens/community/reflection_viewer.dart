@@ -18,9 +18,11 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/shared_widgets.dart';
 import '../editor/editor_canvas.dart';
-import 'community_entry_viewer.dart' show SanctuaryShareSheet;
+import 'community_entry_viewer.dart'
+    show SanctuaryShareSheet, CommunityEntryViewer;
 import 'reflection_editor_screen.dart';
 import 'write_back_sheet.dart';
+import '../../models/reflection.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REFLECTION VIEWER
@@ -221,7 +223,23 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                       dark: dark,
                       textColor: textColor,
                       mutedColor: mutedColor,
-                      onTapOrigin: () => Navigator.of(context).pop(),
+                      onTapOrigin: () async {
+                      if (widget.originEntry != null) {
+                        Navigator.of(context).push(MaterialPageRoute(
+                          builder: (_) =>
+                              CommunityEntryViewer(entry: widget.originEntry!),
+                        ));
+                      } else {
+                        // Fetch from Supabase if not pre-loaded
+                        final orig = await SupabaseService.instance
+                            .getPublishedEntry(_reflection.originEntryId);
+                        if (orig != null && mounted) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => CommunityEntryViewer(entry: orig),
+                          ));
+                        }
+                      }
+                    },
                     ),
                   ),
 
@@ -349,8 +367,13 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
 
   Widget _buildBody(bool dark, String fontName, Color textColor) {
     if (_reflection.blocksJson != null && _reflection.blocksJson!.isNotEmpty) {
+      // ReflectionHeaderBlock is already rendered as ReflectionOnCard above —
+      // filter it from blocks to prevent the double "Reflection on" card.
+      final blocks = deserializeBlocks(_reflection.blocksJson!)
+          .where((b) => b is! ReflectionHeaderBlock)
+          .toList();
       return BlocksReadView(
-        blocks: deserializeBlocks(_reflection.blocksJson!),
+        blocks: blocks,
         isDark: dark,
         textAlignment: 'left',
         fontName: fontName,

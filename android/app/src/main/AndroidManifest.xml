@@ -9,6 +9,9 @@
     
     <!-- Camera permission (optional for taking photos) -->
     <uses-permission android:name="android.permission.CAMERA" />
+
+    <!-- Access media location metadata (EXIF) for full photo access -->
+    <uses-permission android:name="android.permission.ACCESS_MEDIA_LOCATION" />
     
     <!-- Internet permission for API calls and development -->
     <uses-permission android:name="android.permission.INTERNET" />

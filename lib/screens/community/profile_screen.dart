@@ -225,7 +225,24 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
                         right: 0,
                         child: Center(
                           child: GestureDetector(
-                            onTap: _pickProfileImage,
+                            // Tap: view your own public profile
+                            onTap: () {
+                              final uid = SupabaseService.instance.userId;
+                              if (uid != null) {
+                                PublicProfileModal.show(
+                                  context,
+                                  userId: uid,
+                                  displayName:
+                                      communityState.profileDisplayName ??
+                                          SupabaseService.instance.userEmail
+                                              ?.split('@')
+                                              .first ??
+                                          'You',
+                                );
+                              }
+                            },
+                            // Long press: change profile photo
+                            onLongPress: _pickProfileImage,
                             child: Container(
                               width: avatarD,
                               height: avatarD,
@@ -331,39 +348,6 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
                           ),
                   ),
                 ),
-
-                const SizedBox(height: 12),
-
-                // View public profile button
-                if (SupabaseService.instance.isAuthenticated)
-                  TextButton.icon(
-                    onPressed: () {
-                      final displayName = communityState.profileDisplayName ??
-                          SupabaseService.instance.userEmail?.split('@').first ??
-                          'You';
-                      final userId = SupabaseService.instance.userId;
-                      if (userId != null) {
-                        PublicProfileModal.show(
-                          context,
-                          userId: userId,
-                          displayName: displayName,
-                        );
-                      }
-                    },
-                    icon: Icon(
-                      Icons.visibility_outlined,
-                      size: 18,
-                      color: accentColor,
-                    ),
-                    label: Text(
-                      'View my public profile',
-                      style: GoogleFonts.inter(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        color: accentColor,
-                      ),
-                    ),
-                  ),
 
                 const SizedBox(height: 16),
 
