@@ -14,7 +14,8 @@ import 'theme/app_theme.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await SupabaseService.initialize();
-  unawaited(NotificationService.instance.init());
+  await NotificationService.instance.init();
+  unawaited(NotificationService.instance.requestPermission());
   runApp(const FlowApp());
 }
 

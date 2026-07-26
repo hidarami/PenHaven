@@ -12,6 +12,7 @@ import '../../providers/community_state.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import 'community_entry_viewer.dart';
+import 'profile_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLIC PROFILE MODAL
@@ -38,6 +39,14 @@ class PublicProfileModal extends StatefulWidget {
     required String displayName,
     String? imageUrl,
   }) {
+    // Self-tap → your real profile (correct stats, edit controls), not the
+    // read-only public modal (which only counts non-anonymous entries and
+    // was showing 0 appreciations for owners).
+    if (userId == SupabaseService.instance.userId) {
+      return Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ProfileScreen()),
+      );
+    }
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,

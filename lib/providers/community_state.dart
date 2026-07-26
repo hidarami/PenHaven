@@ -90,53 +90,14 @@ class CommunityState extends ChangeNotifier {
     notifyListeners();
   }
 
-  // ── Featured entry management ──────────────────────────────────────────────
-  String? _featuredEntryId;
-  DateTime? _featuredUntil;
+  // ── Featured entry — fully automatic, never user-controlled ────────────────
+  // There is no manual pin anymore. See _featuredScore() in community_panel.dart
+  // for the ranking used to pick it — same formula every visitor sees, so the
+  // featured slot is always filled whenever there's at least one entry.
 
-  /// Returns pinned featured entry ID only if it hasn't expired.
-  String? get featuredEntryId {
-    if (_featuredEntryId == null || _featuredUntil == null) return null;
-    return _featuredUntil!.isAfter(DateTime.now()) ? _featuredEntryId : null;
-  }
-
-  /// Human-readable label for how long featured entry has remaining.
-  String? get featuredUntilLabel {
-    if (featuredEntryId == null || _featuredUntil == null) return null;
-    final diff = _featuredUntil!.difference(DateTime.now());
-    if (diff.inDays > 1) return '${diff.inDays}d remaining';
-    if (diff.inHours > 0) return '${diff.inHours}h remaining';
-    return 'Expiring soon';
-  }
-
-  Future<void> loadFeatured() async {
-    final data = await SupabaseService.instance.getActiveFeatured();
-    if (data != null) {
-      _featuredEntryId = data['entry_id'] as String?;
-      final untilStr = data['featured_until'] as String?;
-      _featuredUntil = untilStr != null ? DateTime.parse(untilStr) : null;
-    } else {
-      _featuredEntryId = null;
-      _featuredUntil = null;
-    }
-    notifyListeners();
-  }
-
-  /// Pins [entryId] as the featured reflection for [duration] (default 7 days).
-  /// Global — stored server-side so every user sees the same featured entry.
-  Future<void> setFeatured(String entryId,
-      {Duration duration = const Duration(days: 7)}) async {
-    _featuredEntryId = entryId;
-    _featuredUntil = DateTime.now().add(duration);
-    notifyListeners();
-    await SupabaseService.instance.setFeaturedEntry(entryId, duration);
-  }
-
-  Future<void> clearFeatured() async {
-    _featuredEntryId = null;
-    _featuredUntil = null;
-    notifyListeners();
-  }
+  /// Kept for existing callers (CommunityPanel._init) — no-op now that the
+  /// featured entry is derived live from the loaded feed.
+  Future<void> loadFeatured() async {}
 
   // ── Bookmarks ──────────────────────────────────────────────────────────────
   List<String> _bookmarkedIds = [];

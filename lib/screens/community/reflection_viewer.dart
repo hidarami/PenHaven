@@ -372,7 +372,11 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                             displayName: _reflection.originAuthor,
                             headerImage: _reflection.originHeaderImage,
                           ),
-                      inspirationReflection: null,
+                      inspirationId: _reflection.inspirationId,
+                      inspirationAuthor: _reflection.inspirationAuthor,
+                      inspirationTitle: _reflection.inspirationTitle,
+                      onTapInspiration: (id) =>
+                          ReflectionViewer.openById(context, id),
                       dark: dark,
                       textColor: textColor,
                       mutedColor: mutedColor,

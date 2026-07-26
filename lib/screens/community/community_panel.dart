@@ -202,6 +202,15 @@ String _readTime(String content) {
   return '${(words / 200).ceil().clamp(1, 99)} min read';
 }
 
+/// Automatic featured-entry ranking: claps*3 + comments*2 + a recency bonus
+/// that decays over 7 days. Deterministic — every visitor sees the same
+/// featured entry for the same feed. Never user-controlled.
+double _featuredScore(PublishedEntry e) {
+  final ageHours = DateTime.now().difference(e.createdAt).inHours;
+  final recencyScore = (168 - ageHours).clamp(0, 168) / 168 * 10;
+  return e.clapCount * 3 + e.commentCount * 2 + recencyScore;
+}
+
 String _greetingText() {
   final hour = DateTime.now().hour;
   if (hour < 12) return 'Good morning';
@@ -515,23 +524,18 @@ class _ForYouTab extends StatelessWidget {
                 selectedCategory.toLowerCase())
             .toList();
 
-    final featuredId = state.featuredEntryId;
+    // Featured entry is fully automatic and always present whenever there's
+    // at least one entry in the current view — never a manual pin.
     PublishedEntry? featured;
     List<PublishedEntry> recentItems;
-    if (featuredId != null) {
-      try {
-        featured = filtered.firstWhere((e) => e.id == featuredId);
-        recentItems =
-            filtered.where((e) => e.id != featuredId).take(8).toList();
-      } catch (_) {
-        // Featured entry set globally but not in this filtered category view.
-        featured = null;
-        recentItems = filtered.take(8).toList();
-      }
-    } else {
-      // No entry is currently featured — do NOT fall back to "newest post".
+    if (filtered.isEmpty) {
       featured = null;
-      recentItems = filtered.take(8).toList();
+      recentItems = const [];
+    } else {
+      final ranked = List<PublishedEntry>.of(filtered)
+        ..sort((a, b) => _featuredScore(b).compareTo(_featuredScore(a)));
+      featured = ranked.first;
+      recentItems = ranked.skip(1).take(8).toList();
     }
 
     return CustomScrollView(

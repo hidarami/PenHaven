@@ -190,7 +190,7 @@ class _EditorScreenState extends State<EditorScreen> {
         );
         if (!mounted) return;
         if (choice == 'publish') {
-          await _submitReflectionToSanctuary();
+          await _runWithBlockingLoader(_submitReflectionToSanctuary);
           return;
         } else if (choice == 'discard') {
           try {
@@ -202,11 +202,11 @@ class _EditorScreenState extends State<EditorScreen> {
         } else {
           // 'private' or dismissed: actually sync it to Supabase as private.
           _entry = _entry.copyWith(moodColor: 'reflection_private');
-          await _submitReflectionPrivately();
+          await _runWithBlockingLoader(_submitReflectionPrivately);
         }
       } else if (_entry.moodColor == 'reflection_private') {
         // User already chose Private Journal up front — keep it synced.
-        await _submitReflectionPrivately();
+        await _runWithBlockingLoader(_submitReflectionPrivately);
       }
     }
 
@@ -243,6 +243,25 @@ class _EditorScreenState extends State<EditorScreen> {
     editorState.reset();
     // Always pop regardless of save success — user must never be trapped
     if (mounted) Navigator.of(context).pop(_entry);
+  }
+
+  /// Blocks the screen with a non-dismissible spinner for the duration of
+  /// [action] — prevents double-submitting Publish/Keep Private, and gives
+  /// visible feedback instead of a silent few-second wait.
+  Future<void> _runWithBlockingLoader(Future<void> Function() action) async {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(color: AppColors.aqua),
+      ),
+    );
+    try {
+      await action();
+    } finally {
+      if (mounted) Navigator.of(context, rootNavigator: true).pop();
+    }
   }
 
   // ── Header image ───────────────────────────────────────────────────────────

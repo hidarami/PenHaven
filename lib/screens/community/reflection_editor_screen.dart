@@ -253,7 +253,9 @@ class _ReflectionEditorScreenState extends State<ReflectionEditorScreen> {
                   // ── Reflection on card ────────────────────────────────
                   ReflectionOnCard(
                     originEntry: widget.originEntry,
-                    inspirationReflection: widget.inspirationReflection,
+                    inspirationId: widget.inspirationReflection?.id,
+                    inspirationAuthor: widget.inspirationReflection?.authorLabel,
+                    inspirationTitle: widget.inspirationReflection?.title,
                     dark: dark,
                     textColor: textColor,
                     mutedColor: mutedColor,
@@ -379,20 +381,26 @@ class _ReflectionEditorScreenState extends State<ReflectionEditorScreen> {
 
 class ReflectionOnCard extends StatelessWidget {
   final PublishedEntry originEntry;
-  final Reflection? inspirationReflection;
+  final String? inspirationId;
+  final String? inspirationAuthor;
+  final String? inspirationTitle;
   final bool dark;
   final Color textColor;
   final Color mutedColor;
   final VoidCallback? onTapOrigin;
+  final void Function(String inspirationId)? onTapInspiration;
 
   const ReflectionOnCard({
     super.key,
     required this.originEntry,
-    this.inspirationReflection,
+    this.inspirationId,
+    this.inspirationAuthor,
+    this.inspirationTitle,
     required this.dark,
     required this.textColor,
     required this.mutedColor,
     this.onTapOrigin,
+    this.onTapInspiration,
   });
 
   @override
@@ -495,15 +503,25 @@ class ReflectionOnCard extends StatelessWidget {
             ),
           ),
         ),
-        // Inspiration breadcrumb
-        if (inspirationReflection != null) ...[
+        // Inspiration breadcrumb — always links to the immediate reflection
+        // you wrote back on, never the root (the card above is the root).
+        if (inspirationAuthor != null && inspirationAuthor!.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(
-            'Inspired by ${inspirationReflection!.authorLabel}\'s reflection',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              color: AppColors.aqua,
-              fontStyle: FontStyle.italic,
+          GestureDetector(
+            onTap: (inspirationId != null && onTapInspiration != null)
+                ? () => onTapInspiration!(inspirationId!)
+                : null,
+            child: Text(
+              'Inspired by $inspirationAuthor\'s reflection',
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.aqua,
+                fontStyle: FontStyle.italic,
+                decoration: (inspirationId != null && onTapInspiration != null)
+                    ? TextDecoration.underline
+                    : null,
+                decorationColor: AppColors.aqua,
+              ),
             ),
           ),
         ],

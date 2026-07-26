@@ -322,6 +322,24 @@ void _openWriteBack() {
       );
       return;
     }
+    if (_writeBackData != null) {
+      // _entry is itself a reflection — the new write-back must reference
+      // the ROOT origin entry, with this reflection as the inspiration.
+      final origin = PublishedEntry(
+        id: (_writeBackData!['origin_entry_id'] as String?) ?? '',
+        userId: '',
+        title: (_writeBackData!['origin_title'] as String?) ?? '',
+        content: (_writeBackData!['origin_excerpt'] as String?) ?? '',
+        displayName: _writeBackData!['origin_author'] as String?,
+        headerImage: _writeBackData!['origin_header_image'] as String?,
+      );
+      WriteBackSheet.show(
+        context,
+        entry: origin,
+        inspirationReflection: Reflection.fromMap(_writeBackData!),
+      );
+      return;
+    }
     WriteBackSheet.show(context, entry: _entry);
   }
 
@@ -390,7 +408,6 @@ void _openWriteBack() {
 
   void _showMoreMenu(BuildContext ctx) {
     final dark = ctx.read<AppState>().isDarkMode;
-    final communityState = ctx.read<CommunityState>();
     final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
@@ -424,19 +441,6 @@ void _openWriteBack() {
                 },
               ),
 
-            // Feature this entry — this was the missing wiring that made the
-            // Sanctuary hero card disappear; nothing ever called setFeatured().
-            ListTile(
-              leading: const Icon(Icons.star_outline_rounded,
-                  color: Colors.amber),
-              title: const Text('Feature this entry'),
-              subtitle: const Text('Pin it to the Sanctuary hero card'),
-              onTap: () {
-                Navigator.pop(_);
-                _showFeatureDurationPicker(ctx, communityState);
-              },
-            ),
-
             ListTile(
               leading: Icon(Icons.share_outlined, color: mutedColor),
               title:
@@ -448,73 +452,6 @@ void _openWriteBack() {
             ),
             const SizedBox(height: 8),
           ],
-        ),
-      ),
-    );
-  }
-
-  /// Duration picker for featuring an entry.
-  void _showFeatureDurationPicker(
-      BuildContext ctx, CommunityState communityState) {
-    final dark = ctx.read<AppState>().isDarkMode;
-    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
-    final textColor = dark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
-
-    showModalBottomSheet<void>(
-      context: ctx,
-      backgroundColor: bg,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Feature for how long?',
-                style: GoogleFonts.crimsonPro(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: textColor,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'Pins this entry to the "Featured Reflection" card.',
-                style: GoogleFonts.inter(fontSize: 13, color: mutedColor),
-              ),
-              const SizedBox(height: 14),
-              for (final opt in [
-                (label: '24 hours', duration: const Duration(hours: 24)),
-                (label: '3 days', duration: const Duration(days: 3)),
-                (label: '7 days', duration: const Duration(days: 7)),
-                (label: '30 days', duration: const Duration(days: 30)),
-              ])
-                ListTile(
-                  contentPadding: EdgeInsets.zero,
-                  leading: const Icon(Icons.star_rounded,
-                      color: Colors.amber, size: 20),
-                  title: Text(opt.label,
-                      style: GoogleFonts.inter(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: textColor)),
-                  onTap: () {
-                    Navigator.pop(_);
-                    communityState.setFeatured(_entry.id,
-                        duration: opt.duration);
-                    ScaffoldMessenger.of(ctx).showSnackBar(
-                      SnackBar(content: Text('Featured for ${opt.label} ✓')),
-                    );
-                  },
-                ),
-              const SizedBox(height: 8),
-            ],
-          ),
         ),
       ),
     );
@@ -712,7 +649,11 @@ void _openWriteBack() {
                           displayName: _writeBackData!['origin_author'] as String?,
                           headerImage: _writeBackData!['origin_header_image'] as String?,
                         ),
-                        inspirationReflection: null,
+                        inspirationId: _writeBackData!['inspiration_id'] as String?,
+                        inspirationAuthor: _writeBackData!['inspiration_author'] as String?,
+                        inspirationTitle: _writeBackData!['inspiration_title'] as String?,
+                        onTapInspiration: (id) =>
+                            ReflectionViewer.openById(context, id),
                         dark: dark,
                         textColor: textColor,
                         mutedColor: mutedColor,

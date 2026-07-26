@@ -17,6 +17,8 @@ import '../editor/editor_screen.dart';
 import '../../services/supabase_service.dart';
 import '../../models/published_entry.dart';
 import '../community/community_entry_viewer.dart';
+import '../community/public_profile_modal.dart';
+import '../../widgets/user_avatar.dart';
 import '../../models/community_comment.dart';
 import '../../providers/community_state.dart';
 import 'entry_header_image.dart';
@@ -568,22 +570,18 @@ class _InlineRepliesSheetState extends State<_InlineRepliesSheet> {
                             return Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 28,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: AppColors.aqua.withOpacity(0.3),
-                                    shape: BoxShape.circle,
+                                GestureDetector(
+                                  onTap: () => PublicProfileModal.show(
+                                    context,
+                                    userId: r.userId,
+                                    displayName: r.authorLabel,
+                                    imageUrl: r.profileImagePath,
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                        r.authorLabel.isNotEmpty
-                                            ? r.authorLabel[0].toUpperCase()
-                                            : '?',
-                                        style: GoogleFonts.inter(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: Colors.white)),
+                                  child: UserAvatar(
+                                    name: r.authorLabel,
+                                    size: 28,
+                                    userId: r.userId,
+                                    remoteImageUrl: r.profileImagePath,
                                   ),
                                 ),
                                 const SizedBox(width: 10),
@@ -876,19 +874,6 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
                                             .format(c.createdAt);
                             final canDelete = c.userId ==
                                 SupabaseService.instance.userId;
-                            final hasProfileImage = c.profileImagePath != null &&
-                                c.profileImagePath!.isNotEmpty &&
-                                File(c.profileImagePath!).existsSync();
-                            const colors = [
-                              Color(0xFF7BA591),
-                              Color(0xFF5B8DB8),
-                              Color(0xFFD4820A),
-                              Color(0xFF9472D4),
-                              Color(0xFFE87FA0)
-                            ];
-                            final avatarColor = colors[c.authorLabel.codeUnits
-                                    .fold(0, (a, b) => a + b) %
-                                colors.length];
                             return GestureDetector(
                               onLongPress: canDelete
                                   ? () => showDialog<void>(
@@ -922,31 +907,20 @@ class _InlineCommentsSheetState extends State<_InlineCommentsSheet> {
                                   crossAxisAlignment:
                                       CrossAxisAlignment.start,
                                   children: [
-                                    hasProfileImage
-                                        ? ClipOval(
-                                            child: Image.file(
-                                                File(c.profileImagePath!),
-                                                width: 28,
-                                                height: 28,
-                                                fit: BoxFit.cover))
-                                        : Container(
-                                            width: 28,
-                                            height: 28,
-                                            decoration: BoxDecoration(
-                                                color: avatarColor,
-                                                shape: BoxShape.circle),
-                                            child: Center(
-                                                child: Text(
-                                                    c.authorLabel.isNotEmpty
-                                                        ? c.authorLabel[0]
-                                                            .toUpperCase()
-                                                        : '?',
-                                                    style: GoogleFonts.inter(
-                                                        fontSize: 12,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                        color:
-                                                            Colors.white)))),
+                                    GestureDetector(
+                                      onTap: () => PublicProfileModal.show(
+                                        context,
+                                        userId: c.userId,
+                                        displayName: c.authorLabel,
+                                        imageUrl: c.profileImagePath,
+                                      ),
+                                      child: UserAvatar(
+                                        name: c.authorLabel,
+                                        size: 28,
+                                        userId: c.userId,
+                                        remoteImageUrl: c.profileImagePath,
+                                      ),
+                                    ),
                                     const SizedBox(width: 10),
                                     Expanded(
                                         child: Column(
