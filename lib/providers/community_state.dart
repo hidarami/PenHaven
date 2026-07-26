@@ -110,32 +110,31 @@ class CommunityState extends ChangeNotifier {
   }
 
   Future<void> loadFeatured() async {
-    final prefs = await SharedPreferences.getInstance();
-    _featuredEntryId = prefs.getString('featuredEntryId');
-    final untilMs = prefs.getInt('featuredEntryUntil');
-    _featuredUntil =
-        untilMs != null ? DateTime.fromMillisecondsSinceEpoch(untilMs) : null;
+    final data = await SupabaseService.instance.getActiveFeatured();
+    if (data != null) {
+      _featuredEntryId = data['entry_id'] as String?;
+      final untilStr = data['featured_until'] as String?;
+      _featuredUntil = untilStr != null ? DateTime.parse(untilStr) : null;
+    } else {
+      _featuredEntryId = null;
+      _featuredUntil = null;
+    }
     notifyListeners();
   }
 
   /// Pins [entryId] as the featured reflection for [duration] (default 7 days).
+  /// Global — stored server-side so every user sees the same featured entry.
   Future<void> setFeatured(String entryId,
       {Duration duration = const Duration(days: 7)}) async {
-    final until = DateTime.now().add(duration);
     _featuredEntryId = entryId;
-    _featuredUntil = until;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString('featuredEntryId', entryId);
-    await prefs.setInt('featuredEntryUntil', until.millisecondsSinceEpoch);
+    _featuredUntil = DateTime.now().add(duration);
     notifyListeners();
+    await SupabaseService.instance.setFeaturedEntry(entryId, duration);
   }
 
   Future<void> clearFeatured() async {
     _featuredEntryId = null;
     _featuredUntil = null;
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('featuredEntryId');
-    await prefs.remove('featuredEntryUntil');
     notifyListeners();
   }
 
@@ -252,13 +251,22 @@ class CommunityState extends ChangeNotifier {
   Future<void> toggleClap(String entryId) async {
     final feedIdx = _feed.indexWhere((e) => e.id == entryId);
     final myIdx = _myPosts.indexWhere((e) => e.id == entryId);
-    final reflIdxMine = _myWriteBacks.indexWhere((r) => r['id'] == entryId);
-    final reflIdxRecv = _receivedWriteBacks.indexWhere((r) => r['id'] == entryId);
-    if (feedIdx == -1 && myIdx == -1 && reflIdxMine == -1 && reflIdxRecv == -1) return;
 
-    // Use feed entry as source of truth for clap state
-    final target = feedIdx != -1 ? _feed[feedIdx] : _myPosts[myIdx];
-    final wasClapped = target.hasClapped;
+    // Determine current clapped state from whichever cache holds it; if this
+    // entry isn't cached anywhere (e.g. opened directly from the homescreen
+    // reader, which never loads the feed), fall back to querying Supabase
+    // directly so the toggle still actually persists instead of silently
+    // no-op'ing (this was the bug: it used to return early here).
+    bool wasClapped;
+    if (feedIdx != -1) {
+      wasClapped = _feed[feedIdx].hasClapped;
+    } else if (myIdx != -1) {
+      wasClapped = _myPosts[myIdx].hasClapped;
+    } else {
+      final clapped =
+          await SupabaseService.instance.getClappedEntryIds([entryId]);
+      wasClapped = clapped.contains(entryId);
+    }
 
     if (feedIdx != -1) {
       _feed[feedIdx].hasClapped = !wasClapped;

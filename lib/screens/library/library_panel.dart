@@ -444,6 +444,10 @@ class _ReceivedReflectionCard extends StatelessWidget {
     final hasImage = headerImage.isNotEmpty && File(headerImage).existsSync();
     final preview = content.length > 90 ? '${content.substring(0, 90)}…' : content;
 
+    final receivedReason = item['_received_reason'] as String? ?? 'entry';
+    final inspirationId = item['inspiration_id'] as String?;
+    final inspirationAuthor = item['inspiration_author'] as String?;
+
     return GestureDetector(
       onTap: () {
         try {
@@ -480,7 +484,15 @@ class _ReceivedReflectionCard extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              if (originTitle.isNotEmpty)
+              if (receivedReason == 'reflection')
+                Text(
+                  'Someone wrote back on your reflection',
+                  style: GoogleFonts.inter(
+                      fontSize: 11, color: mutedColor, fontStyle: FontStyle.italic),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                )
+              else if (originTitle.isNotEmpty)
                 Text(
                   'On "$originTitle"',
                   style: GoogleFonts.inter(
@@ -506,6 +518,21 @@ class _ReceivedReflectionCard extends StatelessWidget {
                         fontSize: 12, color: mutedColor, height: 1.45),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis),
+              ],
+              if (inspirationId != null && inspirationId.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                GestureDetector(
+                  onTap: () => ReflectionViewer.openById(context, inspirationId),
+                  child: Text(
+                    'Inspired by ${inspirationAuthor ?? "someone"}\'s reflection',
+                    style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: AppColors.aqua,
+                        fontStyle: FontStyle.italic,
+                        decoration: TextDecoration.underline,
+                        decorationColor: AppColors.aqua),
+                  ),
+                ),
               ],
               const SizedBox(height: 7),
               Row(children: [

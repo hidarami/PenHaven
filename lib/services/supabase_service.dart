@@ -509,6 +509,37 @@ class SupabaseService {
     }
   }
 
+  // ── Featured Entry (global, server-side) ──────────────────────────────────
+
+  Future<Map<String, dynamic>?> getActiveFeatured() async {
+    try {
+      final response = await _client
+          ?.from('featured_entries')
+          .select()
+          .gt('featured_until', DateTime.now().toIso8601String())
+          .order('created_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return response as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint('[Supabase] getActiveFeatured: $e');
+      return null;
+    }
+  }
+
+  Future<void> setFeaturedEntry(String entryId, Duration duration) async {
+    if (!isAuthenticated) return;
+    try {
+      final until = DateTime.now().add(duration);
+      await _client?.from('featured_entries').insert({
+        'entry_id': entryId,
+        'featured_until': until.toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('[Supabase] setFeaturedEntry: $e');
+    }
+  }
+
   /// Uploads the user's profile photo to Supabase Storage and returns its
   /// public URL. This is what makes avatars visible to OTHER users —
   /// local file paths only work on the owner's own device.
@@ -802,26 +833,74 @@ class SupabaseService {
     }
   }
 
-  /// Fetch write backs received (public reflections on entries owned by user).
+  /// Fetch write backs received — either (a) written on an entry I published,
+  /// or (b) written on (inspired by) one of my OWN reflections. Both count
+  /// as "received" so the Library Reflections tab surfaces everything sent
+  /// to or about the user, whether public or private (RLS governs actual
+  /// visibility of private rows).
   Future<List<Map<String, dynamic>>> getReceivedWriteBacks() async {
     if (!isAuthenticated) return [];
     try {
-      // Get the user's published entry IDs first
       final myEntries = await _client
           ?.from('published_entries')
           .select('id')
           .eq('user_id', userId!);
-      if (myEntries == null || (myEntries as List).isEmpty) return [];
-      final ids = (myEntries as List).map((e) => e['id'] as String).toList();
-      // NOTE: intentionally NOT filtering by is_private — private write backs
-      // must still be visible to the author of the entry they were written on.
-      final response = await _client
-          ?.from('write_backs')
-          .select()
-          .inFilter('origin_entry_id', ids)
-          .order('created_at', ascending: false);
-      if (response == null) return [];
-      return List<Map<String, dynamic>>.from(response as List);
+      final entryIds = myEntries == null
+          ? <String>[]
+          : (myEntries as List).map((e) => e['id'] as String).toList();
+
+      final myWriteBacks =
+          await _client?.from('write_backs').select('id').eq('user_id', userId!);
+      final myWriteBackIds = myWriteBacks == null
+          ? <String>[]
+          : (myWriteBacks as List).map((r) => r['id'] as String).toList();
+
+      final results = <Map<String, dynamic>>[];
+      final seenIds = <String>{};
+
+      if (entryIds.isNotEmpty) {
+        final resp = await _client
+            ?.from('write_backs')
+            .select()
+            .inFilter('origin_entry_id', entryIds)
+            .order('created_at', ascending: false);
+        if (resp != null) {
+          for (final r in (resp as List)) {
+            final map = Map<String, dynamic>.from(r as Map);
+            if (seenIds.add(map['id'] as String)) {
+              map['_received_reason'] = 'entry';
+              results.add(map);
+            }
+          }
+        }
+      }
+
+      if (myWriteBackIds.isNotEmpty) {
+        final resp = await _client
+            ?.from('write_backs')
+            .select()
+            .inFilter('inspiration_id', myWriteBackIds)
+            .order('created_at', ascending: false);
+        if (resp != null) {
+          for (final r in (resp as List)) {
+            final map = Map<String, dynamic>.from(r as Map);
+            if (seenIds.add(map['id'] as String)) {
+              map['_received_reason'] = 'reflection';
+              results.add(map);
+            }
+          }
+        }
+      }
+
+      results.sort((a, b) {
+        final da =
+            DateTime.tryParse(a['created_at'] as String? ?? '') ?? DateTime(0);
+        final db =
+            DateTime.tryParse(b['created_at'] as String? ?? '') ?? DateTime(0);
+        return db.compareTo(da);
+      });
+
+      return results;
     } catch (e) {
       debugPrint('[Supabase] getReceivedWriteBacks: $e');
       return [];

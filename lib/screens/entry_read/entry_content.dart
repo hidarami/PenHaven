@@ -9,6 +9,7 @@ import '../editor/editor_canvas.dart';
 import '../../models/editor_block.dart';
 import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
+import '../community/reflection_viewer.dart' show ReflectionViewer;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTRY CONTENT
@@ -65,6 +66,8 @@ class EntryContent extends StatelessWidget {
               isDark: isDark,
               textAlignment: entry.textAlignment,
               fontName: context.watch<AppState>().preferredFont,
+              onTapInspirationReflection: (id) =>
+                  ReflectionViewer.openById(context, id),
             )
           else
             _InterleavedBody(entry: entry, isDark: isDark),

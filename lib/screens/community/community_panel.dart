@@ -523,16 +523,14 @@ class _ForYouTab extends StatelessWidget {
         recentItems =
             filtered.where((e) => e.id != featuredId).take(8).toList();
       } catch (_) {
-        featured = filtered.isNotEmpty ? filtered.first : null;
-        recentItems = filtered.length > 1
-            ? filtered.skip(1).take(8).toList()
-            : <PublishedEntry>[];
+        // Featured entry set globally but not in this filtered category view.
+        featured = null;
+        recentItems = filtered.take(8).toList();
       }
     } else {
-      featured = filtered.isNotEmpty ? filtered.first : null;
-      recentItems = filtered.length > 1
-          ? filtered.skip(1).take(8).toList()
-          : <PublishedEntry>[];
+      // No entry is currently featured — do NOT fall back to "newest post".
+      featured = null;
+      recentItems = filtered.take(8).toList();
     }
 
     return CustomScrollView(

@@ -44,6 +44,27 @@ class ReflectionViewer extends StatefulWidget {
     this.originEntry,
   });
 
+  /// Shared navigation helper — fetches a reflection by id and pushes its
+  /// viewer. Used by every "Inspired by" tap across the app so every entry
+  /// point lands on the exact same viewer/record instead of a re-built copy.
+  static Future<void> openById(BuildContext context, String reflectionId) async {
+    final wb = await SupabaseService.instance.getWriteBackById(reflectionId);
+    if (wb == null) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+              content: Text('This reflection may have been removed or is private.')),
+        );
+      }
+      return;
+    }
+    if (!context.mounted) return;
+    final reflection = Reflection.fromMap(wb);
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => ReflectionViewer(reflection: reflection)),
+    );
+  }
+
   @override
   State<ReflectionViewer> createState() => _ReflectionViewerState();
 }
@@ -467,6 +488,7 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
         isDark: dark,
         textAlignment: 'left',
         fontName: fontName,
+        onTapInspirationReflection: (id) => ReflectionViewer.openById(context, id),
       );
     }
     if (_reflection.content.isNotEmpty) {

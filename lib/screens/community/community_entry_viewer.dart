@@ -845,8 +845,10 @@ void _openWriteBack() {
                           ? null
                           : _openWriteBack,
                       onShare: _handleShare,
-                      onRespond: _writeBackData != null ? _toggleReplies : () => _toggleComments(),
-                      respondActive: _writeBackData != null ? _repliesOpen : _commentsOpen,
+                      // Original entries have no respond action — only
+                      // reflections (public or private) can be responded to.
+                      onRespond: _writeBackData != null ? _toggleReplies : null,
+                      respondActive: _writeBackData != null ? _repliesOpen : false,
                     ),
                   ),
                 ),
@@ -870,6 +872,7 @@ void _openWriteBack() {
         isDark: dark,
         textAlignment: 'left',
         fontName: fontName,
+        onTapInspirationReflection: (id) => ReflectionViewer.openById(context, id),
       );
     }
     if (_entry.content.isNotEmpty) {
@@ -2168,6 +2171,22 @@ class _ReflectionsFeedSection extends StatelessWidget {
                               style: GoogleFonts.inter(
                                   fontSize: 11, color: mutedColor.withOpacity(0.7))),
                         ]),
+                        if ((r['inspiration_id'] as String?)?.isNotEmpty == true) ...[
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => ReflectionViewer.openById(
+                                context, r['inspiration_id'] as String),
+                            child: Text(
+                              'Inspired by ${r['inspiration_author'] ?? "someone"}\'s reflection',
+                              style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.aqua,
+                                  fontStyle: FontStyle.italic,
+                                  decoration: TextDecoration.underline,
+                                  decorationColor: AppColors.aqua),
+                            ),
+                          ),
+                        ],
                       ]),
                     ),
                   ]),

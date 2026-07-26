@@ -341,7 +341,7 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
         child: ActionPill(
           hasClapped: _hasClapped,
           onClap: () => _handleClap(context),
-          onRespond: () => _showComments(context),
+          onRespond: _writeBackData != null ? () => _showReplies(context) : null,
           onWriteBack: null,
           onShare: () => _openShareSheet(context),
         ),

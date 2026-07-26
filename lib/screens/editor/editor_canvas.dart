@@ -1584,6 +1584,7 @@ class BlocksReadView extends StatelessWidget {
   final bool isDark;
   final String textAlignment;
   final String fontName;
+  final void Function(String inspirationId)? onTapInspirationReflection;
 
   const BlocksReadView({
     super.key,
@@ -1591,6 +1592,7 @@ class BlocksReadView extends StatelessWidget {
     required this.isDark,
     this.textAlignment = 'justify',
     this.fontName = 'crimsonPro',
+    this.onTapInspirationReflection,
   });
 
   @override
@@ -1605,7 +1607,14 @@ class BlocksReadView extends StatelessWidget {
   Widget _buildBlock(EditorBlock block) {
     debugPrint('[BlocksReadView] Building block type: ${block.type}');
     if (block is ReflectionHeaderBlock) {
-      return _ReflectionHeaderWidget(block: block, isDark: isDark);
+      return _ReflectionHeaderWidget(
+        block: block,
+        isDark: isDark,
+        onTapInspiration: (block.inspirationId != null &&
+                onTapInspirationReflection != null)
+            ? () => onTapInspirationReflection!(block.inspirationId!)
+            : null,
+      );
     }
     if (block is ChecklistBlock) {
       return _ChecklistReadView(block: block, isDark: isDark);
@@ -1819,8 +1828,14 @@ class _TextBlockReadView extends StatelessWidget {
 class _ReflectionHeaderWidget extends StatelessWidget {
   final ReflectionHeaderBlock block;
   final bool isDark;
+  final VoidCallback? onTapInspiration;
 
-  const _ReflectionHeaderWidget({super.key, required this.block, required this.isDark});
+  const _ReflectionHeaderWidget({
+    super.key,
+    required this.block,
+    required this.isDark,
+    this.onTapInspiration,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1906,10 +1921,18 @@ class _ReflectionHeaderWidget extends StatelessWidget {
         ),
         if (block.inspirationTitle != null && block.inspirationTitle!.isNotEmpty) ...[
           const SizedBox(height: 8),
-          Text(
-            'Inspired by ${block.inspirationAuthor ?? "someone"}\'s reflection',
-            style: GoogleFonts.inter(
-                fontSize: 12, color: AppColors.aqua, fontStyle: FontStyle.italic),
+          GestureDetector(
+            onTap: onTapInspiration,
+            child: Text(
+              'Inspired by ${block.inspirationAuthor ?? "someone"}\'s reflection',
+              style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.aqua,
+                  fontStyle: FontStyle.italic,
+                  decoration:
+                      onTapInspiration != null ? TextDecoration.underline : null,
+                  decorationColor: AppColors.aqua),
+            ),
           ),
         ],
       ]),

@@ -157,51 +157,57 @@ class _EditorScreenState extends State<EditorScreen> {
             _blocks.every(
                 (b) => b is TextBlock && (b as TextBlock).text.trim().isEmpty));
 
-    // Reflection draft: ask to publish, save draft, or discard before exiting
-    if (_isReflectionEntry &&
-        !isEmpty &&
-        _entry.moodColor == 'reflection_draft' &&
-        mounted) {
-      final choice = await showDialog<String>(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: const Text('Leave Reflection?'),
-          content: const Text(
-              'Publish to Sanctuary, keep as a private draft, or discard?\n\n'
-              'Note: even a private reflection can be read by the author of '
-              'the entry you wrote back on — they just can\'t edit or delete it.'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 'discard'),
-              child: const Text('Discard',
-                  style: TextStyle(color: AppColors.danger)),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 'draft'),
-              child: const Text('Keep Draft'),
-            ),
-            TextButton(
-              onPressed: () => Navigator.pop(ctx, 'publish'),
-              child:
-                  const Text('Publish', style: TextStyle(color: AppColors.aqua)),
-            ),
-          ],
-        ),
-      );
-      if (!mounted) return;
-      if (choice == 'publish') {
-        await _submitReflectionToSanctuary();
-        return;
-      } else if (choice == 'discard') {
-        try {
-          await context.read<AppState>().deleteEntry(_entry.id);
-        } catch (_) {}
-        editorState.reset();
-        if (mounted) Navigator.of(context).pop(null);
-        return;
+    // Reflection: ask to publish/keep-private/discard, or silently sync if
+    // the user already chose Private up front (no need to ask again).
+    if (_isReflectionEntry && !isEmpty && mounted) {
+      if (_entry.moodColor == 'reflection_draft') {
+        final choice = await showDialog<String>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Leave Reflection?'),
+            content: const Text(
+                'Publish to Sanctuary, keep it private, or discard?\n\n'
+                'Note: even a private reflection can be read by the author of '
+                'the entry you wrote back on — they just can\'t edit or delete it.'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'discard'),
+                child: const Text('Discard',
+                    style: TextStyle(color: AppColors.danger)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'private'),
+                child: const Text('Keep Private'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'publish'),
+                child: const Text('Publish',
+                    style: TextStyle(color: AppColors.aqua)),
+              ),
+            ],
+          ),
+        );
+        if (!mounted) return;
+        if (choice == 'publish') {
+          await _submitReflectionToSanctuary();
+          return;
+        } else if (choice == 'discard') {
+          try {
+            await context.read<AppState>().deleteEntry(_entry.id);
+          } catch (_) {}
+          editorState.reset();
+          if (mounted) Navigator.of(context).pop(null);
+          return;
+        } else {
+          // 'private' or dismissed: actually sync it to Supabase as private.
+          _entry = _entry.copyWith(moodColor: 'reflection_private');
+          await _submitReflectionPrivately();
+        }
+      } else if (_entry.moodColor == 'reflection_private') {
+        // User already chose Private Journal up front — keep it synced.
+        await _submitReflectionPrivately();
       }
-      // 'draft' or dismissed: fall through to normal save
     }
 
     if (isEmpty) {
@@ -299,6 +305,41 @@ class _EditorScreenState extends State<EditorScreen> {
     if (!mounted) return;
     final dark = context.read<AppState>().isDarkMode;
     await ExportSheet.show(context, _entry, dark);
+  }
+
+  // ── Reflection: Submit privately (writer + origin author only) ────────────
+  Future<void> _submitReflectionPrivately() async {
+    if (!SupabaseService.instance.isAuthenticated) return;
+    await _performSave();
+    if (!mounted) return;
+    if (_blocks.isEmpty || _blocks.first is! ReflectionHeaderBlock) return;
+    final headerBlock = _blocks.first as ReflectionHeaderBlock;
+    final communityState = context.read<CommunityState>();
+    final map = <String, dynamic>{
+      'id': _entry.id,
+      'origin_entry_id': headerBlock.originEntryId,
+      'inspiration_id': headerBlock.inspirationId,
+      'user_id': SupabaseService.instance.userId,
+      'origin_author_id': headerBlock.originAuthorId,
+      'title': _titleController.text.trim(),
+      'content': _entry.content,
+      'blocks_json': serializeBlocks(_blocks),
+      'is_private': true,
+      'is_anonymous': false,
+      'display_name': communityState.profileDisplayName,
+      'header_image': _entry.headerImage,
+      'category': null,
+      'profile_image_url': communityState.profileImageUrl,
+      'clap_count': 0,
+      'reply_count': 0,
+      'origin_title': headerBlock.originTitle,
+      'origin_author': headerBlock.originAuthor,
+      'origin_excerpt': headerBlock.originExcerpt,
+      'origin_header_image': headerBlock.originHeaderImage,
+      'inspiration_author': headerBlock.inspirationAuthor,
+      'inspiration_title': headerBlock.inspirationTitle,
+    };
+    await communityState.submitWriteBackMap(map);
   }
 
   // ── Reflection: Submit to Sanctuary ───────────────────────────────────────
