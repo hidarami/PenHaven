@@ -94,7 +94,7 @@ class MenuActions extends StatelessWidget {
           if (appState.isLockEnabled)
             _ActionTile(
               icon: Icons.lock_outline_rounded,
-              label: 'Lock Flow',
+              label: 'Lock PenHaven',
               isDark: isDark,
               textColor: textColor,
               mutedColor: mutedColor,

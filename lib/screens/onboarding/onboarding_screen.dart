@@ -30,7 +30,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       icon: Icons.water_outlined,
       title: 'Follow the current.',
       body:
-          'Flow is your private sanctuary for writing — unhurried, unjudged, entirely yours.',
+          'PenHaven is your private sanctuary for writing — unhurried, unjudged, entirely yours.',
       accent: AppColors.aqua,
       bg: Color(0xFF060E1A),
     ),

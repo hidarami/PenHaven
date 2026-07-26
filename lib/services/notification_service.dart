@@ -23,8 +23,8 @@ class NotificationService {
   bool _initialized = false;
 
   static const _channelId = 'flow_main';
-  static const _channelName = 'Flow';
-  static const _channelDesc = 'Reminders and updates from Flow';
+  static const _channelName = 'PenHaven';
+  static const _channelDesc = 'Reminders and updates from PenHaven';
 
   static const _androidChannel = AndroidNotificationChannel(
     _channelId,

@@ -222,10 +222,10 @@ class _LiquidFlowText extends StatelessWidget {
   });
 
   TextStyle _style(Color color) => GoogleFonts.crimsonPro(
-        fontSize: 78,
+        fontSize: 56,
         fontWeight: FontWeight.w300,
         color: color,
-        letterSpacing: 10,
+        letterSpacing: 6,
       );
 
   @override
@@ -236,7 +236,7 @@ class _LiquidFlowText extends StatelessWidget {
         // Layer 1: Ghost text — always visible at low opacity
         Opacity(
           opacity: 0.10,
-          child: Text('Flow', style: _style(textColor)),
+          child: Text('PenHaven', style: _style(textColor)),
         ),
 
         // Layer 2: Teal water fill, clipped by rising wave
@@ -246,7 +246,7 @@ class _LiquidFlowText extends StatelessWidget {
             wavePhase: wavePhase,
           ),
           // Solid aqua fill — full opacity version of the app's accent blue
-          child: Text('Flow', style: _style(const Color(0xFF207BD5))),
+          child: Text('PenHaven', style: _style(const Color(0xFF207BD5))),
         ),
 
         // Layer 3: Faint water shimmer line at the wave surface

@@ -55,7 +55,7 @@ class AuthService {
   /// [reason] is shown to the user in the system dialog.
   /// Returns true if authentication succeeded.
   Future<bool> authenticate({
-    String reason = 'Authenticate to access Flow',
+    String reason = 'Authenticate to access PenHaven',
   }) async {
     try {
       return await _auth.authenticate(
@@ -77,7 +77,7 @@ class AuthService {
   /// Authenticate to unlock the app on resume.
   Future<bool> authenticateAppUnlock() async {
     return authenticate(
-      reason: 'Unlock Flow to continue writing',
+      reason: 'Unlock PenHaven to continue writing',
     );
   }
 

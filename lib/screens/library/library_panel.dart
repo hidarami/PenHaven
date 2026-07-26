@@ -573,6 +573,7 @@ class _ReceivedReflectionCard extends StatelessWidget {
                               context,
                               userId: rawUserId.toString(),
                               displayName: author,
+                              imageUrl: item['profile_image_url'] as String?,
                             )
                         : null,
                     child: avatar,

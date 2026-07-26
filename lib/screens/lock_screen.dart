@@ -197,7 +197,7 @@ class _BiometricView extends StatelessWidget {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Flow',
+                  'PenHaven',
                   style: GoogleFonts.crimsonPro(
                     fontSize: 52,
                     fontWeight: FontWeight.w300,
@@ -329,7 +329,7 @@ class _PinEntryView extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Unlock Flow to continue',
+              'Unlock PenHaven to continue',
               style: GoogleFonts.inter(
                 fontSize: 13,
                 color: mutedColor,

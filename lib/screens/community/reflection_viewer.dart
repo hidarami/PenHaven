@@ -95,6 +95,19 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
     _replyCount = _reflection.replyCount;
     _schedulePillHide();
     _scrollCtrl.addListener(_onScroll);
+    _loadClapState();
+  }
+
+  // Reflection.hasClapped is never populated from the server when a
+  // Reflection is built via Reflection.fromMap() — it always defaults to
+  // false. This re-hydrates the real clapped state from reflection_claps
+  // so the appreciate button doesn't visually "reset" every time you revisit.
+  Future<void> _loadClapState() async {
+    final clapped = await SupabaseService.instance
+        .getClappedReflectionIds([_reflection.id]);
+    if (mounted) {
+      setState(() => _hasClapped = clapped.contains(_reflection.id));
+    }
   }
 
   @override
@@ -304,6 +317,7 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                                 context,
                                 userId: _reflection.userId,
                                 displayName: _reflection.authorLabel,
+                                imageUrl: _reflection.authorImageUrl,
                               )
                           : null,
                       child: Row(
@@ -665,6 +679,7 @@ class _ReplyCard extends StatelessWidget {
             context,
             userId: reply.userId,
             displayName: reply.authorLabel,
+            imageUrl: reply.profileImagePath,
           ),
           child: _AvatarCircle(
             name: reply.authorLabel,

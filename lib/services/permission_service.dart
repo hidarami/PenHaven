@@ -115,7 +115,7 @@ class PermissionService {
         context,
         permissionName: 'Photo Library',
         reason:
-            'Flow needs access to your photos to add images to your entries. '
+            'PenHaven needs access to your photos to add images to your entries. '
             'Please enable it in Settings.',
       );
     }
@@ -135,7 +135,7 @@ class PermissionService {
         context,
         permissionName: 'Location',
         reason:
-            'Flow uses your location to detect the local weather and set the '
+            'PenHaven uses your location to detect the local weather and set the '
             'right atmosphere for your writing. '
             'You can disable this in Settings.',
       );

@@ -55,7 +55,7 @@ class AboutSection extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'Flow',
+                      'PenHaven',
                       style: GoogleFonts.crimsonPro(
                         fontSize: 28,
                         fontWeight: FontWeight.w700,

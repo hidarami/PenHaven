@@ -424,6 +424,19 @@ void _openWriteBack() {
                 },
               ),
 
+            // Feature this entry — this was the missing wiring that made the
+            // Sanctuary hero card disappear; nothing ever called setFeatured().
+            ListTile(
+              leading: const Icon(Icons.star_outline_rounded,
+                  color: Colors.amber),
+              title: const Text('Feature this entry'),
+              subtitle: const Text('Pin it to the Sanctuary hero card'),
+              onTap: () {
+                Navigator.pop(_);
+                _showFeatureDurationPicker(ctx, communityState);
+              },
+            ),
+
             ListTile(
               leading: Icon(Icons.share_outlined, color: mutedColor),
               title:
@@ -631,6 +644,7 @@ void _openWriteBack() {
                                 context,
                                 userId: _entry.userId,
                                 displayName: _entry.authorLabel,
+                                imageUrl: _entry.authorImageUrl,
                               )
                           : null,
                       child: Row(
@@ -750,13 +764,15 @@ void _openWriteBack() {
                         try {
                           final reflection = Reflection.fromMap(
                               r as Map<String, dynamic>);
-                          Navigator.of(context).push(
+                          Navigator.of(context)
+                              .push(
                             MaterialPageRoute(
                                 builder: (_) => ReflectionViewer(
                                       reflection: reflection,
                                       originEntry: _entry,
                                     )),
-                          );
+                          )
+                              .then((_) => _loadReflections());
                         } catch (e) {
                           debugPrint(
                               '[CommunityEntryViewer] reflection parse: $e');
@@ -767,14 +783,16 @@ void _openWriteBack() {
                         final reflection = Reflection.fromMap(
                           _reflections.firstWhere((r) => r['id'] == reflectionId),
                         );
-                        Navigator.of(context).push(
+                        Navigator.of(context)
+                            .push(
                           MaterialPageRoute(
                             builder: (_) => ReflectionViewer(
                               reflection: reflection,
                               originEntry: _entry,
                             ),
                           ),
-                        );
+                        )
+                            .then((_) => _loadReflections());
                       },
                     ),
 
@@ -1256,6 +1274,7 @@ class _CommentCard extends StatelessWidget {
                         context,
                         userId: comment.userId,
                         displayName: comment.authorLabel,
+                        imageUrl: comment.profileImagePath,
                       )
                   : null,
               child: _AvatarCircle(

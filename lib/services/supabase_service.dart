@@ -390,12 +390,21 @@ class SupabaseService {
   Future<void> clapEntry(String entryId) async {
     if (!isAuthenticated) return;
     try {
-      await _client?.from('community_claps').insert({
-        'entry_id': entryId,
-        'user_id': userId,
-      });
-      await _client
-          ?.rpc('increment_clap_count', params: {'p_entry_id': entryId});
+      // Idempotent: if the row already exists (e.g. a fast double-tap),
+      // skip the counter bump instead of throwing and silently dropping it.
+      final result = await _client
+          ?.from('community_claps')
+          .upsert(
+            {'entry_id': entryId, 'user_id': userId},
+            onConflict: 'entry_id,user_id',
+            ignoreDuplicates: true,
+          )
+          .select();
+      final inserted = result != null && (result as List).isNotEmpty;
+      if (inserted) {
+        await _client
+            ?.rpc('increment_clap_count', params: {'p_entry_id': entryId});
+      }
     } catch (e) {
       debugPrint('[Supabase] clapEntry: $e');
     }
@@ -404,13 +413,17 @@ class SupabaseService {
   Future<void> removeClap(String entryId) async {
     if (!isAuthenticated) return;
     try {
-      await _client
+      final deleted = await _client
           ?.from('community_claps')
           .delete()
           .eq('entry_id', entryId)
-          .eq('user_id', userId!);
-      await _client
-          ?.rpc('decrement_clap_count', params: {'p_entry_id': entryId});
+          .eq('user_id', userId!)
+          .select();
+      final removed = deleted != null && (deleted as List).isNotEmpty;
+      if (removed) {
+        await _client
+            ?.rpc('decrement_clap_count', params: {'p_entry_id': entryId});
+      }
     } catch (e) {
       debugPrint('[Supabase] removeClap: $e');
     }
@@ -427,6 +440,25 @@ class SupabaseService {
       if (response == null) return {};
       return Set<String>.from(
         (response as List).map((r) => r['entry_id'] as String),
+      );
+    } catch (e) {
+      return {};
+    }
+  }
+
+  /// Same as [getClappedEntryIds] but for reflections (write_backs), which
+  /// use a separate reflection_claps table.
+  Future<Set<String>> getClappedReflectionIds(List<String> ids) async {
+    if (!isAuthenticated || ids.isEmpty) return {};
+    try {
+      final response = await _client
+          ?.from('reflection_claps')
+          .select('reflection_id')
+          .eq('user_id', userId!)
+          .inFilter('reflection_id', ids);
+      if (response == null) return {};
+      return Set<String>.from(
+        (response as List).map((r) => r['reflection_id'] as String),
       );
     } catch (e) {
       return {};
@@ -911,9 +943,19 @@ class SupabaseService {
   Future<void> clapReflection(String reflectionId) async {
     if (!isAuthenticated) return;
     try {
-      await _client?.from('reflection_claps')
-          .insert({'reflection_id': reflectionId, 'user_id': userId});
-      await _client?.rpc('increment_reflection_clap', params: {'p_id': reflectionId});
+      final result = await _client
+          ?.from('reflection_claps')
+          .upsert(
+            {'reflection_id': reflectionId, 'user_id': userId},
+            onConflict: 'reflection_id,user_id',
+            ignoreDuplicates: true,
+          )
+          .select();
+      final inserted = result != null && (result as List).isNotEmpty;
+      if (inserted) {
+        await _client
+            ?.rpc('increment_reflection_clap', params: {'p_id': reflectionId});
+      }
     } catch (e) {
       debugPrint('[Supabase] clapReflection: $e');
     }
@@ -923,11 +965,17 @@ class SupabaseService {
   Future<void> removereflectionClap(String reflectionId) async {
     if (!isAuthenticated) return;
     try {
-      await _client?.from('reflection_claps')
+      final deleted = await _client
+          ?.from('reflection_claps')
           .delete()
           .eq('reflection_id', reflectionId)
-          .eq('user_id', userId!);
-      await _client?.rpc('decrement_reflection_clap', params: {'p_id': reflectionId});
+          .eq('user_id', userId!)
+          .select();
+      final removed = deleted != null && (deleted as List).isNotEmpty;
+      if (removed) {
+        await _client
+            ?.rpc('decrement_reflection_clap', params: {'p_id': reflectionId});
+      }
     } catch (e) {
       debugPrint('[Supabase] removereflectionClap: $e');
     }
@@ -989,10 +1037,18 @@ class SupabaseService {
         'display_name': isAnonymous ? null : displayName,
         'profile_image_url': isAnonymous ? null : profileImageUrl,
       });
-      return true;
     } catch (e) {
-      debugPrint('[Supabase] addReflectionReply: $e');
+      debugPrint('[Supabase] addReflectionReply insert: $e');
       return false;
     }
+    // Bump reply_count separately — if this RPC name/param doesn't match
+    // your DB function signature, the reply is still saved either way.
+    try {
+      await _client
+          ?.rpc('increment_reply_count', params: {'p_id': reflectionId});
+    } catch (e) {
+      debugPrint('[Supabase] increment_reply_count: $e');
+    }
+    return true;
   }
 }

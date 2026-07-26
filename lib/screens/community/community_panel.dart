@@ -16,6 +16,7 @@ import '../../services/permission_service.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import 'community_entry_viewer.dart';
+import 'public_profile_modal.dart';
 
 // ── Category constants ────────────────────────────────────────────────────────
 
@@ -859,11 +860,19 @@ class _FeaturedCard extends StatelessWidget {
 
                     Row(
                       children: [
-                        _AuthorAvatar(
-                            entry: entry,
-                            size: 28,
-                            authorColor: authorColor,
-                            authorInitial: authorInitial),
+                        GestureDetector(
+                          onTap: () => PublicProfileModal.show(
+                            context,
+                            userId: entry.userId,
+                            displayName: author,
+                            imageUrl: entry.authorImageUrl,
+                          ),
+                          child: _AuthorAvatar(
+                              entry: entry,
+                              size: 28,
+                              authorColor: authorColor,
+                              authorInitial: authorInitial),
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Column(
@@ -1029,13 +1038,20 @@ class _CompactEntryCard extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 7),
-                      Row(
-                        children: [
-                          _AuthorAvatar(
-                              entry: entry,
-                              size: 18,
-                              authorColor: authorColor,
-                              authorInitial: authorInitial),
+                      Row(children: [
+                          GestureDetector(
+                            onTap: () => PublicProfileModal.show(
+                              context,
+                              userId: entry.userId,
+                              displayName: author,
+                              imageUrl: entry.authorImageUrl,
+                            ),
+                            child: _AuthorAvatar(
+                                entry: entry,
+                                size: 18,
+                                authorColor: authorColor,
+                                authorInitial: authorInitial),
+                          ),
                           const SizedBox(width: 5),
                           Text(author,
                               style: GoogleFonts.inter(
@@ -1306,11 +1322,19 @@ class _FeedEntryCard extends StatelessWidget {
                 const SizedBox(height: 11),
                 Row(
                   children: [
-                    _AuthorAvatar(
-                        entry: entry,
-                        size: 22,
-                        authorColor: authorColor,
-                        authorInitial: authorInitial),
+                    GestureDetector(
+                      onTap: () => PublicProfileModal.show(
+                        context,
+                        userId: entry.userId,
+                        displayName: author,
+                        imageUrl: entry.authorImageUrl,
+                      ),
+                      child: _AuthorAvatar(
+                          entry: entry,
+                          size: 22,
+                          authorColor: authorColor,
+                          authorInitial: authorInitial),
+                    ),
                     const SizedBox(width: 7),
                     Text(author,
                         style: GoogleFonts.inter(

@@ -18,7 +18,7 @@ import '../editor/editor_screen.dart';
 // with a pinned ReflectionHeaderBlock as the first block.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class WriteBackSheet extends StatelessWidget {
+class WriteBackSheet extends StatefulWidget {
   final PublishedEntry entry;
   final Reflection? inspirationReflection;
 
@@ -37,6 +37,8 @@ class WriteBackSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: true,
       builder: (_) => WriteBackSheet(
         entry: entry,
         inspirationReflection: inspirationReflection,
@@ -44,13 +46,23 @@ class WriteBackSheet extends StatelessWidget {
     );
   }
 
+  @override
+  State<WriteBackSheet> createState() => _WriteBackSheetState();
+}
+
+class _WriteBackSheetState extends State<WriteBackSheet> {
+  bool _processing = false;
+
   Future<void> _openInEditor(BuildContext context,
       {required bool isPrivate}) async {
+    if (_processing) return;
+    setState(() => _processing = true);
+
     final appState = context.read<AppState>();
 
-    Navigator.pop(context); // close sheet
-
     if (appState.activeStory == null) {
+      if (mounted) setState(() => _processing = false);
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text(
@@ -61,31 +73,43 @@ class WriteBackSheet extends StatelessWidget {
 
     final headerBlock = ReflectionHeaderBlock(
       id: const Uuid().v4(),
-      originEntryId: entry.id,
-      originTitle: entry.title,
-      originAuthor: entry.authorLabel,
-      originAuthorId: entry.userId,
-      originExcerpt: entry.preview(160),
-      originHeaderImage: entry.headerImage,
-      inspirationId: inspirationReflection?.id,
-      inspirationAuthor: inspirationReflection?.authorLabel,
-      inspirationTitle: inspirationReflection?.title,
+      originEntryId: widget.entry.id,
+      originTitle: widget.entry.title,
+      originAuthor: widget.entry.authorLabel,
+      originAuthorId: widget.entry.userId,
+      originExcerpt: widget.entry.preview(160),
+      originHeaderImage: widget.entry.headerImage,
+      inspirationId: widget.inspirationReflection?.id,
+      inspirationAuthor: widget.inspirationReflection?.authorLabel,
+      inspirationTitle: widget.inspirationReflection?.title,
     );
 
-    // Create a real entry in the active story so it's saved locally.
-    // moodColor tracks reflection state: 'reflection_private' or 'reflection' (published).
-    final newEntry = await appState.createEntry();
-    final entryWithHeader = newEntry.copyWith(
-      blocksJson: serializeBlocks([headerBlock, TextBlock.empty()]),
-      moodColor: isPrivate ? 'reflection_private' : 'reflection_draft',
-    );
-    await appState.saveEntry(entryWithHeader);
+    try {
+      final newEntry = await appState.createEntry();
+      final entryWithHeader = newEntry.copyWith(
+        blocksJson: serializeBlocks([headerBlock, TextBlock.empty()]),
+        moodColor: isPrivate ? 'reflection_private' : 'reflection_draft',
+      );
+      await appState.saveEntry(entryWithHeader);
+      // Defensive refresh — ensures the new write-back entry shows up in
+      // the homescreen entry list immediately regardless of any stale state.
+      await appState.refreshEntries();
 
-    if (!context.mounted) return;
-    await Navigator.of(context).push<Entry>(
-      MaterialPageRoute(builder: (_) => EditorScreen(entry: entryWithHeader)),
-    );
-    if (context.mounted) appState.refreshEntries();
+      if (!mounted) return;
+      Navigator.pop(context); // close sheet only after the entry truly exists
+
+      await Navigator.of(context).push<Entry>(
+        MaterialPageRoute(builder: (_) => EditorScreen(entry: entryWithHeader)),
+      );
+      if (context.mounted) appState.refreshEntries();
+    } catch (e) {
+      if (mounted) setState(() => _processing = false);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to start reflection: $e')),
+        );
+      }
+    }
   }
 
   @override
@@ -97,66 +121,99 @@ class WriteBackSheet extends StatelessWidget {
     final bottomPad =
         MediaQuery.of(context).viewInsets.bottom + MediaQuery.of(context).padding.bottom;
 
-    return Container(
-      decoration: BoxDecoration(
-          color: bg,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
-      padding: EdgeInsets.only(bottom: bottomPad),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return PopScope(
+      canPop: !_processing,
+      child: Container(
+        decoration: BoxDecoration(
+            color: bg,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(20))),
+        padding: EdgeInsets.only(bottom: bottomPad),
+        child: SafeArea(
+          top: false,
+          child: Stack(
             children: [
-              Center(
-                child: Container(
-                  width: 36,
-                  height: 4,
-                  decoration: BoxDecoration(
-                      color: mutedColor.withOpacity(0.3),
-                      borderRadius: BorderRadius.circular(2)),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        decoration: BoxDecoration(
+                            color: mutedColor.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(2)),
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    Text('Write Back',
+                        style: GoogleFonts.crimsonPro(
+                            fontSize: 24,
+                            fontWeight: FontWeight.w700,
+                            color: textColor)),
+                    const SizedBox(height: 4),
+                    Text('How would you like to respond?',
+                        style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
+                    const SizedBox(height: 16),
+                    _SmallOriginCard(
+                        entry: widget.entry,
+                        dark: dark,
+                        textColor: textColor,
+                        mutedColor: mutedColor),
+                    const SizedBox(height: 20),
+                    _OptionCard(
+                      icon: Icons.lock_outline_rounded,
+                      title: 'Private Journal',
+                      subtitle:
+                          'Saved to your story entries. The author of the original entry can '
+                          'still read and appreciate/respond to it, but no one else can — '
+                          'and they cannot edit or delete it.',
+                      accentColor: AppColors.teal,
+                      dark: dark,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      disabled: _processing,
+                      onTap: () => _openInEditor(context, isPrivate: true),
+                    ),
+                    const SizedBox(height: 10),
+                    _OptionCard(
+                      icon: Icons.public_rounded,
+                      title: 'Publish to Sanctuary',
+                      subtitle:
+                          'Share as a public reflection. Write it first, then submit from the editor.',
+                      accentColor: AppColors.aqua,
+                      dark: dark,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      disabled: _processing,
+                      onTap: () => _openInEditor(context, isPrivate: false),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 18),
-              Text('Write Back',
-                  style: GoogleFonts.crimsonPro(
-                      fontSize: 24,
-                      fontWeight: FontWeight.w700,
-                      color: textColor)),
-              const SizedBox(height: 4),
-              Text('How would you like to respond?',
-                  style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
-              const SizedBox(height: 16),
-              _SmallOriginCard(
-                  entry: entry, dark: dark, textColor: textColor, mutedColor: mutedColor),
-              const SizedBox(height: 20),
-              _OptionCard(
-                icon: Icons.lock_outline_rounded,
-                title: 'Private Journal',
-                subtitle:
-                    'Saved to your story entries. The author of the original entry can '
-                    'still read and appreciate/respond to it, but no one else can — '
-                    'and they cannot edit or delete it.',
-                accentColor: AppColors.teal,
-                dark: dark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () => _openInEditor(context, isPrivate: true),
-              ),
-              const SizedBox(height: 10),
-              _OptionCard(
-                icon: Icons.public_rounded,
-                title: 'Publish to Sanctuary',
-                subtitle:
-                    'Share as a public reflection. Write it first, then submit from the editor.',
-                accentColor: AppColors.aqua,
-                dark: dark,
-                textColor: textColor,
-                mutedColor: mutedColor,
-                onTap: () => _openInEditor(context, isPrivate: false),
-              ),
+              if (_processing)
+                Positioned.fill(
+                  child: Container(
+                    color: (dark ? Colors.black : Colors.white).withOpacity(0.55),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const CircularProgressIndicator(
+                              strokeWidth: 2, color: AppColors.aqua),
+                          const SizedBox(height: 12),
+                          Text('Starting your reflection...',
+                              style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w500,
+                                  color: textColor)),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
@@ -176,6 +233,7 @@ class _OptionCard extends StatelessWidget {
   final Color textColor;
   final Color mutedColor;
   final VoidCallback onTap;
+  final bool disabled;
 
   const _OptionCard({
     required this.icon,
@@ -186,41 +244,45 @@ class _OptionCard extends StatelessWidget {
     required this.textColor,
     required this.mutedColor,
     required this.onTap,
+    this.disabled = false,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: accentColor.withOpacity(0.07),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: accentColor.withOpacity(0.25), width: 1.5),
+      onTap: disabled ? null : onTap,
+      child: Opacity(
+        opacity: disabled ? 0.5 : 1.0,
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: accentColor.withOpacity(0.07),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: accentColor.withOpacity(0.25), width: 1.5),
+          ),
+          child: Row(children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                  color: accentColor.withOpacity(0.12), shape: BoxShape.circle),
+              child: Icon(icon, size: 20, color: accentColor),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(title,
+                    style: GoogleFonts.inter(
+                        fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
+                const SizedBox(height: 3),
+                Text(subtitle,
+                    style: GoogleFonts.inter(fontSize: 12, color: mutedColor, height: 1.4)),
+              ]),
+            ),
+            Icon(Icons.chevron_right_rounded,
+                size: 18, color: accentColor.withOpacity(0.5)),
+          ]),
         ),
-        child: Row(children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-                color: accentColor.withOpacity(0.12), shape: BoxShape.circle),
-            child: Icon(icon, size: 20, color: accentColor),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(title,
-                  style: GoogleFonts.inter(
-                      fontSize: 14, fontWeight: FontWeight.w600, color: textColor)),
-              const SizedBox(height: 3),
-              Text(subtitle,
-                  style: GoogleFonts.inter(fontSize: 12, color: mutedColor, height: 1.4)),
-            ]),
-          ),
-          Icon(Icons.chevron_right_rounded,
-              size: 18, color: accentColor.withOpacity(0.5)),
-        ]),
       ),
     );
   }

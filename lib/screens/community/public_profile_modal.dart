@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import '../../models/published_entry.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
+import '../../providers/community_state.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import 'community_entry_viewer.dart';
@@ -22,17 +23,20 @@ import 'community_entry_viewer.dart';
 class PublicProfileModal extends StatefulWidget {
   final String userId;
   final String displayName;
+  final String? imageUrl;
 
   const PublicProfileModal({
     super.key,
     required this.userId,
     required this.displayName,
+    this.imageUrl,
   });
 
   static Future<void> show(
     BuildContext context, {
     required String userId,
     required String displayName,
+    String? imageUrl,
   }) {
     return showModalBottomSheet(
       context: context,
@@ -41,6 +45,7 @@ class PublicProfileModal extends StatefulWidget {
       builder: (_) => PublicProfileModal(
         userId: userId,
         displayName: displayName,
+        imageUrl: imageUrl,
       ),
     );
   }
@@ -124,35 +129,72 @@ class _PublicProfileModalState extends State<PublicProfileModal> {
             const SizedBox(height: 20),
 
             // ── Avatar + name ────────────────────────────────────────────
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: avatarColor,
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: dark ? AppColors.warmDark : Colors.white,
-                  width: 3,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.12),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+            Builder(builder: (_) {
+              final isSelf = widget.userId == SupabaseService.instance.userId;
+              final selfPath =
+                  isSelf ? context.watch<CommunityState>().profileImagePath : null;
+              final hasSelfImg = selfPath != null &&
+                  selfPath.isNotEmpty &&
+                  File(selfPath).existsSync();
+              final hasRemoteImg =
+                  !isSelf && widget.imageUrl != null && widget.imageUrl!.isNotEmpty;
+
+              Widget inner;
+              if (hasSelfImg) {
+                inner = ClipOval(
+                  child: Image.file(File(selfPath!),
+                      width: 80, height: 80, fit: BoxFit.cover),
+                );
+              } else if (hasRemoteImg) {
+                inner = ClipOval(
+                  child: Image.network(
+                    widget.imageUrl!,
+                    width: 80,
+                    height: 80,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Center(
+                      child: Text(initial,
+                          style: GoogleFonts.crimsonPro(
+                              fontSize: 32,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                    ),
                   ),
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  initial,
-                  style: GoogleFonts.crimsonPro(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+                );
+              } else {
+                inner = Center(
+                  child: Text(
+                    initial,
+                    style: GoogleFonts.crimsonPro(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
+                );
+              }
+
+              return Container(
+                width: 80,
+                height: 80,
+                decoration: BoxDecoration(
+                  color: avatarColor,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: dark ? AppColors.warmDark : Colors.white,
+                    width: 3,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.12),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-              ),
-            ),
+                child: inner,
+              );
+            }),
             const SizedBox(height: 12),
             Text(
               widget.displayName,
