@@ -815,6 +815,22 @@ class SupabaseService {
   }
 
   /// Add a reply to a reflection.
+  /// Returns the write_back row for [id] if this published entry is a reflection,
+  /// null if it is a regular published entry.
+  Future<Map<String, dynamic>?> getWriteBackById(String id) async {
+    try {
+      final response = await _client
+          ?.from('write_backs')
+          .select()
+          .eq('id', id)
+          .maybeSingle();
+      return response as Map<String, dynamic>?;
+    } catch (e) {
+      debugPrint('[Supabase] getWriteBackById: $e');
+      return null;
+    }
+  }
+
   Future<bool> addReflectionReply({
     required String reflectionId,
     required String body,

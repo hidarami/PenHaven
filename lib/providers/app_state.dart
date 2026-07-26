@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../services/lock_service.dart';
+import '../services/supabase_service.dart';
 import '../models/story.dart';
 import '../models/entry.dart';
 import '../models/todo.dart';
@@ -295,6 +296,8 @@ class AppState extends ChangeNotifier {
 
   Future<void> deleteEntry(String id) async {
     await EntryDao.instance.softDelete(id);
+    // If this entry was published to Sanctuary, remove it there too
+    SupabaseService.instance.deletePublishedEntry(id);
     // Move entry to deleted list in memory — avoids a DB round-trip
     final idx = _currentEntries.indexWhere((e) => e.id == id);
     if (idx != -1) {

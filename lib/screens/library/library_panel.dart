@@ -437,10 +437,10 @@ class _ReceivedReflectionCard extends StatelessWidget {
     final displayName = item['display_name'] as String?;
     final author =
         isAnon ? 'Anonymous' : (displayName?.isNotEmpty == true ? displayName! : 'A Writer');
-    final headerImage = item['header_image'] as String?;
-    final hasImage = headerImage != null &&
-        headerImage.isNotEmpty &&
-        File(headerImage).existsSync();
+    final headerImage = (item['header_image'] as String?)?.isNotEmpty == true
+        ? item['header_image'] as String
+        : (item['origin_header_image'] as String?) ?? '';
+    final hasImage = headerImage.isNotEmpty && File(headerImage).existsSync();
     final preview = content.length > 90 ? '${content.substring(0, 90)}…' : content;
 
     return GestureDetector(
@@ -507,13 +507,53 @@ class _ReceivedReflectionCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis),
               ],
               const SizedBox(height: 7),
-              Text(
-                'by $author  ·  ${_relTime(item['created_at'] as String?)}',
-                style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
-              ),
+              Row(children: [
+                _LibraryAvatarCircle(name: author, size: 18),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    '$author  ·  ${_relTime(item['created_at'] as String?)}',
+                    style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ]),
             ]),
           ),
         ]),
+      ),
+    );
+  }
+}
+
+// ── Author avatar for received reflection cards ───────────────────────────────
+
+class _LibraryAvatarCircle extends StatelessWidget {
+  final String name;
+  final double size;
+  const _LibraryAvatarCircle({required this.name, required this.size});
+
+  Color _color(String n) {
+    const colors = [
+      Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A),
+      Color(0xFF9472D4), Color(0xFFE87FA0), Color(0xFFD44A28),
+      Color(0xFF5A8A5C), Color(0xFF1B9B8D),
+    ];
+    return colors[n.codeUnits.fold(0, (a, b) => a + b) % colors.length];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    return Container(
+      width: size, height: size,
+      decoration: BoxDecoration(color: _color(name), shape: BoxShape.circle),
+      child: Center(
+        child: Text(initial,
+            style: GoogleFonts.inter(
+                fontSize: size * 0.42,
+                fontWeight: FontWeight.w700,
+                color: Colors.white)),
       ),
     );
   }

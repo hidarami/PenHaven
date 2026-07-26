@@ -26,6 +26,7 @@ import '../../widgets/shared_widgets.dart';
 import 'public_profile_modal.dart';
 import 'write_back_sheet.dart';
 import 'reflection_viewer.dart' show ReflectionViewer;
+import 'reflection_editor_screen.dart' show ReflectionOnCard;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COMMUNITY ENTRY VIEWER — Medium-inspired editorial layout
@@ -61,6 +62,18 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   int _clapCount = 0;
   int _commentCount = 0;
 
+  // Reflection detection — null means this is a regular entry, not a write back
+  Map<String, dynamic>? _writeBackData;
+  bool _writeBackLoaded = false;
+
+  // Reply state (used when this entry is a write back)
+  List<CommunityComment> _replies = [];
+  bool _repliesOpen = false;
+  bool _repliesLoading = false;
+  final _replyCtrl = TextEditingController();
+  bool _replyAnon = false;
+  bool _submittingReply = false;
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +85,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     _scrollCtrl.addListener(_onScroll);
     _loadBookmark();
     _loadReflections();
+    _loadWriteBackMeta();
     // Record unique view (silently — table must exist in Supabase)
     SupabaseService.instance.recordView(_entry.id);
   }
@@ -79,6 +93,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
   @override
   void dispose() {
     _commentCtrl.dispose();
+    _replyCtrl.dispose();
     _hideTimer?.cancel();
     _scrollCtrl.dispose();
     super.dispose();
@@ -322,6 +337,55 @@ void _openWriteBack() {
     }
   }
 
+  Future<void> _loadWriteBackMeta() async {
+    final wb = await SupabaseService.instance.getWriteBackById(_entry.id);
+    if (mounted) {
+      setState(() {
+        _writeBackData = wb;
+        _writeBackLoaded = true;
+      });
+    }
+  }
+
+  void _toggleReplies() {
+    setState(() => _repliesOpen = !_repliesOpen);
+    if (_repliesOpen && _replies.isEmpty) _loadReplies();
+  }
+
+  Future<void> _loadReplies() async {
+    setState(() => _repliesLoading = true);
+    final replies =
+        await SupabaseService.instance.getReflectionReplies(_entry.id);
+    if (mounted) {
+      setState(() {
+        _replies = replies;
+        _repliesLoading = false;
+      });
+    }
+  }
+
+  Future<void> _submitReply() async {
+    final body = _replyCtrl.text.trim();
+    if (body.isEmpty || _submittingReply) return;
+    setState(() => _submittingReply = true);
+    final communityState = context.read<CommunityState>();
+    final email = SupabaseService.instance.userEmail;
+    final displayName = _replyAnon
+        ? null
+        : (communityState.profileDisplayName ?? email?.split('@').first);
+    final ok = await SupabaseService.instance.addReflectionReply(
+      reflectionId: _entry.id,
+      body: body,
+      isAnonymous: _replyAnon,
+      displayName: displayName,
+    );
+    if (ok && mounted) {
+      _replyCtrl.clear();
+      await _loadReplies();
+    }
+    if (mounted) setState(() => _submittingReply = false);
+  }
+
   void _showMoreMenu(BuildContext ctx) {
     final dark = ctx.read<AppState>().isDarkMode;
     final communityState = ctx.read<CommunityState>();
@@ -541,6 +605,49 @@ void _openWriteBack() {
                     // Status-bar spacer when there is no header image
                     SizedBox(height: topPad + 60),
 
+                  // ReflectionOn card — shown when this published entry is a write back
+                  if (_writeBackData != null) ...[
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: ReflectionOnCard(
+                        originEntry: PublishedEntry(
+                          id: (_writeBackData!['origin_entry_id'] as String?) ?? '',
+                          userId: '',
+                          title: (_writeBackData!['origin_title'] as String?) ?? '',
+                          content: (_writeBackData!['origin_excerpt'] as String?) ?? '',
+                          displayName: _writeBackData!['origin_author'] as String?,
+                          headerImage: _writeBackData!['origin_header_image'] as String?,
+                        ),
+                        inspirationReflection: null,
+                        dark: dark,
+                        textColor: textColor,
+                        mutedColor: mutedColor,
+                        onTapOrigin: () async {
+                          final originId =
+                              _writeBackData!['origin_entry_id'] as String?;
+                          if (originId == null || originId.isEmpty) return;
+                          final orig = await SupabaseService.instance
+                              .getPublishedEntry(originId);
+                          if (!mounted) return;
+                          if (orig != null) {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => CommunityEntryViewer(entry: orig),
+                            ));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'This entry may have been removed by its author.',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+
                   // Title
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
@@ -653,6 +760,21 @@ void _openWriteBack() {
                       },
                     ),
 
+                  // Reply/respond section — only for write backs
+                  if (_writeBackData != null && _repliesOpen)
+                    _CommunityRespondSection(
+                      replies: _replies,
+                      loading: _repliesLoading,
+                      controller: _replyCtrl,
+                      isAnon: _replyAnon,
+                      submitting: _submittingReply,
+                      isDark: dark,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      onAnonChanged: (v) => setState(() => _replyAnon = v),
+                      onSubmit: _submitReply,
+                    ),
+
                   SizedBox(height: bottomPad + 80),
                 ],
               ),
@@ -705,6 +827,9 @@ void _openWriteBack() {
                         onClap: _handleClap,
                         onWriteBack: _openWriteBack,
                         onShare: _handleShare,
+                        onRespond:
+                            _writeBackData != null ? _toggleReplies : null,
+                        respondOpen: _repliesOpen,
                       ),
                   ),
                 ),
@@ -743,6 +868,8 @@ class _ActionPill extends StatelessWidget {
   final VoidCallback onClap;
   final VoidCallback onWriteBack;
   final VoidCallback? onShare;
+  final VoidCallback? onRespond;
+  final bool respondOpen;
 
   const _ActionPill({
     required this.entry,
@@ -751,6 +878,8 @@ class _ActionPill extends StatelessWidget {
     required this.onClap,
     required this.onWriteBack,
     this.onShare,
+    this.onRespond,
+    this.respondOpen = false,
   });
 
   Widget _divider() => Container(
@@ -817,6 +946,33 @@ class _ActionPill extends StatelessWidget {
                 ]),
               ),
             ),
+
+            if (onRespond != null) ...[
+              _divider(),
+              // ── Respond ──────────────────────────────────────────
+              GestureDetector(
+                onTap: onRespond,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(
+                      respondOpen
+                          ? Icons.chat_bubble_rounded
+                          : Icons.chat_bubble_outline_rounded,
+                      size: 17,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                    const SizedBox(width: 6),
+                    Text('Respond',
+                        style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white.withOpacity(0.9))),
+                  ]),
+                ),
+              ),
+            ],
 
             _divider(),
 
@@ -2066,9 +2222,7 @@ class _ReflectionsFeedSection extends StatelessWidget {
                       child: SizedBox(
                         width: 72, height: 72,
                         child: hasImage
-                            ? Image.file(
-                                File(r['header_image'] as String),
-                                fit: BoxFit.cover)
+                            ? Image.file(File(headerImgPath), fit: BoxFit.cover)
                             : Container(
                                 decoration: const BoxDecoration(
                                   gradient: LinearGradient(
@@ -2331,6 +2485,165 @@ class _PaperShareCard extends StatelessWidget {
             const Spacer(),
             const _SanctuaryMark(),
           ]),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMMUNITY RESPOND SECTION
+// Inline reply thread for write backs viewed in CommunityEntryViewer.
+// Uses reflection_replies table, distinct from community_comments.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _CommunityRespondSection extends StatelessWidget {
+  final List<CommunityComment> replies;
+  final bool loading;
+  final TextEditingController controller;
+  final bool isAnon;
+  final bool submitting;
+  final bool isDark;
+  final Color textColor;
+  final Color mutedColor;
+  final ValueChanged<bool> onAnonChanged;
+  final VoidCallback onSubmit;
+
+  const _CommunityRespondSection({
+    required this.replies,
+    required this.loading,
+    required this.controller,
+    required this.isAnon,
+    required this.submitting,
+    required this.isDark,
+    required this.textColor,
+    required this.mutedColor,
+    required this.onAnonChanged,
+    required this.onSubmit,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final cardBg = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.black.withOpacity(0.03);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Divider(color: divColor, thickness: 0.5),
+          const SizedBox(height: 16),
+          Text('Responses',
+              style: GoogleFonts.crimsonPro(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: textColor)),
+          const SizedBox(height: 12),
+          Container(
+            decoration: BoxDecoration(
+              color: cardBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: divColor.withOpacity(0.5)),
+            ),
+            padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: controller,
+                  maxLines: 3,
+                  minLines: 1,
+                  style: GoogleFonts.inter(
+                      fontSize: 14, color: textColor, height: 1.5),
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                    hintText: 'Your response...',
+                    hintStyle: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: mutedColor,
+                        fontStyle: FontStyle.italic),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(children: [
+                  GestureDetector(
+                    onTap: () => onAnonChanged(!isAnon),
+                    child: Row(mainAxisSize: MainAxisSize.min, children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 120),
+                        width: 15,
+                        height: 15,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(4),
+                          color:
+                              isAnon ? AppColors.aqua : Colors.transparent,
+                          border: Border.all(
+                              color: isAnon
+                                  ? AppColors.aqua
+                                  : mutedColor.withOpacity(0.5),
+                              width: 1.5),
+                        ),
+                        child: isAnon
+                            ? const Icon(Icons.check,
+                                size: 10, color: Colors.white)
+                            : null,
+                      ),
+                      const SizedBox(width: 5),
+                      Text('Anonymous',
+                          style: GoogleFonts.inter(
+                              fontSize: 11, color: mutedColor)),
+                    ]),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: submitting ? null : onSubmit,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.aqua.withOpacity(0.12),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                            color: AppColors.aqua.withOpacity(0.4)),
+                      ),
+                      child: submitting
+                          ? const SizedBox(
+                              width: 12,
+                              height: 12,
+                              child: CircularProgressIndicator(
+                                  strokeWidth: 1.5, color: AppColors.aqua))
+                          : Text('Reply',
+                              style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.aqua)),
+                    ),
+                  ),
+                ]),
+              ],
+            ),
+          ),
+          const SizedBox(height: 14),
+          if (loading)
+            const Center(child: CircularProgressIndicator())
+          else if (replies.isEmpty)
+            Text('No responses yet.',
+                style: GoogleFonts.crimsonPro(
+                    fontSize: 15,
+                    fontStyle: FontStyle.italic,
+                    color: mutedColor))
+          else
+            ...replies.map((r) => _CommentCard(
+                  comment: r,
+                  isDark: isDark,
+                  textColor: textColor,
+                  mutedColor: mutedColor,
+                )),
+          const SizedBox(height: 24),
         ],
       ),
     );

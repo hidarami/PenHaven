@@ -230,13 +230,21 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                               CommunityEntryViewer(entry: widget.originEntry!),
                         ));
                       } else {
-                        // Fetch from Supabase if not pre-loaded
                         final orig = await SupabaseService.instance
                             .getPublishedEntry(_reflection.originEntryId);
-                        if (orig != null && mounted) {
+                        if (!mounted) return;
+                        if (orig != null) {
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (_) => CommunityEntryViewer(entry: orig),
                           ));
+                        } else {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'This entry may have been removed by its author.',
+                              ),
+                            ),
+                          );
                         }
                       }
                     },
@@ -289,6 +297,38 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                     ),
                   ),
 
+                  // Private reflection notice
+                  if (_reflection.isPrivate)
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.teal.withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: AppColors.teal.withOpacity(0.25)),
+                        ),
+                        child: Row(children: [
+                          Icon(Icons.lock_outline_rounded,
+                              size: 14,
+                              color: AppColors.teal.withOpacity(0.8)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Private reflection — only you and the author of '
+                              'the original entry can see this. They can appreciate '
+                              'and respond, but cannot edit or delete it.',
+                              style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: AppColors.teal.withOpacity(0.85),
+                                  height: 1.4),
+                            ),
+                          ),
+                        ]),
+                      ),
+                    ),
+
                   // Divider
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
@@ -320,17 +360,6 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                     ),
 
                   SizedBox(height: botPad + 80),
-                ],
-              ),
-            ),
-
-            // ── Nav buttons top right ────────────────────────────────
-            Positioned(
-              top: topPad + 8, right: 14,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _NavBtn(icon: Icons.more_horiz, onTap: () {}),
                 ],
               ),
             ),

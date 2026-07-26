@@ -391,6 +391,7 @@ class CommunityState extends ChangeNotifier {
     if (ok) {
       _myWriteBacks.removeWhere((r) => r['id'] == id);
       _receivedWriteBacks.removeWhere((r) => r['id'] == id);
+      _feed.removeWhere((e) => e.id == id); // also drop from sanctuary feed cache
       notifyListeners();
     }
     return ok;
