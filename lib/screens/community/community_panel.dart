@@ -398,13 +398,13 @@ class _CommunityPanelState extends State<CommunityPanel>
                 GestureDetector(
                   onTap: _openPublishSheet,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 8),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
                       color: AppColors.aqua.withOpacity(0.10),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: AppColors.aqua.withOpacity(0.35)),
+                      border:
+                          Border.all(color: AppColors.aqua.withOpacity(0.35)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -549,46 +549,47 @@ class _ForYouTab extends StatelessWidget {
             mutedColor: mutedColor,
           ),
         ),
-
         if (feed.isEmpty)
           SliverFillRemaining(
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.auto_stories_outlined,
-                      size: 52, color: mutedColor.withOpacity(0.3)),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No entries yet.\nBe the first to share.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.crimsonPro(
-                      fontSize: 18,
-                      fontStyle: FontStyle.italic,
-                      color: mutedColor.withOpacity(0.6),
-                      height: 1.6,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  GestureDetector(
-                    onTap: onPublish,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 24, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: AppColors.aqua.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(10),
-                        border:
-                            Border.all(color: AppColors.aqua.withOpacity(0.4)),
+            child: SingleChildScrollView(
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.auto_stories_outlined,
+                        size: 52, color: mutedColor.withOpacity(0.3)),
+                    const SizedBox(height: 16),
+                    Text(
+                      'No entries yet.\nBe the first to share.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.crimsonPro(
+                        fontSize: 18,
+                        fontStyle: FontStyle.italic,
+                        color: mutedColor.withOpacity(0.6),
+                        height: 1.6,
                       ),
-                      child: Text('Share Something',
-                          style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.aqua)),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 24),
+                    GestureDetector(
+                      onTap: onPublish,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 24, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.aqua.withOpacity(0.12),
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(
+                              color: AppColors.aqua.withOpacity(0.4)),
+                        ),
+                        child: Text('Share Something',
+                            style: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.aqua)),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           )
@@ -604,7 +605,6 @@ class _ForYouTab extends StatelessWidget {
                         color: textColor)),
               ),
             ),
-
           if (featured != null)
             SliverToBoxAdapter(
               child: Padding(
@@ -618,7 +618,6 @@ class _ForYouTab extends StatelessWidget {
                 ),
               ),
             ),
-
           if (recentItems.isNotEmpty)
             SliverToBoxAdapter(
               child: Padding(
@@ -643,7 +642,6 @@ class _ForYouTab extends StatelessWidget {
                 ),
               ),
             ),
-
           SliverList(
             delegate: SliverChildBuilderDelegate(
               (ctx, i) {
@@ -664,7 +662,6 @@ class _ForYouTab extends StatelessWidget {
               childCount: recentItems.length,
             ),
           ),
-
           SliverToBoxAdapter(
             child: SizedBox(height: MediaQuery.of(context).padding.bottom + 80),
           ),
@@ -790,7 +787,6 @@ class _FeaturedCard extends StatelessWidget {
                       errorBuilder: (_, __, ___) =>
                           _GradientBox(gradient: gradient))
                   : _GradientBox(gradient: gradient),
-
               DecoratedBox(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -805,7 +801,6 @@ class _FeaturedCard extends StatelessWidget {
                   ),
                 ),
               ),
-
               Padding(
                 padding: const EdgeInsets.fromLTRB(18, 10, 18, 14),
                 child: Column(
@@ -833,7 +828,6 @@ class _FeaturedCard extends StatelessWidget {
                           ),
                         ),
                       ),
-
                     Text(
                       entry.title.isEmpty ? 'Untitled' : entry.title,
                       style: GoogleFonts.crimsonPro(
@@ -845,7 +839,6 @@ class _FeaturedCard extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
-
                     if (entry.content.isNotEmpty) ...[
                       const SizedBox(height: 6),
                       Text(
@@ -859,9 +852,7 @@ class _FeaturedCard extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
-
                     const SizedBox(height: 14),
-
                     Row(
                       children: [
                         GestureDetector(
@@ -1042,7 +1033,8 @@ class _CompactEntryCard extends StatelessWidget {
                         ),
                       ],
                       const SizedBox(height: 7),
-                      Row(children: [
+                      Row(
+                        children: [
                           GestureDetector(
                             onTap: () => PublicProfileModal.show(
                               context,
@@ -1416,7 +1408,6 @@ class _FeedEntryCard extends StatelessWidget {
 // MY POSTS TAB
 // ─────────────────────────────────────────────────────────────────────────────
 
-
 // ─────────────────────────────────────────────────────────────────────────────
 // PUBLISH SHEET
 // ─────────────────────────────────────────────────────────────────────────────
@@ -1509,7 +1500,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                   style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
             ),
             Divider(color: divColor, thickness: 0.5, height: 0),
-
             Expanded(
               child: widget.entries.isEmpty
                   ? Center(
@@ -1581,7 +1571,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                       },
                     ),
             ),
-
             Padding(
               padding: EdgeInsets.fromLTRB(
                   24, 12, 24, 16 + MediaQuery.of(context).padding.bottom),
@@ -1590,7 +1579,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                 children: [
                   Divider(color: divColor, thickness: 0.5),
                   const SizedBox(height: 12),
-
                   Text('CATEGORY',
                       style: GoogleFonts.inter(
                           fontSize: 10,
@@ -1641,7 +1629,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
                   if (!_isAnon) ...[
                     Container(
                       decoration: BoxDecoration(
@@ -1668,7 +1655,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                     ),
                     const SizedBox(height: 10),
                   ],
-
                   GestureDetector(
                     onTap: () => setState(() => _isAnon = !_isAnon),
                     child: Row(
@@ -1698,7 +1684,6 @@ class _PublishSheetState extends State<_PublishSheet> {
                     ),
                   ),
                   const SizedBox(height: 14),
-
                   SizedBox(
                     width: double.infinity,
                     child: GestureDetector(
@@ -1765,8 +1750,6 @@ class _PublishSheetState extends State<_PublishSheet> {
     );
   }
 }
-
-
 
 // ─────────────────────────────────────────────────────────────────────────────
 // AUTH SHEET
@@ -1840,6 +1823,24 @@ class _AuthSheetState extends State<_AuthSheet>
           _loading = false;
         });
       }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    final err = await SupabaseService.instance.signInWithGoogle();
+    if (!mounted) return;
+    if (err != null) {
+      setState(() {
+        _error = err;
+        _loading = false;
+      });
+    } else {
+      setState(() => _loading = false);
+      widget.onSuccess();
     }
   }
 
@@ -1936,6 +1937,49 @@ class _AuthSheetState extends State<_AuthSheet>
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: Divider(color: mutedColor.withOpacity(0.2))),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Text('or',
+                      style:
+                          GoogleFonts.inter(fontSize: 12, color: mutedColor)),
+                ),
+                Expanded(child: Divider(color: mutedColor.withOpacity(0.2))),
+              ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: GestureDetector(
+                onTap: _loading ? null : _signInWithGoogle,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: dark
+                        ? Colors.white.withOpacity(0.05)
+                        : Colors.black.withOpacity(0.03),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: mutedColor.withOpacity(0.2)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.g_mobiledata,
+                          size: 20, color: AppColors.aqua),
+                      const SizedBox(width: 10),
+                      Text('Continue with Google',
+                          style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: textColor)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -2018,7 +2062,8 @@ class _AuthorAvatar extends StatelessWidget {
           ),
         );
       }
-    } else if (entry.authorImageUrl != null && entry.authorImageUrl!.isNotEmpty) {
+    } else if (entry.authorImageUrl != null &&
+        entry.authorImageUrl!.isNotEmpty) {
       return ClipOval(
         child: Image.network(
           entry.authorImageUrl!,
@@ -2028,7 +2073,8 @@ class _AuthorAvatar extends StatelessWidget {
           errorBuilder: (_, __, ___) => Container(
             width: size,
             height: size,
-            decoration: BoxDecoration(color: authorColor, shape: BoxShape.circle),
+            decoration:
+                BoxDecoration(color: authorColor, shape: BoxShape.circle),
             child: Center(
               child: Text(authorInitial,
                   style: GoogleFonts.inter(

@@ -49,6 +49,7 @@ flutter:
   uses-material-design: true
   assets:
     - assets/atmosphere/
+    - .env
 
 flutter_launcher_icons:
   android: true

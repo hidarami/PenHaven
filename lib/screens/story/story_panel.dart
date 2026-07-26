@@ -43,29 +43,9 @@ class _StoryPanelContent extends StatefulWidget {
 }
 
 class _StoryPanelContentState extends State<_StoryPanelContent> {
-  final _scrollController = ScrollController();
-  bool _showAddButton = false;
-  Timer? _hideTimer;
-
   @override
   void initState() {
     super.initState();
-    _scrollController.addListener(_onScroll);
-  }
-
-  @override
-  void dispose() {
-    _hideTimer?.cancel();
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _onScroll() {
-    if (!_showAddButton) setState(() => _showAddButton = true);
-    _hideTimer?.cancel();
-    _hideTimer = Timer(const Duration(seconds: 4), () {
-      if (mounted) setState(() => _showAddButton = false);
-    });
   }
 
   Future<void> _addEntry(BuildContext context) async {
@@ -109,7 +89,8 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
             const SizedBox(height: 8),
             Center(
               child: Container(
-                width: 36, height: 4,
+                width: 36,
+                height: 4,
                 decoration: BoxDecoration(
                     color: mutedColor.withOpacity(0.3),
                     borderRadius: BorderRadius.circular(2)),
@@ -168,19 +149,17 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
             TextField(
                 controller: titleCtrl,
                 autofocus: true,
-                decoration:
-                    const InputDecoration(hintText: 'Story title')),
+                decoration: const InputDecoration(hintText: 'Story title')),
             const SizedBox(height: 12),
             TextField(
                 controller: descCtrl,
-                decoration: const InputDecoration(
-                    hintText: 'Description (optional)')),
+                decoration:
+                    const InputDecoration(hintText: 'Description (optional)')),
           ],
         ),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+              onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () {
               final t = titleCtrl.text.trim();
@@ -220,14 +199,13 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
 
-    // Button always visible when list is empty (can't scroll to trigger it)
-    final buttonVisible = entries.isEmpty ? true : _showAddButton;
+    // Button always visible
+    final buttonVisible = true;
 
     return Stack(
       children: [
         // ── Main scrollable content ────────────────────────────────────
         CustomScrollView(
-          controller: _scrollController,
           physics: const BouncingScrollPhysics(),
           slivers: [
             SliverToBoxAdapter(
@@ -265,8 +243,7 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
                       Text(
                         '${entries.length} ${entries.length == 1 ? "entry" : "entries"}',
                         style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: mutedColor.withOpacity(0.7)),
+                            fontSize: 12, color: mutedColor.withOpacity(0.7)),
                       ),
                     ],
                   ),
@@ -294,8 +271,7 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
                 ),
               ),
 
-            SliverToBoxAdapter(
-                child: SizedBox(height: botPad + 110)),
+            SliverToBoxAdapter(child: SizedBox(height: botPad + 110)),
           ],
         ),
 
@@ -310,8 +286,7 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
             curve: Curves.easeOut,
             child: IgnorePointer(
               ignoring: !buttonVisible,
-              child: _FloatingAddButton(
-                  onTap: () => _addEntry(context)),
+              child: _FloatingAddButton(onTap: () => _addEntry(context)),
             ),
           ),
         ),
@@ -438,8 +413,8 @@ class _FloatingAddButton extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.14),
               borderRadius: BorderRadius.circular(28),
-              border: Border.all(
-                  color: Colors.white.withOpacity(0.30), width: 0.5),
+              border:
+                  Border.all(color: Colors.white.withOpacity(0.30), width: 0.5),
               boxShadow: [
                 BoxShadow(
                     color: Colors.black.withOpacity(0.14),
@@ -528,9 +503,8 @@ class _StaggeredEntryState extends State<_StaggeredEntry>
     _ctrl = AnimationController(
         vsync: this, duration: const Duration(milliseconds: 380));
     _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
-    _slide =
-        Tween(begin: const Offset(0, 0.04), end: Offset.zero).animate(
-            CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
+    _slide = Tween(begin: const Offset(0, 0.04), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOut));
     Future.delayed(widget.delay, () {
       if (mounted) _ctrl.forward();
     });

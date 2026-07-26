@@ -72,6 +72,7 @@ CREATE TABLE public.published_entries (
   header_image text,
   category text,
   profile_image_url text,
+  is_hidden boolean NOT NULL DEFAULT false,
   CONSTRAINT published_entries_pkey PRIMARY KEY (id),
   CONSTRAINT published_entries_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
 );
@@ -121,6 +122,7 @@ CREATE TABLE public.write_backs (
   inspiration_author text,
   inspiration_title text,
   profile_image_url text,
+  is_hidden boolean NOT NULL DEFAULT false,
   CONSTRAINT write_backs_pkey PRIMARY KEY (id),
   CONSTRAINT write_backs_origin_entry_id_fkey FOREIGN KEY (origin_entry_id) REFERENCES public.published_entries(id),
   CONSTRAINT write_backs_inspiration_id_fkey FOREIGN KEY (inspiration_id) REFERENCES public.write_backs(id),

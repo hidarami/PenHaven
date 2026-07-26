@@ -12,7 +12,7 @@ class DatabaseHelper {
   static final DatabaseHelper instance = DatabaseHelper._();
 
   static Database? _db;
-  static const int _version = 6;
+  static const int _version = 7;
   static const String _dbName = 'flow.db';
 
   Future<Database> get database async {
@@ -58,7 +58,8 @@ class DatabaseHelper {
         updatedAt TEXT NOT NULL,
         isLocked INTEGER NOT NULL DEFAULT 0,
         isDeleted INTEGER NOT NULL DEFAULT 0,
-        themeLock TEXT
+        themeLock TEXT,
+        coverImage TEXT
       )
     ''');
   }
@@ -147,6 +148,10 @@ class DatabaseHelper {
       await db.execute('ALTER TABLE stories ADD COLUMN themeLock TEXT');
     }
     if (oldVersion < 6) {
+      await db.execute('ALTER TABLE stories ADD COLUMN coverImage TEXT');
+    }
+    if (oldVersion < 7) {
+      // Safety check: ensure coverImage column exists
       await db.execute('ALTER TABLE stories ADD COLUMN coverImage TEXT');
     }
   }
