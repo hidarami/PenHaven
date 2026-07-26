@@ -233,7 +233,7 @@ class AtmosphereState extends ChangeNotifier {
           );
           final geoResp = await http.get(
             geoUri,
-            headers: {'User-Agent': 'FlowApp/1.0'},
+            headers: {'User-Agent': 'PenHavenApp/1.0'},
           ).timeout(const Duration(seconds: 5));
           if (geoResp.statusCode == 200) {
             final geoData = jsonDecode(geoResp.body) as Map<String, dynamic>;

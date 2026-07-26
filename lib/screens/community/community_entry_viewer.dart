@@ -177,7 +177,8 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     setState(() => _submittingComment = true);
     final communityState = context.read<CommunityState>();
     final email = SupabaseService.instance.userEmail;
-    final displayName = communityState.profileDisplayName ?? email?.split('@').first;
+    final displayName =
+        communityState.profileDisplayName ?? email?.split('@').first;
 
     final ok = await context.read<CommunityState>().addComment(
           entryId: _entry.id,
@@ -196,9 +197,9 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
 
   Future<void> _deleteComment(String commentId) async {
     final ok = await context.read<CommunityState>().deleteComment(
-      commentId: commentId,
-      entryId: _entry.id,
-    );
+          commentId: commentId,
+          entryId: _entry.id,
+        );
     if (ok && mounted) {
       setState(() {
         _comments.removeWhere((c) => c.id == commentId);
@@ -315,7 +316,7 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     );
   }
 
-void _openWriteBack() {
+  void _openWriteBack() {
     if (!SupabaseService.instance.isAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Sign in to write back.')),
@@ -346,8 +347,8 @@ void _openWriteBack() {
   Future<void> _loadReflections() async {
     if (_reflectionsLoading) return;
     setState(() => _reflectionsLoading = true);
-    final results = await SupabaseService.instance
-        .getReflectionsForEntry(_entry.id);
+    final results =
+        await SupabaseService.instance.getReflectionsForEntry(_entry.id);
     if (mounted) {
       setState(() {
         _reflections = results;
@@ -585,52 +586,55 @@ void _openWriteBack() {
                               )
                           : null,
                       child: Row(
-                      children: [
-                        _AvatarCircle(
-                          name: _entry.isOwner
-                              ? (context
-                                      .watch<CommunityState>()
-                                      .profileDisplayName ??
-                                  _entry.authorLabel)
-                              : _entry.authorLabel,
-                          size: 38,
-                          imagePath: _entry.isOwner
-                              ? context.read<CommunityState>().profileImagePath
-                              : null,
-                          imageUrl: _entry.isOwner ? null : _entry.authorImageUrl,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                _entry.isOwner
-                                    ? (context
-                                            .watch<CommunityState>()
-                                            .profileDisplayName ??
-                                        _entry.authorLabel)
-                                    : _entry.authorLabel,
-                                style: GoogleFonts.inter(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w600,
-                                  color: textColor,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                '${_readTime(_entry.content)}  ·  ${_formatDate(_entry.createdAt)}',
-                                style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  color: mutedColor,
-                                  letterSpacing: 0.1,
-                                ),
-                              ),
-                            ],
+                        children: [
+                          _AvatarCircle(
+                            name: _entry.isOwner
+                                ? (context
+                                        .watch<CommunityState>()
+                                        .profileDisplayName ??
+                                    _entry.authorLabel)
+                                : _entry.authorLabel,
+                            size: 38,
+                            imagePath: _entry.isOwner
+                                ? context
+                                    .read<CommunityState>()
+                                    .profileImagePath
+                                : null,
+                            imageUrl:
+                                _entry.isOwner ? null : _entry.authorImageUrl,
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _entry.isOwner
+                                      ? (context
+                                              .watch<CommunityState>()
+                                              .profileDisplayName ??
+                                          _entry.authorLabel)
+                                      : _entry.authorLabel,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: textColor,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '${_readTime(_entry.content)}  ·  ${_formatDate(_entry.createdAt)}',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    color: mutedColor,
+                                    letterSpacing: 0.1,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -642,16 +646,25 @@ void _openWriteBack() {
                       padding: const EdgeInsets.symmetric(horizontal: 24),
                       child: ReflectionOnCard(
                         originEntry: PublishedEntry(
-                          id: (_writeBackData!['origin_entry_id'] as String?) ?? '',
+                          id: (_writeBackData!['origin_entry_id'] as String?) ??
+                              '',
                           userId: '',
-                          title: (_writeBackData!['origin_title'] as String?) ?? '',
-                          content: (_writeBackData!['origin_excerpt'] as String?) ?? '',
-                          displayName: _writeBackData!['origin_author'] as String?,
-                          headerImage: _writeBackData!['origin_header_image'] as String?,
+                          title: (_writeBackData!['origin_title'] as String?) ??
+                              '',
+                          content:
+                              (_writeBackData!['origin_excerpt'] as String?) ??
+                                  '',
+                          displayName:
+                              _writeBackData!['origin_author'] as String?,
+                          headerImage:
+                              _writeBackData!['origin_header_image'] as String?,
                         ),
-                        inspirationId: _writeBackData!['inspiration_id'] as String?,
-                        inspirationAuthor: _writeBackData!['inspiration_author'] as String?,
-                        inspirationTitle: _writeBackData!['inspiration_title'] as String?,
+                        inspirationId:
+                            _writeBackData!['inspiration_id'] as String?,
+                        inspirationAuthor:
+                            _writeBackData!['inspiration_author'] as String?,
+                        inspirationTitle:
+                            _writeBackData!['inspiration_title'] as String?,
                         onTapInspiration: (id) =>
                             ReflectionViewer.openById(context, id),
                         dark: dark,
@@ -696,46 +709,46 @@ void _openWriteBack() {
 
                   // Reflections section (Write Backs) — always shown
                   _ReflectionsFeedSection(
-                      reflections: _reflections,
-                      loading: _reflectionsLoading,
-                      isDark: dark,
-                      textColor: textColor,
-                      mutedColor: mutedColor,
-                      onTapReflection: (r) {
-                        try {
-                          final reflection = Reflection.fromMap(
-                              r as Map<String, dynamic>);
-                          Navigator.of(context)
-                              .push(
-                            MaterialPageRoute(
-                                builder: (_) => ReflectionViewer(
-                                      reflection: reflection,
-                                      originEntry: _entry,
-                                    )),
-                          )
-                              .then((_) => _loadReflections());
-                        } catch (e) {
-                          debugPrint(
-                              '[CommunityEntryViewer] reflection parse: $e');
-                        }
-                      },
-                      onRespondToReflection: (reflectionId) {
-                        // Navigate to ReflectionViewer with respond open
-                        final reflection = Reflection.fromMap(
-                          _reflections.firstWhere((r) => r['id'] == reflectionId),
-                        );
+                    reflections: _reflections,
+                    loading: _reflectionsLoading,
+                    isDark: dark,
+                    textColor: textColor,
+                    mutedColor: mutedColor,
+                    onTapReflection: (r) {
+                      try {
+                        final reflection =
+                            Reflection.fromMap(r as Map<String, dynamic>);
                         Navigator.of(context)
                             .push(
-                          MaterialPageRoute(
-                            builder: (_) => ReflectionViewer(
-                              reflection: reflection,
-                              originEntry: _entry,
-                            ),
-                          ),
-                        )
+                              MaterialPageRoute(
+                                  builder: (_) => ReflectionViewer(
+                                        reflection: reflection,
+                                        originEntry: _entry,
+                                      )),
+                            )
                             .then((_) => _loadReflections());
-                      },
-                    ),
+                      } catch (e) {
+                        debugPrint(
+                            '[CommunityEntryViewer] reflection parse: $e');
+                      }
+                    },
+                    onRespondToReflection: (reflectionId) {
+                      // Navigate to ReflectionViewer with respond open
+                      final reflection = Reflection.fromMap(
+                        _reflections.firstWhere((r) => r['id'] == reflectionId),
+                      );
+                      Navigator.of(context)
+                          .push(
+                            MaterialPageRoute(
+                              builder: (_) => ReflectionViewer(
+                                reflection: reflection,
+                                originEntry: _entry,
+                              ),
+                            ),
+                          )
+                          .then((_) => _loadReflections());
+                    },
+                  ),
 
                   // Reply/respond section — only for write backs
                   if (_writeBackData != null && _repliesOpen)
@@ -800,14 +813,16 @@ void _openWriteBack() {
                     child: ActionPill(
                       hasClapped: _hasClapped,
                       onClap: _handleClap,
-                      onWriteBack: _writeBackData != null && (_writeBackData!['is_private'] as bool? ?? false)
+                      onWriteBack: _writeBackData != null &&
+                              (_writeBackData!['is_private'] as bool? ?? false)
                           ? null
                           : _openWriteBack,
                       onShare: _handleShare,
                       // Original entries have no respond action — only
                       // reflections (public or private) can be responded to.
                       onRespond: _writeBackData != null ? _toggleReplies : null,
-                      respondActive: _writeBackData != null ? _repliesOpen : false,
+                      respondActive:
+                          _writeBackData != null ? _repliesOpen : false,
                     ),
                   ),
                 ),
@@ -831,11 +846,12 @@ void _openWriteBack() {
         isDark: dark,
         textAlignment: 'left',
         fontName: fontName,
-        onTapInspirationReflection: (id) => ReflectionViewer.openById(context, id),
+        onTapInspirationReflection: (id) =>
+            ReflectionViewer.openById(context, id),
       );
     }
     if (_entry.content.isNotEmpty) {
-      return FlowMarkdownBody(data: _entry.content, selectable: true);
+      return PenHavenMarkdownBody(data: _entry.content, selectable: true);
     }
     return const SizedBox.shrink();
   }
@@ -891,7 +907,8 @@ class _AvatarCircle extends StatelessWidget {
   final double size;
   final String? imagePath;
   final String? imageUrl;
-  const _AvatarCircle({required this.name, required this.size, this.imagePath, this.imageUrl});
+  const _AvatarCircle(
+      {required this.name, required this.size, this.imagePath, this.imageUrl});
 
   Color _color(String n) {
     const colors = [
@@ -1139,9 +1156,7 @@ class _CommentsSection extends StatelessWidget {
                 currentUserImagePath: isCurrentUser
                     ? context.read<CommunityState>().profileImagePath
                     : null,
-                onDelete: canDelete
-                    ? () => onDeleteComment?.call(c.id)
-                    : null,
+                onDelete: canDelete ? () => onDeleteComment?.call(c.id) : null,
               );
             }),
 
@@ -1222,7 +1237,9 @@ class _CommentCard extends StatelessWidget {
                 name: comment.authorLabel,
                 size: 30,
                 imagePath: currentUserImagePath,
-                imageUrl: currentUserImagePath == null ? comment.profileImagePath : null,
+                imageUrl: currentUserImagePath == null
+                    ? comment.profileImagePath
+                    : null,
               ),
             ),
             const SizedBox(width: 12),
@@ -1243,7 +1260,8 @@ class _CommentCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Text(
                         _ago(comment.createdAt),
-                        style: GoogleFonts.inter(fontSize: 11, color: mutedColor),
+                        style:
+                            GoogleFonts.inter(fontSize: 11, color: mutedColor),
                       ),
                       if (canDelete) ...[
                         const Spacer(),
@@ -1263,7 +1281,8 @@ class _CommentCard extends StatelessWidget {
                                     onDelete?.call();
                                   },
                                   child: const Text('Delete',
-                                      style: TextStyle(color: AppColors.danger)),
+                                      style:
+                                          TextStyle(color: AppColors.danger)),
                                 ),
                               ],
                             ),
@@ -1306,7 +1325,10 @@ class SanctuaryShareSheet extends StatefulWidget {
   final bool isDark;
   final String? profileImagePath;
   const SanctuaryShareSheet(
-      {super.key, required this.entry, required this.isDark, this.profileImagePath});
+      {super.key,
+      required this.entry,
+      required this.isDark,
+      this.profileImagePath});
 
   @override
   State<SanctuaryShareSheet> createState() => _SanctuaryShareSheetState();
@@ -1359,11 +1381,17 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
       await Future.delayed(const Duration(milliseconds: 150));
       final boundary = _previewKey.currentContext?.findRenderObject()
           as RenderRepaintBoundary?;
-      if (boundary == null) { setState(() => _sharing = false); return; }
+      if (boundary == null) {
+        setState(() => _sharing = false);
+        return;
+      }
 
       final image = await boundary.toImage(pixelRatio: 3.0);
       final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
-      if (byteData == null) { setState(() => _sharing = false); return; }
+      if (byteData == null) {
+        setState(() => _sharing = false);
+        return;
+      }
 
       final bytes = byteData.buffer.asUint8List();
       final dir = await getTemporaryDirectory();
@@ -1382,8 +1410,8 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
       // Try to build a proper OG share link via Supabase Storage + Edge Function
       String? shareUrl;
       try {
-        final imageUrl = await SupabaseService.instance.uploadShareCard(
-            file.path, widget.entry.id);
+        final imageUrl = await SupabaseService.instance
+            .uploadShareCard(file.path, widget.entry.id);
         if (imageUrl != null) {
           const projectUrl = 'https://vjmzileqdrhxiklxqftv.supabase.co';
           final isPublished = widget.entry.userId.isNotEmpty;
@@ -1614,13 +1642,13 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
                 Padding(
                   padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                   child: Text(
-                    _selected == 2
-                        ? 'Great for Instagram & TikTok Stories'
-                        : 'Great for portrait sharing · 2:3 ratio',
-                    style: GoogleFonts.inter(
-                        fontSize: 10,
-                        color: mutedColor,
-                        fontStyle: FontStyle.italic)),
+                      _selected == 2
+                          ? 'Great for Instagram & TikTok Stories'
+                          : 'Great for portrait sharing · 2:3 ratio',
+                      style: GoogleFonts.inter(
+                          fontSize: 10,
+                          color: mutedColor,
+                          fontStyle: FontStyle.italic)),
                 ),
               const SizedBox(height: 16),
 
@@ -2041,12 +2069,13 @@ class _ReflectionsFeedSection extends StatelessWidget {
           ...reflections.map((r) {
             // Build a minimal Reflection from the map
             // Prefer reflection header image, fall back to origin entry's header image
-    final headerImgPath = ((r['header_image'] as String?)?.isNotEmpty == true
-        ? r['header_image'] as String
-        : r['origin_header_image'] as String?) ??
-        '';
-    final hasImage =
-        headerImgPath.isNotEmpty && File(headerImgPath).existsSync();
+            final headerImgPath =
+                ((r['header_image'] as String?)?.isNotEmpty == true
+                        ? r['header_image'] as String
+                        : r['origin_header_image'] as String?) ??
+                    '';
+            final hasImage =
+                headerImgPath.isNotEmpty && File(headerImgPath).existsSync();
             final author = (r['is_anonymous'] as bool? ?? false)
                 ? 'Anonymous'
                 : ((r['display_name'] as String?)?.isNotEmpty == true
@@ -2086,92 +2115,112 @@ class _ReflectionsFeedSection extends StatelessWidget {
               child: Column(children: [
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 14),
-                  child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    // Cover or gradient
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: SizedBox(
-                        width: 72, height: 72,
-                        child: hasImage
-                            ? Image.file(File(headerImgPath), fit: BoxFit.cover)
-                            : Container(
-                                decoration: const BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                    colors: [Color(0xFF180A28), Color(0xFF301550)],
+                  child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Cover or gradient
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(10),
+                          child: SizedBox(
+                            width: 72,
+                            height: 72,
+                            child: hasImage
+                                ? Image.file(File(headerImgPath),
+                                    fit: BoxFit.cover)
+                                : Container(
+                                    decoration: const BoxDecoration(
+                                      gradient: LinearGradient(
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                        colors: [
+                                          Color(0xFF180A28),
+                                          Color(0xFF301550)
+                                        ],
+                                      ),
+                                    ),
+                                    child: const Icon(
+                                        Icons.auto_stories_outlined,
+                                        color: Colors.white24,
+                                        size: 24),
                                   ),
-                                ),
-                                child: const Icon(Icons.auto_stories_outlined,
-                                    color: Colors.white24, size: 24),
-                              ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        if (title.isNotEmpty)
-                          Text(title,
-                              style: GoogleFonts.crimsonPro(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: textColor,
-                                  height: 1.2),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        if (preview.isNotEmpty) ...[
-                          const SizedBox(height: 4),
-                          Text(preview,
-                              style: GoogleFonts.inter(
-                                  fontSize: 12, color: mutedColor, height: 1.45),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis),
-                        ],
-                        const SizedBox(height: 7),
-                        Row(children: [
-                          Text(author,
-                              style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: mutedColor)),
-                          const SizedBox(width: 6),
-                          Text('$readMins min',
-                              style: GoogleFonts.inter(
-                                  fontSize: 11, color: mutedColor.withOpacity(0.7))),
-                          const Spacer(),
-                          Icon(Icons.favorite_border_rounded,
-                              size: 13, color: mutedColor.withOpacity(0.5)),
-                          const SizedBox(width: 3),
-                          Text('$clapCount',
-                              style: GoogleFonts.inter(
-                                  fontSize: 11, color: mutedColor.withOpacity(0.7))),
-                          const SizedBox(width: 10),
-                          Icon(Icons.chat_bubble_outline_rounded,
-                              size: 12, color: mutedColor.withOpacity(0.5)),
-                          const SizedBox(width: 3),
-                          Text('$replyCount',
-                              style: GoogleFonts.inter(
-                                  fontSize: 11, color: mutedColor.withOpacity(0.7))),
-                        ]),
-                        if ((r['inspiration_id'] as String?)?.isNotEmpty == true) ...[
-                          const SizedBox(height: 4),
-                          GestureDetector(
-                            onTap: () => ReflectionViewer.openById(
-                                context, r['inspiration_id'] as String),
-                            child: Text(
-                              'Inspired by ${r['inspiration_author'] ?? "someone"}\'s reflection',
-                              style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  color: AppColors.aqua,
-                                  fontStyle: FontStyle.italic,
-                                  decoration: TextDecoration.underline,
-                                  decorationColor: AppColors.aqua),
-                            ),
                           ),
-                        ],
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                if (title.isNotEmpty)
+                                  Text(title,
+                                      style: GoogleFonts.crimsonPro(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w700,
+                                          color: textColor,
+                                          height: 1.2),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis),
+                                if (preview.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(preview,
+                                      style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          color: mutedColor,
+                                          height: 1.45),
+                                      maxLines: 2,
+                                      overflow: TextOverflow.ellipsis),
+                                ],
+                                const SizedBox(height: 7),
+                                Row(children: [
+                                  Text(author,
+                                      style: GoogleFonts.inter(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: mutedColor)),
+                                  const SizedBox(width: 6),
+                                  Text('$readMins min',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: mutedColor.withOpacity(0.7))),
+                                  const Spacer(),
+                                  Icon(Icons.favorite_border_rounded,
+                                      size: 13,
+                                      color: mutedColor.withOpacity(0.5)),
+                                  const SizedBox(width: 3),
+                                  Text('$clapCount',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: mutedColor.withOpacity(0.7))),
+                                  const SizedBox(width: 10),
+                                  Icon(Icons.chat_bubble_outline_rounded,
+                                      size: 12,
+                                      color: mutedColor.withOpacity(0.5)),
+                                  const SizedBox(width: 3),
+                                  Text('$replyCount',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: mutedColor.withOpacity(0.7))),
+                                ]),
+                                if ((r['inspiration_id'] as String?)
+                                        ?.isNotEmpty ==
+                                    true) ...[
+                                  const SizedBox(height: 4),
+                                  GestureDetector(
+                                    onTap: () => ReflectionViewer.openById(
+                                        context, r['inspiration_id'] as String),
+                                    child: Text(
+                                      'Inspired by ${r['inspiration_author'] ?? "someone"}\'s reflection',
+                                      style: GoogleFonts.inter(
+                                          fontSize: 11,
+                                          color: AppColors.aqua,
+                                          fontStyle: FontStyle.italic,
+                                          decoration: TextDecoration.underline,
+                                          decorationColor: AppColors.aqua),
+                                    ),
+                                  ),
+                                ],
+                              ]),
+                        ),
                       ]),
-                    ),
-                  ]),
                 ),
                 Divider(color: divColor.withOpacity(0.5), height: 0),
               ]),
@@ -2206,7 +2255,8 @@ class _SizeChip extends StatelessWidget {
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: selected ? AppColors.aqua.withOpacity(0.12) : Colors.transparent,
+          color:
+              selected ? AppColors.aqua.withOpacity(0.12) : Colors.transparent,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selected
@@ -2355,9 +2405,7 @@ class _PaperShareCard extends StatelessWidget {
               builder: (ctx, constraints) => _AutoFitText(
                 text: bodyText,
                 baseStyle: GoogleFonts.crimsonPro(
-                    fontSize: 13,
-                    color: const Color(0xFF8A8178),
-                    height: 1.65),
+                    fontSize: 13, color: const Color(0xFF8A8178), height: 1.65),
                 constraints: constraints,
               ),
             ),
@@ -2418,104 +2466,99 @@ class _CommunityRespondSection extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 0, 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Divider(color: divColor, thickness: 0.5),
-          const SizedBox(height: 16),
-          Text('Responses',
-              style: GoogleFonts.crimsonPro(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: textColor)),
-          const SizedBox(height: 12),
-          Container(
-            decoration: BoxDecoration(
-              color: cardBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: divColor.withOpacity(0.5)),
-            ),
-            padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: controller,
-                  maxLines: 3,
-                  minLines: 1,
-                  style: GoogleFonts.inter(
-                      fontSize: 14, color: textColor, height: 1.5),
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.zero,
-                    hintText: 'Your response...',
-                    hintStyle: GoogleFonts.inter(
-                        fontSize: 14,
-                        color: mutedColor,
-                        fontStyle: FontStyle.italic),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Divider(color: divColor, thickness: 0.5),
+        const SizedBox(height: 16),
+        Text('Responses',
+            style: GoogleFonts.crimsonPro(
+                fontSize: 22, fontWeight: FontWeight.w700, color: textColor)),
+        const SizedBox(height: 12),
+        Container(
+          decoration: BoxDecoration(
+            color: cardBg,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: divColor.withOpacity(0.5)),
+          ),
+          padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextField(
+                controller: controller,
+                maxLines: 3,
+                minLines: 1,
+                style: GoogleFonts.inter(
+                    fontSize: 14, color: textColor, height: 1.5),
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.zero,
+                  hintText: 'Your response...',
+                  hintStyle: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: mutedColor,
+                      fontStyle: FontStyle.italic),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(children: [
+                GestureDetector(
+                  onTap: () => onAnonChanged(!isAnon),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    AnimatedContainer(
+                      duration: const Duration(milliseconds: 120),
+                      width: 15,
+                      height: 15,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        color: isAnon ? AppColors.aqua : Colors.transparent,
+                        border: Border.all(
+                            color: isAnon
+                                ? AppColors.aqua
+                                : mutedColor.withOpacity(0.5),
+                            width: 1.5),
+                      ),
+                      child: isAnon
+                          ? const Icon(Icons.check,
+                              size: 10, color: Colors.white)
+                          : null,
+                    ),
+                    const SizedBox(width: 5),
+                    Text('Anonymous',
+                        style:
+                            GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                  ]),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: submitting ? null : onSubmit,
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.aqua.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(18),
+                      border:
+                          Border.all(color: AppColors.aqua.withOpacity(0.4)),
+                    ),
+                    child: submitting
+                        ? const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                                strokeWidth: 1.5, color: AppColors.aqua))
+                        : Text('Reply',
+                            style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.aqua)),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Row(children: [
-                  GestureDetector(
-                    onTap: () => onAnonChanged(!isAnon),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      AnimatedContainer(
-                        duration: const Duration(milliseconds: 120),
-                        width: 15,
-                        height: 15,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(4),
-                          color:
-                              isAnon ? AppColors.aqua : Colors.transparent,
-                          border: Border.all(
-                              color: isAnon
-                                  ? AppColors.aqua
-                                  : mutedColor.withOpacity(0.5),
-                              width: 1.5),
-                        ),
-                        child: isAnon
-                            ? const Icon(Icons.check,
-                                size: 10, color: Colors.white)
-                            : null,
-                      ),
-                      const SizedBox(width: 5),
-                      Text('Anonymous',
-                          style: GoogleFonts.inter(
-                              fontSize: 11, color: mutedColor)),
-                    ]),
-                  ),
-                  const Spacer(),
-                  GestureDetector(
-                    onTap: submitting ? null : onSubmit,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.aqua.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(
-                            color: AppColors.aqua.withOpacity(0.4)),
-                      ),
-                      child: submitting
-                          ? const SizedBox(
-                              width: 12,
-                              height: 12,
-                              child: CircularProgressIndicator(
-                                  strokeWidth: 1.5, color: AppColors.aqua))
-                          : Text('Reply',
-                              style: GoogleFonts.inter(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.aqua)),
-                    ),
-                  ),
-                ]),
-              ],
-            ),
+              ]),
+            ],
           ),
-          const SizedBox(height: 14),
-          if (loading)
+        ),
+        const SizedBox(height: 14),
+        if (loading)
           const Center(child: CircularProgressIndicator())
         else if (replies.isEmpty)
           Text('No responses yet.',

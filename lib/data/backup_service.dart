@@ -11,7 +11,7 @@ import '../data/database_helper.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BACKUP SERVICE
-// Full JSON export and restore of the entire Flow database.
+// Full JSON export and restore of the entire PenHaven database.
 // Export: reads all tables → serialises to JSON → shares as file.
 // Import: parses JSON → clears DB → writes all tables.
 // Images are NOT included in the backup (too large); paths are preserved.
@@ -56,12 +56,12 @@ class BackupService {
       final json = const JsonEncoder.withIndent('  ').convert(backup);
       final dir = await getTemporaryDirectory();
       final dateStr = DateFormat('yyyy-MM-dd_HH-mm').format(DateTime.now());
-      final file = File(p.join(dir.path, 'flow_backup_$dateStr.json'));
+      final file = File(p.join(dir.path, 'penhaven_backup_$dateStr.json'));
       await file.writeAsString(json, encoding: utf8);
 
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/json')],
-        subject: 'Flow Backup — $dateStr',
+        subject: 'PenHaven Backup — $dateStr',
       );
     } catch (e) {
       if (context.mounted) {
@@ -146,12 +146,12 @@ class BackupService {
       final json = const JsonEncoder.withIndent('  ').convert(export);
       final dir = await getTemporaryDirectory();
       final dateStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
-      final file = File(p.join(dir.path, 'flow_entries_$dateStr.json'));
+      final file = File(p.join(dir.path, 'penhaven_entries_$dateStr.json'));
       await file.writeAsString(json, encoding: utf8);
 
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/json')],
-        subject: 'Flow Entries Export — $dateStr',
+        subject: 'PenHaven Entries Export — $dateStr',
       );
     } catch (e) {
       if (context.mounted) {

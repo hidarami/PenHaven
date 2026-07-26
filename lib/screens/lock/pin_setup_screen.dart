@@ -133,7 +133,7 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
     };
     final subtitles = {
       0: 'Enter your current 4-digit PIN to continue.',
-      1: 'Choose a 4-digit PIN for Flow.',
+      1: 'Choose a 4-digit PIN for PenHaven.',
       2: 'Enter the same PIN again to confirm.',
     };
 

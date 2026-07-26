@@ -3,7 +3,7 @@
 
 **Version:** 2.0  
 **Last Updated:** February 2026  
-**Purpose:** This is the SINGLE SOURCE OF TRUTH for Flow app development. Any AI working on this project should read this document FIRST before making any changes.
+**Purpose:** This is the SINGLE SOURCE OF TRUTH for PenHaven app development. Any AI working on this project should read this document FIRST before making any changes.
 
 ---
 
@@ -23,8 +23,8 @@
 <a name="philosophy"></a>
 ## 1. APP PHILOSOPHY & CORE PRINCIPLES
 
-### What Flow Is
-Flow is a **premium journaling/writing sanctuary** designed for neurodivergent minds. It is NOT a productivity app. It has no streaks, no guilt, no aggressive prompts. The app breathes with the user and the time of day.
+### What PenHaven Is
+PenHaven is a **premium journaling/writing sanctuary** designed for neurodivergent minds. It is NOT a productivity app. It has no streaks, no guilt, no aggressive prompts. The app breathes with the user and the time of day.
 
 ### Design Philosophy
 - **Atmosphere over decoration**: The app should feel like being in a physical room at different times of day
@@ -351,7 +351,7 @@ EntryImage {
 - **Text selection**: Standard system selection menu (copy/paste)
 - **NO editing capabilities**: Everything is read-only, all edits happen in Editor
 
-#### Navigation Flow
+#### Navigation PenHaven
 ```
 Story Panel → Tap Entry → Read-Only Mode → Double-tap → Editor
                 ↑                                          ↓
@@ -416,7 +416,7 @@ Horizontal scrollable row of buttons:
 - **🎨**: Highlight (custom syntax `==text==`)
 - **📷**: Add image (opens picker → crop → inserts at cursor)
 
-#### Image Insertion Flow
+#### Image Insertion PenHaven
 1. User places cursor in text
 2. Taps 📷 button in toolbar
 3. Opens device image picker
@@ -889,7 +889,7 @@ dependencies:
 
 ### Image Handling
 
-#### Image Picker Flow
+#### Image Picker PenHaven
 1. User taps image button (header or toolbar)
 2. `ImageService.pickAndSave()` called
 3. Opens system image picker (`ImagePicker`)
@@ -1033,7 +1033,7 @@ Key: `'${atmosphere}_${isDarkMode}'` ensures proper rebuilds
 8. **EDITOR BACK TO READ-ONLY**
    - "<" chevron in Editor goes to Read-Only
    - NOT to Story Panel
-   - Flow: Story → Read-Only → Editor → Read-Only → Story
+   - PenHaven: Story → Read-Only → Editor → Read-Only → Story
 
 9. **TASK EDITING VIA LONG PRESS**
    - Single tap on checkbox = complete

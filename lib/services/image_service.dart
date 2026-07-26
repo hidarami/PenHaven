@@ -57,7 +57,7 @@ class ImageService {
     double? cropAspectRatioY,
   }) async {
     // 1. Pick from gallery via AssetPicker (wechat_assets_picker), themed
-    // to match Flow's own accent color for a consistent, branded feel.
+    // to match PenHaven's own accent color for a consistent, branded feel.
     final List<AssetEntity>? picked = await AssetPicker.pickAssets(
       context,
       pickerConfig: AssetPickerConfig(

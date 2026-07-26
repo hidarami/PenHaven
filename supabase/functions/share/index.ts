@@ -68,7 +68,7 @@ serve(async (req: Request) => {
     );
   }
 
-  const deepLink = pub && id ? `flow://community/entry/${id}` : `flow://community`;
+  const deepLink = pub && id ? `penhaven://community/entry/${id}` : `penhaven://community`;
   const webFallback = SUPABASE_URL;
 
   return new Response(

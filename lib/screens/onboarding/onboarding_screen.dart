@@ -62,7 +62,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
       icon: Icons.favorite_border_rounded,
       title: 'No streaks. No guilt.',
       body:
-          'Write when you want. Flow remembers, but never judges.\n\nYour sanctuary awaits.',
+          'Write when you want. PenHaven remembers, but never judges.\n\nYour sanctuary awaits.',
       accent: Color(0xFFE87FA0),
       bg: Color(0xFF12060A),
     ),
@@ -260,7 +260,8 @@ class _PageView extends StatelessWidget {
             decoration: BoxDecoration(
               color: page.accent.withOpacity(0.10),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: page.accent.withOpacity(0.22), width: 1.5),
+              border:
+                  Border.all(color: page.accent.withOpacity(0.22), width: 1.5),
               boxShadow: [
                 BoxShadow(
                   color: page.accent.withOpacity(0.18),

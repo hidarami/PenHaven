@@ -68,7 +68,7 @@ class AppearanceScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Customize how Flow looks and feels.',
+                              'Customize how PenHaven looks and feels.',
                               style: GoogleFonts.inter(
                                   fontSize: 13, color: mutedColor),
                             ),
@@ -129,8 +129,7 @@ class AppearanceScreen extends StatelessWidget {
                       isDark: isDark,
                       bg: bg,
                       onTap: () => Navigator.of(context).push(
-                        MaterialPageRoute(
-                            builder: (_) => const ThemesScreen()),
+                        MaterialPageRoute(builder: (_) => const ThemesScreen()),
                       ),
                     ),
                   ],

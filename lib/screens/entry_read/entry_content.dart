@@ -98,7 +98,7 @@ class _InterleavedBody extends StatelessWidget {
 
     // No images — render whole content as markdown
     if (entry.images.isEmpty) {
-      return FlowMarkdownBody(data: content, selectable: true);
+      return PenHavenMarkdownBody(data: content, selectable: true);
     }
 
     // Sort images by position ascending
@@ -115,7 +115,7 @@ class _InterleavedBody extends StatelessWidget {
       if (pos > cursor) {
         final segment = content.substring(cursor, pos);
         if (segment.trim().isNotEmpty) {
-          segments.add(FlowMarkdownBody(data: segment, selectable: true));
+          segments.add(PenHavenMarkdownBody(data: segment, selectable: true));
         }
       }
 
@@ -137,7 +137,7 @@ class _InterleavedBody extends StatelessWidget {
     if (cursor < content.length) {
       final remaining = content.substring(cursor);
       if (remaining.trim().isNotEmpty) {
-        segments.add(FlowMarkdownBody(data: remaining, selectable: true));
+        segments.add(PenHavenMarkdownBody(data: remaining, selectable: true));
       }
     }
 

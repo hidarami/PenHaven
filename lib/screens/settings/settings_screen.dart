@@ -56,7 +56,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Make Flow yours.',
+                        'Make PenHaven yours.',
                         style: GoogleFonts.inter(
                           fontSize: 13,
                           color: mutedColor,
@@ -307,7 +307,7 @@ class SettingsScreen extends StatelessWidget {
       builder: (ctx) => AlertDialog(
         title: const Text('Remove App Lock?'),
         content: const Text(
-            'Your PIN will be deleted and Flow will open without protection.'),
+            'Your PIN will be deleted and PenHaven will open without protection.'),
         actions: [
           TextButton(
               onPressed: () => Navigator.pop(ctx, false),

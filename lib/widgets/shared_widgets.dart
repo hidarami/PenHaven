@@ -191,15 +191,15 @@ class _StoryCreateDialogState extends State<StoryCreateDialog> {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // MARKDOWN BODY CUSTOM
-// MarkdownBody pre-configured with Flow's Crimson Pro stylesheet.
+// MarkdownBody pre-configured with PenHaven's Crimson Pro stylesheet.
 // Used in Entry Read-Only mode for full markdown rendering.
 // ─────────────────────────────────────────────────────────────────────────────
 
-class FlowMarkdownBody extends StatelessWidget {
+class PenHavenMarkdownBody extends StatelessWidget {
   final String data;
   final bool selectable;
 
-  const FlowMarkdownBody({
+  const PenHavenMarkdownBody({
     super.key,
     required this.data,
     this.selectable = true,
@@ -382,8 +382,7 @@ class _CoverPickerRow extends StatelessWidget {
           const SizedBox(width: 12),
           Expanded(
             child: Text('Cover added',
-                style:
-                    GoogleFonts.inter(fontSize: 13, color: mutedColor)),
+                style: GoogleFonts.inter(fontSize: 13, color: mutedColor)),
           ),
           GestureDetector(
             onTap: onRemoved,

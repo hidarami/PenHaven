@@ -61,7 +61,7 @@ class ExportService {
 
       await Share.shareXFiles(
         [XFile(file.path)],
-        subject: entry.title.isEmpty ? 'Flow Entry' : entry.title,
+        subject: entry.title.isEmpty ? 'PenHaven Entry' : entry.title,
       );
     } catch (e) {
       debugPrint('[ExportService] exportAsTxt error: $e');
@@ -161,7 +161,7 @@ class ExportService {
               pw.Divider(color: PdfColors.grey200),
               pw.SizedBox(height: 8),
               pw.Text(
-                'Time spent: ${entry.formattedTimeSpent}  •  Flow',
+                'Time spent: ${entry.formattedTimeSpent}  •  PenHaven',
                 style: pw.TextStyle(fontSize: 10, color: PdfColors.grey500),
               ),
             ],
@@ -177,7 +177,7 @@ class ExportService {
 
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/pdf')],
-        subject: entry.title.isEmpty ? 'Flow Entry' : entry.title,
+        subject: entry.title.isEmpty ? 'PenHaven Entry' : entry.title,
       );
     } catch (e) {
       debugPrint('[ExportService] exportAsPdf error: $e');
@@ -207,7 +207,7 @@ class ExportService {
 
       final bytes = byteData.buffer.asUint8List();
       final file = await _writeTempFileBytes(
-        name: 'flow_card_${DateTime.now().millisecondsSinceEpoch}.png',
+        name: 'penhaven_card_${DateTime.now().millisecondsSinceEpoch}.png',
         bytes: bytes,
       );
 
@@ -288,7 +288,7 @@ class ExportService {
           Align(
             alignment: Alignment.centerRight,
             child: Text(
-              'Flow',
+              'PenHaven',
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: mutedColor.withOpacity(0.5),

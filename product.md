@@ -1,12 +1,12 @@
-# Flow — Product Document
+# PenHaven — Product Document
 
-## What Is Flow?
+## What Is PenHaven?
 
-Flow is a private writing app — a journaling and long-form writing space built
+PenHaven is a private writing app — a journaling and long-form writing space built
 for people who want to write for themselves first, and share selectively second.
 
 It is not a social network. It is not a productivity tool. It is not a notes
-app. Flow is a writing sanctuary: a calm, intimate space where your words live
+app. PenHaven is a writing sanctuary: a calm, intimate space where your words live
 without judgment, pressure, or expectation.
 
 ---
@@ -32,7 +32,7 @@ midnight. Writing at different times literally feels different.
 This is not a theme selector. It is the app being aware of the world.
 
 ### 3. The Sanctuary (Secondary — Optional)
-The Sanctuary is Flow's community panel, placed deliberately in the third
+The Sanctuary is PenHaven's community panel, placed deliberately in the third
 position — to the right of the home screen, not the center. It is not the app.
 It is an option within the app.
 
@@ -48,9 +48,9 @@ editorial, not algorithmic or gamified.
 
 ---
 
-## What Makes Flow Different
+## What Makes PenHaven Different
 
-| Typical Journal App | Flow |
+| Typical Journal App | PenHaven |
 |---|---|
 | Streaks and reminders | No streaks. No guilt. No reminders unless asked. |
 | Minimalist but sterile | Editorial richness — atmosphere, typography, art |
@@ -62,7 +62,7 @@ editorial, not algorithmic or gamified.
 
 ## Target User
 
-Flow is built for people who write because they *need* to, not because they
+PenHaven is built for people who write because they *need* to, not because they
 have to. People who have journals but feel let down by journal apps. People who
 are neurodivergent, emotional, creative, or simply thoughtful. People who want
 their writing to live somewhere that feels like it was built with care.
@@ -71,7 +71,7 @@ They are not looking for a productivity boost. They are looking for a place.
 
 ---
 
-## What Flow Is Not
+## What PenHaven Is Not
 
 - Not a Twitter/Instagram competitor
 - Not a Notion or Obsidian replacement

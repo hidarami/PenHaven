@@ -24,7 +24,7 @@ class ManualThemeData {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APP COLORS
-// Single source of truth for every color value in Flow.
+// Single source of truth for every color value in PenHaven.
 // Import this file wherever you need a named color constant.
 // ─────────────────────────────────────────────────────────────────────────────
 

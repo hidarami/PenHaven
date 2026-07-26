@@ -61,7 +61,8 @@ class LockService {
     final p = await SharedPreferences.getInstance();
     final salt = p.getString(_kSalt);
     if (salt == null) return false;
-    return p.getString(_kRecoveryHash) == _hash(code.trim().toUpperCase(), salt);
+    return p.getString(_kRecoveryHash) ==
+        _hash(code.trim().toUpperCase(), salt);
   }
 
   Future<void> removePin() async {
@@ -94,7 +95,7 @@ class LockService {
   Future<bool> authenticateWithBiometric() async {
     try {
       final result = await _localAuth.authenticate(
-        localizedReason: 'Unlock Flow',
+        localizedReason: 'Unlock PenHaven',
         options: const AuthenticationOptions(
           biometricOnly: false, // Allow side-mounted fingerprint sensors
           stickyAuth: true,

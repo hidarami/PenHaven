@@ -107,7 +107,7 @@ class SupabaseService {
     try {
       await _client?.auth.signInWithOAuth(
         OAuthProvider.google,
-        redirectTo: 'flow://auth/callback',
+        redirectTo: 'penhaven://auth/callback',
       );
       return null;
     } on AuthException catch (e) {
@@ -122,7 +122,7 @@ class SupabaseService {
     try {
       await _client?.auth.signInWithOAuth(
         OAuthProvider.apple,
-        redirectTo: 'flow://auth/callback',
+        redirectTo: 'penhaven://auth/callback',
       );
       return null;
     } on AuthException catch (e) {
@@ -137,7 +137,7 @@ class SupabaseService {
     try {
       await _client?.auth.signInWithOAuth(
         OAuthProvider.facebook,
-        redirectTo: 'flow://auth/callback',
+        redirectTo: 'penhaven://auth/callback',
       );
       return null;
     } on AuthException catch (e) {
@@ -152,7 +152,7 @@ class SupabaseService {
     try {
       await _client?.auth.signInWithOAuth(
         OAuthProvider.github,
-        redirectTo: 'flow://auth/callback',
+        redirectTo: 'penhaven://auth/callback',
       );
       return null;
     } on AuthException catch (e) {
@@ -167,7 +167,7 @@ class SupabaseService {
     try {
       await _client?.auth.signInWithOAuth(
         OAuthProvider.discord,
-        redirectTo: 'flow://auth/callback',
+        redirectTo: 'penhaven://auth/callback',
       );
       return null;
     } on AuthException catch (e) {
@@ -182,7 +182,7 @@ class SupabaseService {
     try {
       await _client?.auth.signInWithOAuth(
         OAuthProvider.twitter,
-        redirectTo: 'flow://auth/callback',
+        redirectTo: 'penhaven://auth/callback',
       );
       return null;
     } on AuthException catch (e) {
@@ -393,14 +393,11 @@ class SupabaseService {
     try {
       // Idempotent: if the row already exists (e.g. a fast double-tap),
       // skip the counter bump instead of throwing and silently dropping it.
-      final result = await _client
-          ?.from('community_claps')
-          .upsert(
-            {'entry_id': entryId, 'user_id': userId},
-            onConflict: 'entry_id,user_id',
-            ignoreDuplicates: true,
-          )
-          .select();
+      final result = await _client?.from('community_claps').upsert(
+        {'entry_id': entryId, 'user_id': userId},
+        onConflict: 'entry_id,user_id',
+        ignoreDuplicates: true,
+      ).select();
       final inserted = result != null && (result as List).isNotEmpty;
       if (inserted) {
         await _client
@@ -585,8 +582,8 @@ class SupabaseService {
       await _client?.storage.from('profile-images').uploadBinary(
             storagePath,
             bytes,
-            fileOptions: const FileOptions(
-                contentType: 'image/png', upsert: true),
+            fileOptions:
+                const FileOptions(contentType: 'image/png', upsert: true),
           );
       // Cache-bust so the new photo shows immediately everywhere
       final base =
@@ -641,12 +638,10 @@ class SupabaseService {
       await _client?.storage.from('share-cards').uploadBinary(
             storagePath,
             bytes,
-            fileOptions: const FileOptions(
-                contentType: 'image/png', upsert: true),
+            fileOptions:
+                const FileOptions(contentType: 'image/png', upsert: true),
           );
-      return _client?.storage
-          .from('share-cards')
-          .getPublicUrl(storagePath);
+      return _client?.storage.from('share-cards').getPublicUrl(storagePath);
     } catch (e) {
       debugPrint('[Supabase] uploadShareCard: $e');
       return null;
@@ -674,12 +669,10 @@ class SupabaseService {
     try {
       await _client
           ?.from('published_entries')
-          .update({'is_hidden': !visible})
-          .eq('user_id', userId!);
+          .update({'is_hidden': !visible}).eq('user_id', userId!);
       await _client
           ?.from('write_backs')
-          .update({'is_hidden': !visible})
-          .eq('user_id', userId!);
+          .update({'is_hidden': !visible}).eq('user_id', userId!);
     } catch (e) {
       debugPrint('[Supabase] setSanctuaryVisibility: $e');
     }
@@ -726,8 +719,8 @@ class SupabaseService {
   }
 
   /// Fetches public (non-anonymous) published entries by a specific user.
-  Future<List<PublishedEntry>> getPublicEntriesByUser(
-      String targetUserId, {int limit = 12}) async {
+  Future<List<PublishedEntry>> getPublicEntriesByUser(String targetUserId,
+      {int limit = 12}) async {
     try {
       final response = await _client
           ?.from('published_entries')
@@ -902,8 +895,10 @@ class SupabaseService {
           ? <String>[]
           : (myEntries as List).map((e) => e['id'] as String).toList();
 
-      final myWriteBacks =
-          await _client?.from('write_backs').select('id').eq('user_id', userId!);
+      final myWriteBacks = await _client
+          ?.from('write_backs')
+          .select('id')
+          .eq('user_id', userId!);
       final myWriteBackIds = myWriteBacks == null
           ? <String>[]
           : (myWriteBacks as List).map((r) => r['id'] as String).toList();
@@ -964,14 +959,11 @@ class SupabaseService {
   Future<void> clapReflection(String reflectionId) async {
     if (!isAuthenticated) return;
     try {
-      final result = await _client
-          ?.from('reflection_claps')
-          .upsert(
-            {'reflection_id': reflectionId, 'user_id': userId},
-            onConflict: 'reflection_id,user_id',
-            ignoreDuplicates: true,
-          )
-          .select();
+      final result = await _client?.from('reflection_claps').upsert(
+        {'reflection_id': reflectionId, 'user_id': userId},
+        onConflict: 'reflection_id,user_id',
+        ignoreDuplicates: true,
+      ).select();
       final inserted = result != null && (result as List).isNotEmpty;
       if (inserted) {
         await _client
@@ -1003,7 +995,8 @@ class SupabaseService {
   }
 
   /// Get replies for a reflection.
-  Future<List<CommunityComment>> getReflectionReplies(String reflectionId) async {
+  Future<List<CommunityComment>> getReflectionReplies(
+      String reflectionId) async {
     try {
       final response = await _client
           ?.from('reflection_replies')

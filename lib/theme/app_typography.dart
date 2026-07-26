@@ -4,7 +4,7 @@ import 'app_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // APP TYPOGRAPHY
-// All TextStyles used in Flow, using Google Fonts at runtime.
+// All TextStyles used in PenHaven, using Google Fonts at runtime.
 // Every style is a static getter so it stays fresh with theme changes.
 // ─────────────────────────────────────────────────────────────────────────────
 

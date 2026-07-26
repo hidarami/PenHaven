@@ -40,7 +40,7 @@ class AppTheme {
       textTheme: AppTypography.textTheme(dark),
 
       // ── App Bar ──────────────────────────────────────────────────────────
-      // Flow has no standard AppBar — this is a fallback only.
+      // PenHaven has no standard AppBar — this is a fallback only.
       appBarTheme: AppBarTheme(
         backgroundColor: Colors.transparent,
         elevation: 0,

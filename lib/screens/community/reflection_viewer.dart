@@ -48,13 +48,15 @@ class ReflectionViewer extends StatefulWidget {
   /// Shared navigation helper — fetches a reflection by id and pushes its
   /// viewer. Used by every "Inspired by" tap across the app so every entry
   /// point lands on the exact same viewer/record instead of a re-built copy.
-  static Future<void> openById(BuildContext context, String reflectionId) async {
+  static Future<void> openById(
+      BuildContext context, String reflectionId) async {
     final wb = await SupabaseService.instance.getWriteBackById(reflectionId);
     if (wb == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('This reflection may have been removed or is private.')),
+              content:
+                  Text('This reflection may have been removed or is private.')),
         );
       }
       return;
@@ -62,7 +64,8 @@ class ReflectionViewer extends StatefulWidget {
     if (!context.mounted) return;
     final reflection = Reflection.fromMap(wb);
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => ReflectionViewer(reflection: reflection)),
+      MaterialPageRoute(
+          builder: (_) => ReflectionViewer(reflection: reflection)),
     );
   }
 
@@ -157,8 +160,8 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
 
   Future<void> _loadReplies() async {
     setState(() => _repliesLoading = true);
-    final replies = await SupabaseService.instance
-        .getReflectionReplies(_reflection.id);
+    final replies =
+        await SupabaseService.instance.getReflectionReplies(_reflection.id);
     if (mounted) {
       setState(() {
         _replies = replies;
@@ -261,7 +264,8 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
           children: [
             // Progress bar
             Positioned(
-              top: 0, left: 0,
+              top: 0,
+              left: 0,
               child: Container(
                 height: 2.5,
                 width: MediaQuery.of(context).size.width * _readProgress,
@@ -284,7 +288,8 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                         width: double.infinity,
                         height: 260,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => SizedBox(height: topPad + 60),
+                        errorBuilder: (_, __, ___) =>
+                            SizedBox(height: topPad + 60),
                       );
                     }
                     return SizedBox(height: topPad + 60);
@@ -327,7 +332,9 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                             size: 36,
                             imagePath: (_reflection.userId ==
                                     SupabaseService.instance.userId)
-                                ? context.watch<CommunityState>().profileImagePath
+                                ? context
+                                    .watch<CommunityState>()
+                                    .profileImagePath
                                 : null,
                             imageUrl: (_reflection.userId ==
                                     SupabaseService.instance.userId)
@@ -383,8 +390,8 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                       onTapOrigin: () async {
                         if (widget.originEntry != null) {
                           Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) =>
-                                CommunityEntryViewer(entry: widget.originEntry!),
+                            builder: (_) => CommunityEntryViewer(
+                                entry: widget.originEntry!),
                           ));
                         } else {
                           final orig = await SupabaseService.instance
@@ -413,7 +420,8 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                     Padding(
                       padding: const EdgeInsets.fromLTRB(24, 12, 24, 0),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 8),
                         decoration: BoxDecoration(
                           color: AppColors.teal.withOpacity(0.08),
                           borderRadius: BorderRadius.circular(8),
@@ -422,8 +430,7 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                         ),
                         child: Row(children: [
                           Icon(Icons.lock_outline_rounded,
-                              size: 14,
-                              color: AppColors.teal.withOpacity(0.8)),
+                              size: 14, color: AppColors.teal.withOpacity(0.8)),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -445,7 +452,8 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                     padding: const EdgeInsets.fromLTRB(24, 18, 24, 0),
                     child: Container(
                       height: 0.5,
-                      color: dark ? AppColors.dividerDark : AppColors.dividerLight,
+                      color:
+                          dark ? AppColors.dividerDark : AppColors.dividerLight,
                     ),
                   ),
 
@@ -477,7 +485,9 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
 
             // ── Action pill ─────────────────────────────────────────
             Positioned(
-              bottom: botPad + 28, left: 0, right: 0,
+              bottom: botPad + 28,
+              left: 0,
+              right: 0,
               child: AnimatedOpacity(
                 opacity: _pillVisible ? 1.0 : 0.0,
                 duration: const Duration(milliseconds: 400),
@@ -489,7 +499,8 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                       onClap: _handleClap,
                       onRespond: _toggleRespond,
                       respondActive: _respondOpen,
-                      onWriteBack: _reflection.isPrivate ? null : _openWriteBack,
+                      onWriteBack:
+                          _reflection.isPrivate ? null : _openWriteBack,
                       onShare: _reflection.isPrivate
                           ? null
                           : () => _showShareSheetForReflection(context),
@@ -516,11 +527,12 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
         isDark: dark,
         textAlignment: 'left',
         fontName: fontName,
-        onTapInspirationReflection: (id) => ReflectionViewer.openById(context, id),
+        onTapInspirationReflection: (id) =>
+            ReflectionViewer.openById(context, id),
       );
     }
     if (_reflection.content.isNotEmpty) {
-      return FlowMarkdownBody(data: _reflection.content, selectable: true);
+      return PenHavenMarkdownBody(data: _reflection.content, selectable: true);
     }
     return const SizedBox.shrink();
   }
@@ -588,18 +600,22 @@ class _RespondSection extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: divColor.withOpacity(0.5))),
           padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             TextField(
               controller: controller,
               maxLines: 3,
               minLines: 1,
-              style: GoogleFonts.inter(fontSize: 14, color: textColor, height: 1.5),
+              style: GoogleFonts.inter(
+                  fontSize: 14, color: textColor, height: 1.5),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 contentPadding: EdgeInsets.zero,
                 hintText: 'Your response...',
                 hintStyle: GoogleFonts.inter(
-                    fontSize: 14, color: mutedColor, fontStyle: FontStyle.italic),
+                    fontSize: 14,
+                    color: mutedColor,
+                    fontStyle: FontStyle.italic),
               ),
             ),
             const SizedBox(height: 6),
@@ -609,12 +625,15 @@ class _RespondSection extends StatelessWidget {
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   AnimatedContainer(
                     duration: const Duration(milliseconds: 120),
-                    width: 15, height: 15,
+                    width: 15,
+                    height: 15,
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(4),
                       color: isAnon ? AppColors.aqua : Colors.transparent,
                       border: Border.all(
-                          color: isAnon ? AppColors.aqua : mutedColor.withOpacity(0.5),
+                          color: isAnon
+                              ? AppColors.aqua
+                              : mutedColor.withOpacity(0.5),
                           width: 1.5),
                     ),
                     child: isAnon
@@ -623,21 +642,25 @@ class _RespondSection extends StatelessWidget {
                   ),
                   const SizedBox(width: 5),
                   Text('Anonymous',
-                      style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                      style:
+                          GoogleFonts.inter(fontSize: 11, color: mutedColor)),
                 ]),
               ),
               const Spacer(),
               GestureDetector(
                 onTap: submitting ? null : onSubmit,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
                       color: AppColors.aqua.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(18),
-                      border: Border.all(color: AppColors.aqua.withOpacity(0.4))),
+                      border:
+                          Border.all(color: AppColors.aqua.withOpacity(0.4))),
                   child: submitting
                       ? const SizedBox(
-                          width: 12, height: 12,
+                          width: 12,
+                          height: 12,
                           child: CircularProgressIndicator(
                               strokeWidth: 1.5, color: AppColors.aqua))
                       : Text('Reply',
@@ -658,7 +681,8 @@ class _RespondSection extends StatelessWidget {
               style: GoogleFonts.crimsonPro(
                   fontSize: 15, fontStyle: FontStyle.italic, color: mutedColor))
         else
-          ...replies.map((r) => _ReplyCard(reply: r, textColor: textColor, mutedColor: mutedColor)),
+          ...replies.map((r) => _ReplyCard(
+              reply: r, textColor: textColor, mutedColor: mutedColor)),
         const SizedBox(height: 24),
       ]),
     );
@@ -670,7 +694,8 @@ class _ReplyCard extends StatelessWidget {
   final Color textColor;
   final Color mutedColor;
 
-  const _ReplyCard({required this.reply, required this.textColor, required this.mutedColor});
+  const _ReplyCard(
+      {required this.reply, required this.textColor, required this.mutedColor});
 
   @override
   Widget build(BuildContext context) {
@@ -688,17 +713,22 @@ class _ReplyCard extends StatelessWidget {
           child: _AvatarCircle(
             name: reply.authorLabel,
             size: 28,
-            imagePath: isSelf ? context.watch<CommunityState>().profileImagePath : null,
+            imagePath: isSelf
+                ? context.watch<CommunityState>().profileImagePath
+                : null,
             imageUrl: isSelf ? null : reply.profileImagePath,
           ),
         ),
         const SizedBox(width: 10),
         Expanded(
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          child:
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
             Row(children: [
               Text(reply.authorLabel,
                   style: GoogleFonts.inter(
-                      fontSize: 13, fontWeight: FontWeight.w600, color: textColor)),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: textColor)),
               const SizedBox(width: 6),
               Text(_ago(reply.createdAt),
                   style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
@@ -706,7 +736,9 @@ class _ReplyCard extends StatelessWidget {
             const SizedBox(height: 3),
             Text(reply.body,
                 style: GoogleFonts.inter(
-                    fontSize: 14, color: textColor.withOpacity(0.85), height: 1.5)),
+                    fontSize: 14,
+                    color: textColor.withOpacity(0.85),
+                    height: 1.5)),
           ]),
         ),
       ]),
@@ -727,12 +759,17 @@ class _AvatarCircle extends StatelessWidget {
   final String? imagePath;
   final String? imageUrl;
 
-  const _AvatarCircle({required this.name, required this.size, this.imagePath, this.imageUrl});
+  const _AvatarCircle(
+      {required this.name, required this.size, this.imagePath, this.imageUrl});
 
   Color _color(String n) {
     const colors = [
-      Color(0xFF7BA591), Color(0xFF5B8DB8), Color(0xFFD4820A),
-      Color(0xFF9472D4), Color(0xFFE87FA0), Color(0xFFD44A28),
+      Color(0xFF7BA591),
+      Color(0xFF5B8DB8),
+      Color(0xFFD4820A),
+      Color(0xFF9472D4),
+      Color(0xFFE87FA0),
+      Color(0xFFD44A28),
     ];
     return colors[n.codeUnits.fold(0, (a, b) => a + b) % colors.length];
   }
@@ -751,7 +788,9 @@ class _AvatarCircle extends StatelessWidget {
     if (imageUrl != null && imageUrl!.isNotEmpty) {
       return ClipOval(
         child: Image.network(imageUrl!,
-            width: size, height: size, fit: BoxFit.cover,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
             errorBuilder: (_, __, ___) => _fallback(initial)),
       );
     }
@@ -759,7 +798,8 @@ class _AvatarCircle extends StatelessWidget {
   }
 
   Widget _fallback(String initial) => Container(
-        width: size, height: size,
+        width: size,
+        height: size,
         decoration: BoxDecoration(color: _color(name), shape: BoxShape.circle),
         child: Center(
           child: Text(initial,
@@ -785,11 +825,13 @@ class _NavBtn extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
           child: Container(
-            width: 34, height: 34,
+            width: 34,
+            height: 34,
             decoration: BoxDecoration(
               color: Colors.black.withOpacity(0.28),
               borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: Colors.white.withOpacity(0.22), width: 0.5),
+              border:
+                  Border.all(color: Colors.white.withOpacity(0.22), width: 0.5),
             ),
             child: Icon(icon, size: 15, color: Colors.white),
           ),

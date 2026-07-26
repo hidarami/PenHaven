@@ -1,4 +1,4 @@
-# Flow — Vision Document
+# PenHaven — Vision Document
 
 ## The Idea in One Sentence
 
@@ -7,7 +7,7 @@ own — and makes sharing feel like a quiet, intentional act, not a performance.
 
 ---
 
-## Why Flow Exists
+## Why PenHaven Exists
 
 Most writing apps fail writers in the same two ways:
 
@@ -19,7 +19,7 @@ you return to.
 prompts. An unpublished entry is treated as something unfinished rather than
 something personal and whole.
 
-Flow was built to fix both of these. Your writing is not a product to be
+PenHaven was built to fix both of these. Your writing is not a product to be
 shipped. It is not a commitment you are behind on. It is something that happens
 when you sit down to write — and stops when you stop — and is complete in either
 case.
@@ -28,7 +28,7 @@ case.
 
 ## The Mercy Philosophy
 
-Flow never tells you that you failed. The "mercy rule" means that incomplete
+PenHaven never tells you that you failed. The "mercy rule" means that incomplete
 tasks and old entries quietly fade away rather than turning red or nagging. The
 app does not remember what you did not do. It only holds what you gave it.
 
@@ -80,7 +80,7 @@ deliberate.
 2. **The Sanctuary matures** — better discovery, curated featured content,
    optional collections/series. Still secondary. Still calm. Never algorithmic.
 
-3. **Presence over push** — Flow will never send engagement notifications. It
+3. **Presence over push** — PenHaven will never send engagement notifications. It
    will never remind you to write unless you ask it to. The relationship between
    the writer and the app should feel chosen, not engineered.
 
@@ -91,7 +91,7 @@ deliberate.
 
 ## What Success Looks Like
 
-A writer opens Flow at 11PM after a hard day and writes for an hour. They do not
+A writer opens PenHaven at 11PM after a hard day and writes for an hour. They do not
 publish. They do not share. They close the app. They feel better.
 
 That is a successful product.

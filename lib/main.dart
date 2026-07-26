@@ -16,11 +16,11 @@ void main() async {
   await SupabaseService.initialize();
   await NotificationService.instance.init();
   unawaited(NotificationService.instance.requestPermission());
-  runApp(const FlowApp());
+  runApp(const PenHavenApp());
 }
 
-class FlowApp extends StatelessWidget {
-  const FlowApp({super.key});
+class PenHavenApp extends StatelessWidget {
+  const PenHavenApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +34,7 @@ class FlowApp extends StatelessWidget {
       child: Consumer<AppState>(
         builder: (context, appState, _) {
           return MaterialApp(
-            title: 'Flow',
+            title: 'PenHaven',
             debugShowCheckedModeBanner: false,
             theme: AppTheme.light,
             darkTheme: AppTheme.dark,
