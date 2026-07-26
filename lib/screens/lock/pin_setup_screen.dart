@@ -38,7 +38,13 @@ class _PinSetupScreenState extends State<PinSetupScreen> {
 
   Future<void> _checkBio() async {
     final ok = await LockService.instance.isBiometricAvailable();
-    if (mounted) setState(() => _bioAvailable = ok);
+    final enabled = await LockService.instance.isBiometricEnabled();
+    if (mounted) {
+      setState(() {
+        _bioAvailable = ok;
+        _bioEnabled = enabled;
+      });
+    }
   }
 
   void _onDigit(String d) {

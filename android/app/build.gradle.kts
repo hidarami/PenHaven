@@ -18,6 +18,12 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
+    compileOptions {
+      coreLibraryDesugaringEnabled true
+      sourceCompatibility JavaVersion.VERSION_1_8
+      targetCompatibility JavaVersion.VERSION_1_8
+    }
+
     defaultConfig {
         applicationId = "com.hidarami.flow"
         minSdk = flutter.minSdkVersion
@@ -55,6 +61,7 @@ android {
 
 dependencies {
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.0.4")
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
 }
 
 flutter {

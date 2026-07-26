@@ -1371,33 +1371,46 @@ class _SanctuaryShareSheetState extends State<SanctuaryShareSheet> {
           '${dir.path}/sanctuary_${DateTime.now().millisecondsSinceEpoch}.png');
       await file.writeAsBytes(bytes);
 
-      if (!mounted) return;
-      Navigator.pop(context);
+      // Anchor point for the share sheet (required on iPad, and generally
+      // safer than invoking share after this widget has been popped).
+      Rect? sharePositionOrigin;
+      final box = context.findRenderObject() as RenderBox?;
+      if (box != null) {
+        sharePositionOrigin = box.localToGlobal(Offset.zero) & box.size;
+      }
 
       // Try to build a proper OG share link via Supabase Storage + Edge Function
-      final imageUrl = await SupabaseService.instance.uploadShareCard(
-          file.path, widget.entry.id);
-
-      if (imageUrl != null) {
-        final projectUrl = 'https://vjmzileqdrhxiklxqftv.supabase.co';
-        final isPublished = widget.entry.userId.isNotEmpty; // has a user_id = was published
-        final shareUrl = Uri.parse(
-          '$projectUrl/functions/v1/share'
-          '?entry_id=${Uri.encodeComponent(widget.entry.id)}'
-          '&img=${Uri.encodeComponent(imageUrl)}'
-          '&pub=$isPublished',
-        ).toString();
-        await Share.share(
-          shareUrl,
-          subject: widget.entry.title.isEmpty ? 'Sanctuary' : widget.entry.title,
-        );
-      } else {
-        // Fallback: share the raw image file
-        await Share.shareXFiles(
-          [XFile(file.path, mimeType: 'image/png')],
-          subject: widget.entry.title.isEmpty ? 'Sanctuary' : widget.entry.title,
-        );
+      String? shareUrl;
+      try {
+        final imageUrl = await SupabaseService.instance.uploadShareCard(
+            file.path, widget.entry.id);
+        if (imageUrl != null) {
+          const projectUrl = 'https://vjmzileqdrhxiklxqftv.supabase.co';
+          final isPublished = widget.entry.userId.isNotEmpty;
+          shareUrl = Uri.parse(
+            '$projectUrl/functions/v1/share'
+            '?entry_id=${Uri.encodeComponent(widget.entry.id)}'
+            '&img=${Uri.encodeComponent(imageUrl)}'
+            '&pub=$isPublished',
+          ).toString();
+        }
+      } catch (_) {
+        // Upload failed — we still have the local image file to share.
       }
+
+      if (!mounted) return;
+
+      // IMPORTANT: invoke the OS share sheet BEFORE popping this bottom
+      // sheet. Popping first was tearing down the widget right as the
+      // share sheet tried to appear, so it silently never showed up.
+      await Share.shareXFiles(
+        [XFile(file.path, mimeType: 'image/png')],
+        text: shareUrl,
+        subject: widget.entry.title.isEmpty ? 'Sanctuary' : widget.entry.title,
+        sharePositionOrigin: sharePositionOrigin,
+      );
+
+      if (mounted) Navigator.pop(context);
     } catch (e) {
       debugPrint('[SanctuaryShare] $e');
     }

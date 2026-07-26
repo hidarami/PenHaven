@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PenHaven — A quiet sanctuary for your words</title>
+<meta name="description" content="PenHaven is a private writing and journaling app. No streaks, no guilt — just you, and the time of day.">
+<meta property="og:title" content="PenHaven — A quiet sanctuary for your words">
+<meta property="og:description" content="A private writing app that treats your words as complete and valuable on their own.">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --warm-white:#F7F3EE;
+    --warm-dark:#1A1410;
+    --text-light:#1A1410;
+    --text-dark:#F0EBE3;
+    --muted:#8A8178;
+    --aqua:#207BD5;
+    --teal:#7BA591;
+    --divider:rgba(255,255,255,0.08);
+    --card:rgba(255,255,255,0.04);
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:var(--warm-dark);
+    color:var(--text-dark);
+    font-family:'Inter',sans-serif;
+    line-height:1.6;
+    overflow-x:hidden;
+  }
+  h1,h2,h3,.serif{font-family:'Crimson Pro',serif;}
+  a{color:inherit;text-decoration:none;}
+  .container{max-width:1080px;margin:0 auto;padding:0 24px;}
+
+  /* ── Nav ───────────────────────────────────────────────── */
+  nav{
+    position:sticky;top:0;z-index:50;
+    background:rgba(26,20,16,0.72);
+    backdrop-filter:blur(16px);
+    border-bottom:1px solid var(--divider);
+  }
+  nav .container{display:flex;align-items:center;justify-content:space-between;height:64px;}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:18px;letter-spacing:0.3px;}
+  .brand svg{flex-shrink:0;}
+  nav .links{display:flex;gap:28px;font-size:14px;color:var(--muted);}
+  nav .links a:hover{color:var(--text-dark);}
+  .nav-cta{
+    background:rgba(32,123,213,0.14);
+    border:1px solid rgba(32,123,213,0.4);
+    color:#5CA8EF;
+    padding:8px 16px;border-radius:20px;font-size:13px;font-weight:600;
+  }
+
+  /* ── Hero ──────────────────────────────────────────────── */
+  header.hero{
+    position:relative;
+    padding:120px 0 100px;
+    text-align:center;
+    overflow:hidden;
+  }
+  .glow{
+    position:absolute;
+    top:-200px;left:50%;transform:translateX(-50%);
+    width:900px;height:900px;
+    background:radial-gradient(circle, rgba(32,123,213,0.16) 0%, rgba(32,123,213,0) 65%);
+    pointer-events:none;
+  }
+  .eyebrow{
+    display:inline-flex;align-items:center;gap:8px;
+    font-size:12px;letter-spacing:2px;text-transform:uppercase;
+    color:var(--teal);margin-bottom:24px;
+  }
+  .eyebrow::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--teal);}
+  h1.title{
+    font-size:clamp(40px,7vw,72px);
+    font-weight:700;
+    letter-spacing:-1px;
+    line-height:1.05;
+    margin-bottom:22px;
+  }
+  h1.title em{color:var(--aqua);font-style:italic;}
+  .subtitle{
+    max-width:560px;margin:0 auto 44px;
+    font-size:18px;color:var(--muted);
+  }
+  .cta-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-bottom:20px;}
+  .btn{
+    display:inline-flex;align-items:center;gap:10px;
+    padding:15px 28px;border-radius:14px;
+    font-weight:600;font-size:15px;
+    transition:transform .15s ease, background .15s ease;
+  }
+  .btn:hover{transform:translateY(-2px);}
+  .btn-primary{background:var(--aqua);color:#fff;}
+  .btn-primary:hover{background:#3E8FE0;}
+  .btn-secondary{background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:var(--text-dark);}
+  .btn-secondary:hover{background:rgba(255,255,255,0.1);}
+  .fine-print{font-size:12px;color:var(--muted);}
+
+  /* ── Sections ──────────────────────────────────────────── */
+  section{padding:88px 0;}
+  .section-head{text-align:center;max-width:600px;margin:0 auto 56px;}
+  .section-head .eyebrow{margin-bottom:14px;}
+  .section-head h2{font-size:clamp(28px,4vw,40px);margin-bottom:14px;}
+  .section-head p{color:var(--muted);font-size:16px;}
+
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--divider);
+    border-radius:18px;
+    padding:28px;
+  }
+  .card .icon{
+    width:44px;height:44px;border-radius:12px;
+    display:flex;align-items:center;justify-content:center;
+    background:rgba(32,123,213,0.12);
+    margin-bottom:18px;font-size:20px;
+  }
+  .card h3{font-size:18px;margin-bottom:10px;font-family:'Inter',sans-serif;font-weight:600;}
+  .card p{color:var(--muted);font-size:14px;line-height:1.6;}
+
+  /* ── Quote ─────────────────────────────────────────────── */
+  .quote-section{
+    background:rgba(255,255,255,0.03);
+    border-top:1px solid var(--divider);
+    border-bottom:1px solid var(--divider);
+  }
+  blockquote{
+    max-width:760px;margin:0 auto;text-align:center;
+    font-family:'Crimson Pro',serif;
+    font-style:italic;
+    font-size:clamp(20px,3vw,28px);
+    color:var(--text-dark);
+    line-height:1.6;
+  }
+  blockquote .attribution{
+    display:block;margin-top:24px;font-family:'Inter',sans-serif;
+    font-style:normal;font-size:13px;color:var(--muted);letter-spacing:0.5px;
+  }
+
+  /* ── Download ──────────────────────────────────────────── */
+  .download-card{
+    background:linear-gradient(135deg, rgba(32,123,213,0.14), rgba(123,165,145,0.08));
+    border:1px solid rgba(32,123,213,0.3);
+    border-radius:24px;
+    padding:56px 40px;
+    text-align:center;
+  }
+  .platform-row{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:32px;}
+  .platform-card{
+    background:rgba(255,255,255,0.05);
+    border:1px solid var(--divider);
+    border-radius:16px;
+    padding:20px 26px;
+    min-width:220px;
+    text-align:left;
+  }
+  .platform-card .plabel{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+  .platform-card .pname{font-weight:700;font-size:17px;margin-bottom:14px;}
+  .badge-soon{
+    display:inline-block;font-size:11px;padding:4px 10px;border-radius:10px;
+    background:rgba(255,255,255,0.08);color:var(--muted);
+  }
+
+  /* ── Footer ────────────────────────────────────────────── */
+  footer{padding:48px 0 64px;border-top:1px solid var(--divider);}
+  footer .container{display:flex;flex-wrap:wrap;gap:24px;justify-content:space-between;align-items:center;}
+  footer .links{display:flex;gap:24px;font-size:13px;color:var(--muted);flex-wrap:wrap;}
+  footer .links a:hover{color:var(--text-dark);}
+  footer .copy{font-size:13px;color:var(--muted);}
+
+  @media (max-width:640px){
+    nav .links{display:none;}
+    header.hero{padding:90px 0 70px;}
+    .download-card{padding:40px 22px;}
+  }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="container">
+    <div class="brand">
+      <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
+        <circle cx="13" cy="13" r="12" fill="#207BD5" opacity="0.16"/>
+        <path d="M17.5 17.5a7 7 0 1 1 -1.2-11.9 6 6 0 1 0 1.2 11.9Z" fill="#5CA8EF"/>
+      </svg>
+      PenHaven
+    </div>
+    <div class="links">
+      <a href="#features">Features</a>
+      <a href="#philosophy">Philosophy</a>
+      <a href="#download">Download</a>
+    </div>
+    <a href="#download" class="nav-cta">Get the app</a>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="glow"></div>
+  <div class="container">
+    <div class="eyebrow">A private writing sanctuary</div>
+    <h1 class="title">Your words, <em>whole</em><br>whether you share them or not.</h1>
+    <p class="subtitle">PenHaven is a journaling app with no streaks, no guilt, and
+      no judgment — an atmosphere that breathes with the time of day, and a
+      community you can choose to join or completely ignore.</p>
+    <div class="cta-row">
+      <a href="https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest" class="btn btn-primary">
+        ⬇ Download for Android
+      </a>
+      <a href="#features" class="btn btn-secondary">See what's inside</a>
+    </div>
+    <div class="fine-print">Free · Open source · No ads, ever</div>
+  </div>
+</header>
+
+<section id="features">
+  <div class="container">
+    <div class="section-head">
+      <div class="eyebrow">Features</div>
+      <h2>Built to feel like a place, not a tool.</h2>
+      <p>Every part of PenHaven exists to protect the feeling of sitting down
+        to write without pressure.</p>
+    </div>
+    <div class="grid">
+      <div class="card">
+        <div class="icon">✍️</div>
+        <h3>Editorial writing space</h3>
+        <p>A block-based editor with rich formatting, inline images, embeds,
+          and a reading font you can make your own.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🌗</div>
+        <h3>Living atmosphere</h3>
+        <p>Backgrounds and lighting shift with real time-of-day and weather —
+          golden 3PM light, midnight ink, rainy mornings.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🕊️</div>
+        <h3>The Sanctuary</h3>
+        <p>Share entries publicly or anonymously, and read reflections from
+          other writers — entirely optional, never algorithmic.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🕰️</div>
+        <h3>The Mercy Rule</h3>
+        <p>Nothing turns red. Unfinished to-dos quietly fade instead of
+          nagging — the app trusts you to know your own life.</p>
+      </div>
+      <div class="card">
+        <div class="icon">🔒</div>
+        <h3>Private by default</h3>
+        <p>Fully offline-first with an optional PIN + biometric lock. Cloud
+          sync only if you choose to sign in.</p>
+      </div>
+      <div class="card">
+        <div class="icon">📤</div>
+        <h3>Export anywhere</h3>
+        <p>Turn any entry into a PDF, plain text, or a beautifully designed
+          shareable card.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="quote-section" id="philosophy">
+  <div class="container">
+    <blockquote>
+      "A writer opens Flow at 11PM after a hard day and writes for an hour.
+      They do not publish. They do not share. They close the app. They feel
+      better. That is a successful product."
+      <span class="attribution">— FROM THE PENHAVEN VISION DOCUMENT</span>
+    </blockquote>
+  </div>
+</section>
+
+<section id="download">
+  <div class="container">
+    <div class="download-card">
+      <div class="eyebrow" style="justify-content:center;display:flex;">Ready when you are</div>
+      <h2 style="font-size:clamp(26px,4vw,36px);margin-bottom:12px;">Download PenHaven</h2>
+      <p style="color:var(--muted);max-width:480px;margin:0 auto;">
+        Free to download, no account required to start writing.
+      </p>
+      <div class="platform-row">
+        <div class="platform-card">
+          <div class="plabel">Android</div>
+          <div class="pname">Direct APK download</div>
+          <a href="https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest" class="btn btn-primary" style="width:100%;justify-content:center;">
+            ⬇ Download APK
+          </a>
+        </div>
+        <div class="platform-card">
+          <div class="plabel">iOS</div>
+          <div class="pname">App Store</div>
+          <span class="badge-soon">Coming soon</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="copy">© 2026 PenHaven. Made for the 3PM light you almost missed.</div>
+    <div class="links">
+      <a href="https://github.com/YOUR_USERNAME/YOUR_REPO">GitHub</a>
+      <a href="../PRIVACY.md">Privacy Policy</a>
+      <a href="https://github.com/YOUR_USERNAME/YOUR_REPO/blob/main/CHANGELOG.md">Changelog</a>
+      <a href="https://github.com/YOUR_USERNAME/YOUR_REPO/issues">Support</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

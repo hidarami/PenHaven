@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -20,8 +20,6 @@ import '../theme/app_colors.dart';
 class ImageService {
   ImageService._();
   static final ImageService instance = ImageService._();
-
-  final ImagePicker _picker = ImagePicker();
 
   static const String _folderName = 'flow_images';
 
@@ -58,17 +56,24 @@ class ImageService {
     double? cropAspectRatioX,
     double? cropAspectRatioY,
   }) async {
-    // 1. Pick from gallery
-    final XFile? picked = await _picker.pickImage(
-      source: ImageSource.gallery,
-      imageQuality: 85, // Compress on import
-      maxWidth: 2048,
-      maxHeight: 2048,
+    // 1. Pick from gallery via AssetPicker (wechat_assets_picker), themed
+    // to match Flow's own accent color for a consistent, branded feel.
+    final List<AssetEntity>? picked = await AssetPicker.pickAssets(
+      context,
+      pickerConfig: AssetPickerConfig(
+        maxAssets: 1,
+        requestType: RequestType.image,
+        pickerTheme: AssetPicker.themeData(AppColors.aqua),
+      ),
     );
-    if (picked == null) return null;
+    if (picked == null || picked.isEmpty) return null;
+    if (!context.mounted) return null;
+
+    final File? originFile = await picked.first.originFile;
+    if (originFile == null) return null;
 
     // 2. Crop (user can freely adjust or just confirm)
-    String sourcePath = picked.path;
+    String sourcePath = originFile.path;
     if (allowCrop) {
       final cropped = await _crop(
         context: context,

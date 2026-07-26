@@ -201,7 +201,7 @@ class EditorState extends ChangeNotifier {
     _milestoneWords = words;
     _showMilestone = true;
     notifyListeners();
-    Timer(const Duration(seconds: 3500 ~/ 1000), () {
+    Timer(const Duration(milliseconds: 3500), () {
       _showMilestone = false;
       notifyListeners();
     });

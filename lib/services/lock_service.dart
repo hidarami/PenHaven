@@ -1,47 +1,74 @@
 import 'dart:convert';
+import 'dart:math';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// LOCK SERVICE
+// PIN + biometric app lock. PINs and recovery codes are stored as salted
+// SHA-256 hashes — never in a reversible form — so nothing readable ever
+// touches disk even if SharedPreferences is extracted from the device.
+// ─────────────────────────────────────────────────────────────────────────────
+
 class LockService {
   LockService._();
   static final LockService instance = LockService._();
 
-  static const _kPin = 'flow_lock_pin';
-  static const _kRecovery = 'flow_lock_recovery';
+  static const _kPinHash = 'flow_lock_pin_hash_v2';
+  static const _kSalt = 'flow_lock_salt_v2';
+  static const _kRecoveryHash = 'flow_lock_recovery_hash_v2';
   static const _kBiometric = 'flow_lock_biometric';
 
   final LocalAuthentication _localAuth = LocalAuthentication();
 
   Future<bool> hasPin() async {
     final p = await SharedPreferences.getInstance();
-    return p.containsKey(_kPin);
+    return p.containsKey(_kPinHash);
   }
 
-  /// Stores PIN and returns a 6-digit recovery code (e.g. "384-917").
+  String _newSalt() {
+    final rnd = Random.secure();
+    final bytes = List<int>.generate(16, (_) => rnd.nextInt(256));
+    return base64UrlEncode(bytes);
+  }
+
+  String _hash(String value, String salt) {
+    return sha256.convert(utf8.encode('$salt::$value')).toString();
+  }
+
+  /// Stores PIN (salted + hashed) and returns a 6-digit recovery code (e.g. "384-917").
   Future<String> setupPin(String pin) async {
     final p = await SharedPreferences.getInstance();
-    await p.setString(_kPin, _encode(pin));
+    final salt = _newSalt();
+    await p.setString(_kSalt, salt);
+    await p.setString(_kPinHash, _hash(pin, salt));
     final code = _makeCode();
-    await p.setString(_kRecovery, _encode(code));
+    await p.setString(_kRecoveryHash, _hash(code.trim().toUpperCase(), salt));
     return code;
   }
 
   Future<bool> verifyPin(String pin) async {
     final p = await SharedPreferences.getInstance();
-    return p.getString(_kPin) == _encode(pin);
+    final salt = p.getString(_kSalt);
+    if (salt == null) return false;
+    return p.getString(_kPinHash) == _hash(pin, salt);
   }
 
   Future<bool> verifyRecovery(String code) async {
     final p = await SharedPreferences.getInstance();
-    return p.getString(_kRecovery) == _encode(code.trim().toUpperCase());
+    final salt = p.getString(_kSalt);
+    if (salt == null) return false;
+    return p.getString(_kRecoveryHash) == _hash(code.trim().toUpperCase(), salt);
   }
 
   Future<void> removePin() async {
     final p = await SharedPreferences.getInstance();
-    await p.remove(_kPin);
-    await p.remove(_kRecovery);
+    await p.remove(_kPinHash);
+    await p.remove(_kRecoveryHash);
+    await p.remove(_kSalt);
     await p.remove(_kBiometric);
   }
 
@@ -79,7 +106,6 @@ class LockService {
     } on PlatformException catch (e) {
       debugPrint(
           '[LockService] Biometric auth failed: ${e.code} - ${e.message}');
-      // Log specific error codes for debugging
       if (e.code == 'NotAvailable') {
         debugPrint('[LockService] Biometric hardware not available');
       } else if (e.code == 'NotEnrolled') {
@@ -96,10 +122,9 @@ class LockService {
     }
   }
 
-  String _encode(String v) => base64Encode(utf8.encode('flow🔒$v⚓'));
-
   String _makeCode() {
-    final n = (DateTime.now().microsecondsSinceEpoch % 900000) + 100000;
+    final rnd = Random.secure();
+    final n = 100000 + rnd.nextInt(900000); // 100000–999999, always 6 digits
     final s = n.toString();
     return '${s.substring(0, 3)}-${s.substring(3)}';
   }
