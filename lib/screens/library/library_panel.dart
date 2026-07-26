@@ -13,6 +13,7 @@ import '../../providers/community_state.dart';
 import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import '../community/reflection_viewer.dart' show ReflectionViewer;
+import '../community/public_profile_modal.dart';
 import '../../theme/app_typography.dart';
 import '../../widgets/shared_widgets.dart';
 import 'library_empty_state.dart';
@@ -545,22 +546,37 @@ class _ReceivedReflectionCard extends StatelessWidget {
                       selfImg != null &&
                       selfImg.isNotEmpty &&
                       File(selfImg).existsSync();
+
+                  Widget avatar;
                   if (hasSelfImg) {
-                    return ClipOval(
+                    avatar = ClipOval(
                       child: Image.file(File(selfImg!),
                           width: 18, height: 18, fit: BoxFit.cover),
                     );
+                  } else {
+                    final otherUrl = item['profile_image_url'] as String?;
+                    if (!isSelf && otherUrl != null && otherUrl.isNotEmpty) {
+                      avatar = ClipOval(
+                        child: Image.network(otherUrl,
+                            width: 18, height: 18, fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                _LibraryAvatarCircle(name: author, size: 18)),
+                      );
+                    } else {
+                      avatar = _LibraryAvatarCircle(name: author, size: 18);
+                    }
                   }
-                  final otherUrl = item['profile_image_url'] as String?;
-                  if (!isSelf && otherUrl != null && otherUrl.isNotEmpty) {
-                    return ClipOval(
-                      child: Image.network(otherUrl,
-                          width: 18, height: 18, fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              _LibraryAvatarCircle(name: author, size: 18)),
-                    );
-                  }
-                  return _LibraryAvatarCircle(name: author, size: 18);
+
+                  return GestureDetector(
+                    onTap: (rawUserId != null && !isAnon)
+                        ? () => PublicProfileModal.show(
+                              context,
+                              userId: rawUserId.toString(),
+                              displayName: author,
+                            )
+                        : null,
+                    child: avatar,
+                  );
                 }),
                 const SizedBox(width: 6),
                 Flexible(

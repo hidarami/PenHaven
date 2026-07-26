@@ -1250,11 +1250,20 @@ class _CommentCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _AvatarCircle(
-              name: comment.authorLabel,
-              size: 30,
-              imagePath: currentUserImagePath,
-              imageUrl: currentUserImagePath == null ? comment.profileImagePath : null,
+            GestureDetector(
+              onTap: !comment.isAnonymous
+                  ? () => PublicProfileModal.show(
+                        context,
+                        userId: comment.userId,
+                        displayName: comment.authorLabel,
+                      )
+                  : null,
+              child: _AvatarCircle(
+                name: comment.authorLabel,
+                size: 30,
+                imagePath: currentUserImagePath,
+                imageUrl: currentUserImagePath == null ? comment.profileImagePath : null,
+              ),
             ),
             const SizedBox(width: 12),
             Expanded(

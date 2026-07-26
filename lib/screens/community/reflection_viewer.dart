@@ -25,6 +25,7 @@ import 'community_entry_viewer.dart'
 import 'reflection_editor_screen.dart';
 import 'write_back_sheet.dart';
 import '../../models/reflection.dart';
+import 'public_profile_modal.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // REFLECTION VIEWER
@@ -297,39 +298,48 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                   // ── Author row ──────────────────────────────────────
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
-                    child: Row(
-                      children: [
-                        _AvatarCircle(
-                          name: _reflection.authorLabel,
-                          size: 36,
-                          imagePath: (_reflection.userId ==
-                                  SupabaseService.instance.userId)
-                              ? context.watch<CommunityState>().profileImagePath
-                              : null,
-                          imageUrl: (_reflection.userId ==
-                                  SupabaseService.instance.userId)
-                              ? null
-                              : _reflection.authorImageUrl,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(_reflection.authorLabel,
-                                  style: GoogleFonts.inter(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: textColor)),
-                              Text(
-                                '${_readTime(_reflection.content)}  ·  ${_formatDate(_reflection.createdAt)}',
-                                style: GoogleFonts.inter(
-                                    fontSize: 12, color: mutedColor),
-                              ),
-                            ],
+                    child: GestureDetector(
+                      onTap: !_reflection.isAnonymous
+                          ? () => PublicProfileModal.show(
+                                context,
+                                userId: _reflection.userId,
+                                displayName: _reflection.authorLabel,
+                              )
+                          : null,
+                      child: Row(
+                        children: [
+                          _AvatarCircle(
+                            name: _reflection.authorLabel,
+                            size: 36,
+                            imagePath: (_reflection.userId ==
+                                    SupabaseService.instance.userId)
+                                ? context.watch<CommunityState>().profileImagePath
+                                : null,
+                            imageUrl: (_reflection.userId ==
+                                    SupabaseService.instance.userId)
+                                ? null
+                                : _reflection.authorImageUrl,
                           ),
-                        ),
-                      ],
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(_reflection.authorLabel,
+                                    style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                        color: textColor)),
+                                Text(
+                                  '${_readTime(_reflection.content)}  ·  ${_formatDate(_reflection.createdAt)}',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 12, color: mutedColor),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
 
@@ -650,11 +660,18 @@ class _ReplyCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 14),
       child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        _AvatarCircle(
-          name: reply.authorLabel,
-          size: 28,
-          imagePath: isSelf ? context.watch<CommunityState>().profileImagePath : null,
-          imageUrl: isSelf ? null : reply.profileImagePath,
+        GestureDetector(
+          onTap: () => PublicProfileModal.show(
+            context,
+            userId: reply.userId,
+            displayName: reply.authorLabel,
+          ),
+          child: _AvatarCircle(
+            name: reply.authorLabel,
+            size: 28,
+            imagePath: isSelf ? context.watch<CommunityState>().profileImagePath : null,
+            imageUrl: isSelf ? null : reply.profileImagePath,
+          ),
         ),
         const SizedBox(width: 10),
         Expanded(
