@@ -758,6 +758,20 @@ void _openWriteBack() {
                               '[CommunityEntryViewer] reflection parse: $e');
                         }
                       },
+                      onRespondToReflection: (reflectionId) {
+                        // Navigate to ReflectionViewer with respond open
+                        final reflection = Reflection.fromMap(
+                          _reflections.firstWhere((r) => r['id'] == reflectionId),
+                        );
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => ReflectionViewer(
+                              reflection: reflection,
+                              originEntry: _entry,
+                            ),
+                          ),
+                        );
+                      },
                     ),
 
                   // Reply/respond section — only for write backs
@@ -2123,6 +2137,7 @@ class _ReflectionsFeedSection extends StatelessWidget {
   final Color textColor;
   final Color mutedColor;
   final void Function(dynamic) onTapReflection;
+  final void Function(String)? onRespondToReflection;
 
   const _ReflectionsFeedSection({
     required this.reflections,
@@ -2131,6 +2146,7 @@ class _ReflectionsFeedSection extends StatelessWidget {
     required this.textColor,
     required this.mutedColor,
     required this.onTapReflection,
+    this.onRespondToReflection,
   });
 
   @override
