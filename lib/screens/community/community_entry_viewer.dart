@@ -2503,23 +2503,26 @@ class _CommunityRespondSection extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           if (loading)
-            const Center(child: CircularProgressIndicator())
-          else if (replies.isEmpty)
-            Text('No responses yet.',
-                style: GoogleFonts.crimsonPro(
-                    fontSize: 15,
-                    fontStyle: FontStyle.italic,
-                    color: mutedColor))
-          else
-            ...replies.map((r) => _CommentCard(
-                  comment: r,
-                  isDark: isDark,
-                  textColor: textColor,
-                  mutedColor: mutedColor,
-                )),
-          const SizedBox(height: 24),
-        ],
-      ),
+          const Center(child: CircularProgressIndicator())
+        else if (replies.isEmpty)
+          Text('No responses yet.',
+              style: GoogleFonts.crimsonPro(
+                  fontSize: 15, fontStyle: FontStyle.italic, color: mutedColor))
+        else
+          ...replies.map((r) {
+            final isSelf = r.userId == SupabaseService.instance.userId;
+            return _CommentCard(
+              comment: r,
+              isDark: isDark,
+              textColor: textColor,
+              mutedColor: mutedColor,
+              currentUserImagePath: isSelf
+                  ? context.read<CommunityState>().profileImagePath
+                  : null,
+            );
+          }),
+        const SizedBox(height: 24),
+      ]),
     );
   }
 }

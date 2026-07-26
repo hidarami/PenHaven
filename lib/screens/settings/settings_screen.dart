@@ -96,6 +96,34 @@ class SettingsScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
+              // ── SANCTUARY ────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  label: 'SANCTUARY',
+                  isDark: isDark,
+                  bg: bg,
+                  children: [
+                    SettingsToggleTile(
+                      icon: Icons.nightlight_rounded,
+                      label: appState.isSanctuaryEnabled
+                          ? 'Sanctuary · On'
+                          : 'Sanctuary · Off',
+                      description: appState.isSanctuaryEnabled
+                          ? 'The community space is visible. Your published entries appear in the feed.'
+                          : 'The community space is hidden. Your entries are frozen from public view.',
+                      value: appState.isSanctuaryEnabled,
+                      isDark: isDark,
+                      bg: bg,
+                      onChanged: (v) => v
+                          ? appState.setSanctuaryEnabled(true)
+                          : _confirmDisableSanctuary(context, appState),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
               // ── HELP ─────────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: SettingsSection(
@@ -134,6 +162,36 @@ class SettingsScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _confirmDisableSanctuary(BuildContext context, AppState appState) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Turn off Sanctuary?'),
+        content: const Text(
+          'This hides the community space entirely — the Sanctuary panel and '
+          'the Reflections tab in your Library will disappear, and your '
+          'published entries and reflections will be removed from the public '
+          'feed.\n\nNothing is deleted. Turn Sanctuary back on any time and '
+          'everything reappears exactly as it was.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              appState.setSanctuaryEnabled(false);
+            },
+            child: const Text('Turn Off',
+                style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
       ),
     );
   }

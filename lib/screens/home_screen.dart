@@ -20,6 +20,7 @@ import 'community/community_panel.dart';
 import 'menu/menu_panel.dart';
 import 'home_persistent_ui.dart';
 import 'lock_screen.dart';
+import '../widgets/tutorial_overlay.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOME SCREEN
@@ -41,6 +42,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   late final PageController _pageController;
   Timer? _lockTimer;
+  bool _showTutorial = false;
 
   @override
   void initState() {
@@ -53,6 +55,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AppState>().runMercyArchive();
       _checkPendingLock();
+      if (!context.read<AppState>().hasSeenNavTutorial) {
+        setState(() => _showTutorial = true);
+      }
     });
   }
 
@@ -245,61 +250,62 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   ),
                 ),
               ),
-              const SizedBox(height: 10),
+              if (context.read<AppState>().isSanctuaryEnabled) ...[
+                const SizedBox(height: 10),
 
-              // Community
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                  Navigator.of(context).push(MaterialPageRoute(
-                      builder: (_) => const CommunitySearchScreen()));
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: dark
-                        ? Colors.white.withOpacity(0.05)
-                        : Colors.black.withOpacity(0.03),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: mutedColor.withOpacity(0.12)),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: AppColors.aqua.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(10),
+                // Community
+                GestureDetector(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => const CommunitySearchScreen()));
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: dark
+                          ? Colors.white.withOpacity(0.05)
+                          : Colors.black.withOpacity(0.03),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                          color: mutedColor.withOpacity(0.12)),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: AppColors.aqua.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.people_outline_rounded,
+                              color: AppColors.aqua, size: 20),
                         ),
-                        child: const Icon(Icons.people_outline_rounded,
-                            color: AppColors.aqua, size: 20),
-                      ),
-                      const SizedBox(width: 14),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Community',
-                                style: GoogleFonts.inter(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: textColor)),
-                            Text(
-                                'Search all published entries from writers',
-                                style: GoogleFonts.inter(
-                                    fontSize: 12, color: mutedColor)),
-                          ],
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Community',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w600,
+                                      color: textColor)),
+                              Text(
+                                  'Search all published entries from writers',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 12, color: mutedColor)),
+                            ],
+                          ),
                         ),
-                      ),
-                      Icon(Icons.chevron_right_rounded,
-                          color: mutedColor.withOpacity(0.5), size: 18),
-                    ],
+                        Icon(Icons.chevron_right_rounded,
+                            color: mutedColor.withOpacity(0.5), size: 18),
+                      ],
+                    ),
                   ),
-                ),
-              ),
-            ],
+                )],
+              ],
           ),
         ),
       ),
@@ -322,15 +328,20 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
       body: AtmosphereBackground(
         child: Stack(
           children: [
-            // ── Three-panel PageView ────────────────────────────────────────
+            // ── Panel PageView — 3 panels when Sanctuary is on, 2 when off ──
             PageView(
               controller: _pageController,
               physics: const BouncingScrollPhysics(),
-              children: [
-                const LibraryPanel(), // Panel 0 — leftmost
-                const StoryPanel(), // Panel 1 — HOME (default)
-                const CommunityPanel(), // Panel 2 — rightmost
-              ],
+              children: appState.isSanctuaryEnabled
+                  ? const [
+                      LibraryPanel(), // Panel 0 — leftmost
+                      StoryPanel(), // Panel 1 — HOME (default)
+                      CommunityPanel(), // Panel 2 — rightmost
+                    ]
+                  : const [
+                      LibraryPanel(), // Panel 0 — leftmost
+                      StoryPanel(), // Panel 1 — HOME (default)
+                    ],
             ),
 
             // ── Atmosphere visual overlay (glow painters) ──────────────────
@@ -345,6 +356,15 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             // ── Persistent UI: Sun/Moon + Search + Menu button ─────────────
             HomePersistentUI(
                 onMenuTap: _openMenu, onSearchTap: _openSearch),
+
+            // ── First-time navigation tutorial ──────────────────────────────
+            if (_showTutorial)
+              NavTutorialOverlay(
+                onDone: () {
+                  context.read<AppState>().markNavTutorialSeen();
+                  setState(() => _showTutorial = false);
+                },
+              ),
           ],
         ),
       ),

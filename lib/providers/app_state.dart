@@ -25,7 +25,9 @@ class AppState extends ChangeNotifier {
   bool _isDarkMode = false;
   bool _isBiometricEnabled = false;
   bool _hasSeenOnboarding = false;
+  bool _hasSeenNavTutorial = false;
   bool _isConfettiEnabled = true;
+  bool _isSanctuaryEnabled = true;
   String _preferredFont = 'crimsonPro';
 
   bool get isDarkMode => _storyThemeOverride == 'dark'
@@ -35,7 +37,9 @@ class AppState extends ChangeNotifier {
           : _isDarkMode;
   bool get isBiometricEnabled => _isBiometricEnabled;
   bool get hasSeenOnboarding => _hasSeenOnboarding;
+  bool get hasSeenNavTutorial => _hasSeenNavTutorial;
   bool get isConfettiEnabled => _isConfettiEnabled;
+  bool get isSanctuaryEnabled => _isSanctuaryEnabled;
   String get preferredFont => _preferredFont;
 
   // ── Stories ───────────────────────────────────────────────────────────────
@@ -119,7 +123,9 @@ class AppState extends ChangeNotifier {
     _isDarkMode = prefs.getBool('isDarkMode') ?? false;
     _isBiometricEnabled = prefs.getBool('isBiometricEnabled') ?? false;
     _hasSeenOnboarding = prefs.getBool('hasSeenOnboarding') ?? false;
+    _hasSeenNavTutorial = prefs.getBool('hasSeenNavTutorial') ?? false;
     _isConfettiEnabled = prefs.getBool('isConfettiEnabled') ?? true;
+    _isSanctuaryEnabled = prefs.getBool('isSanctuaryEnabled') ?? true;
     _isLocked = prefs.getBool('isLocked') ?? false;
     _preferredFont = prefs.getString('preferredFont') ?? 'crimsonPro';
   }
@@ -149,6 +155,24 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('hasSeenOnboarding', false);
+  }
+
+  Future<void> markNavTutorialSeen() async {
+    _hasSeenNavTutorial = true;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('hasSeenNavTutorial', true);
+  }
+
+  /// Toggling this off "freezes" the user's community presence: their
+  /// published entries and reflections are hidden (not deleted) from the
+  /// Sanctuary feed. Toggling back on restores everything automatically.
+  Future<void> setSanctuaryEnabled(bool value) async {
+    _isSanctuaryEnabled = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isSanctuaryEnabled', value);
+    await SupabaseService.instance.setSanctuaryVisibility(value);
   }
 
   Future<void> setConfetti(bool value) async {
@@ -388,6 +412,7 @@ class AppState extends ChangeNotifier {
     await TodoDao.instance.insert(todo);
     _activeTodos.add(todo);
     if (deadline != null) {
+      await NotificationService.instance.requestPermission();
       NotificationService.instance.scheduleTaskDeadline(
         taskId: todo.id,
         title: title,

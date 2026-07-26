@@ -357,6 +357,7 @@ class SupabaseService {
       final response = await _client
           ?.from('published_entries')
           .select()
+          .eq('is_hidden', false)
           .order('created_at', ascending: false)
           .range(from, to);
       if (response == null) return [];
@@ -665,6 +666,25 @@ class SupabaseService {
     }
   }
 
+  /// Hides (or restores) every published entry and write back belonging to
+  /// this user, without deleting anything. Used by the Sanctuary on/off
+  /// toggle in Settings — turning it back on undoes this completely.
+  Future<void> setSanctuaryVisibility(bool visible) async {
+    if (!isAuthenticated) return;
+    try {
+      await _client
+          ?.from('published_entries')
+          .update({'is_hidden': !visible})
+          .eq('user_id', userId!);
+      await _client
+          ?.from('write_backs')
+          .update({'is_hidden': !visible})
+          .eq('user_id', userId!);
+    } catch (e) {
+      debugPrint('[Supabase] setSanctuaryVisibility: $e');
+    }
+  }
+
   /// Records a unique view for [entryId] by the current user.
   /// Requires in Supabase SQL editor:
   /// CREATE TABLE community_views (
@@ -839,6 +859,7 @@ class SupabaseService {
           .select()
           .eq('origin_entry_id', originEntryId)
           .eq('is_private', false)
+          .eq('is_hidden', false)
           .order('created_at', ascending: false);
       if (response == null) return [];
       return List<Map<String, dynamic>>.from(response as List);

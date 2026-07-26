@@ -10,13 +10,14 @@ import 'home_screen.dart';
 import 'onboarding/onboarding_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SPLASH SCREEN — Liquid "Flow" water animation
+// SPLASH SCREEN — "A Haven" liquid-light animation
 // Sequence:
-//   1. Background fades in
-//   2. Ghost outline of "Flow" appears
-//   3. Teal water rises from bottom with wave, filling the letters
-//   4. "your sanctuary" fades in once text is ~90% full
-//   5. Brief hold → crossfade to HomeScreen
+//   1. Warm ambient glow breathes in behind everything
+//   2. Ghost outline of "PenHaven" appears
+//   3. Teal water rises with a wave, filling the letters
+//   4. Softly drifting light particles (like dust motes settling in a room)
+//   5. "a haven for your words" fades in with a gentle upward drift
+//   6. Brief hold → crossfade to HomeScreen / Onboarding
 // ─────────────────────────────────────────────────────────────────────────────
 
 class SplashScreen extends StatefulWidget {
@@ -28,24 +29,27 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  // Background fade-in
   late final AnimationController _bgCtrl;
   late final Animation<double> _bgFade;
 
-  // Water fill: 0.0 → 1.0
+  late final AnimationController _glowCtrl; // breathing ambient glow, loops
+
   late final AnimationController _fillCtrl;
   late final Animation<double> _fillAnim;
 
-  // Continuous wave oscillation
   late final AnimationController _waveCtrl;
 
-  // Subtitle fade-in
+  late final AnimationController _particleCtrl;
+
   late final AnimationController _subCtrl;
   late final Animation<double> _subFade;
+  late final Animation<Offset> _subSlide;
 
-  // Exit fade-out
   late final AnimationController _exitCtrl;
   late final Animation<double> _exitFade;
+
+  final List<_Particle> _particles =
+      List.generate(16, (i) => _Particle.random(math.Random(i * 7919)));
 
   bool _disposed = false;
 
@@ -54,35 +58,38 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
 
     _bgCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 700),
-    );
+        vsync: this, duration: const Duration(milliseconds: 900));
     _bgFade = CurvedAnimation(parent: _bgCtrl, curve: Curves.easeIn);
 
-    _fillCtrl = AnimationController(
+    _glowCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 5000),
-    );
-    _fillAnim = CurvedAnimation(parent: _fillCtrl, curve: Curves.easeInOut);
+      duration: const Duration(milliseconds: 3600),
+    )..repeat(reverse: true);
+
+    _fillCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 5200));
+    _fillAnim = CurvedAnimation(parent: _fillCtrl, curve: Curves.easeInOutCubic);
 
     _waveCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1300),
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+
+    _particleCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 6),
     )..repeat();
 
     _subCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 800),
-    );
-    _subFade = CurvedAnimation(parent: _subCtrl, curve: Curves.easeIn);
+        vsync: this, duration: const Duration(milliseconds: 900));
+    _subFade = CurvedAnimation(parent: _subCtrl, curve: Curves.easeOut);
+    _subSlide = Tween<Offset>(begin: const Offset(0, 0.25), end: Offset.zero)
+        .animate(CurvedAnimation(parent: _subCtrl, curve: Curves.easeOutCubic));
 
     _exitCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
+        vsync: this, duration: const Duration(milliseconds: 550));
     _exitFade = CurvedAnimation(parent: _exitCtrl, curve: Curves.easeIn);
 
-    // Use addPostFrameCallback so context is ready before reading providers
     WidgetsBinding.instance.addPostFrameCallback((_) => _runSequence());
   }
 
@@ -92,35 +99,31 @@ class _SplashScreenState extends State<SplashScreen>
     final appState = context.read<AppState>();
     final atmosphereState = context.read<AtmosphereState>();
 
-    // Kick off data loading in parallel with animation
     final loadFuture = appState.init();
     atmosphereState.init();
 
-    // Phase 1: Background fades in immediately
     _bgCtrl.forward();
 
-    // Phase 2: Water fill starts after brief pause (ghost text visible first)
-    await Future.delayed(const Duration(milliseconds: 380));
+    await Future.delayed(const Duration(milliseconds: 420));
     if (_disposed || !mounted) return;
     _fillCtrl.forward();
 
-    // Phase 3: Subtitle appears when fill reaches ~85%
-    await Future.delayed(const Duration(milliseconds: 3800));
+    await Future.delayed(const Duration(milliseconds: 4000));
     if (_disposed || !mounted) return;
     _subCtrl.forward();
 
-    // Phase 4: Wait for data load + minimum splash time
     await Future.wait([
       loadFuture,
-      Future.delayed(const Duration(milliseconds: 700)),
+      Future.delayed(const Duration(milliseconds: 750)),
     ]);
     if (_disposed || !mounted) return;
 
-    // Phase 5: Exit
     _waveCtrl.stop();
+    _glowCtrl.stop();
+    _particleCtrl.stop();
     _exitCtrl.forward();
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    await Future.delayed(const Duration(milliseconds: 550));
     if (_disposed || !mounted) return;
 
     final goHome = appState.hasSeenOnboarding;
@@ -130,7 +133,7 @@ class _SplashScreenState extends State<SplashScreen>
             goHome ? const HomeScreen() : const OnboardingScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
-        transitionDuration: const Duration(milliseconds: 500),
+        transitionDuration: const Duration(milliseconds: 550),
       ),
     );
   }
@@ -139,8 +142,10 @@ class _SplashScreenState extends State<SplashScreen>
   void dispose() {
     _disposed = true;
     _bgCtrl.dispose();
+    _glowCtrl.dispose();
     _fillCtrl.dispose();
     _waveCtrl.dispose();
+    _particleCtrl.dispose();
     _subCtrl.dispose();
     _exitCtrl.dispose();
     super.dispose();
@@ -155,8 +160,10 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       backgroundColor: bg,
       body: AnimatedBuilder(
-        animation: Listenable.merge(
-            [_bgFade, _fillAnim, _waveCtrl, _subFade, _exitFade]),
+        animation: Listenable.merge([
+          _bgFade, _fillAnim, _waveCtrl, _glowCtrl, _particleCtrl,
+          _subFade, _exitFade,
+        ]),
         builder: (context, _) {
           final wavePhase = _waveCtrl.value * math.pi * 2;
           final fillProgress = _fillAnim.value;
@@ -165,34 +172,66 @@ class _SplashScreenState extends State<SplashScreen>
             opacity: (1.0 - _exitFade.value).clamp(0.0, 1.0),
             child: FadeTransition(
               opacity: _bgFade,
-              child: Center(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // ── Liquid "Flow" text ─────────────────────────────
-                    _LiquidFlowText(
-                      fillProgress: fillProgress,
-                      wavePhase: wavePhase,
-                      textColor: textColor,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  // ── Ambient breathing glow ─────────────────────────────
+                  CustomPaint(
+                    painter: _HavenGlowPainter(
+                      pulse: _glowCtrl.value,
+                      isDark: dark,
                     ),
+                  ),
 
-                    const SizedBox(height: 18),
+                  // ── Drifting particles (settled dust / warmth) ─────────
+                  CustomPaint(
+                    painter: _ParticleFieldPainter(
+                      particles: _particles,
+                      time: _particleCtrl.value,
+                      isDark: dark,
+                    ),
+                  ),
 
-                    // ── "your sanctuary" subtitle ──────────────────────
-                    FadeTransition(
-                      opacity: _subFade,
-                      child: Text(
-                        'your sanctuary',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: textColor.withOpacity(0.36),
-                          letterSpacing: 3.5,
-                          fontWeight: FontWeight.w400,
+                  // ── Centerpiece ─────────────────────────────────────────
+                  Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _LiquidHavenText(
+                          fillProgress: fillProgress,
+                          wavePhase: wavePhase,
+                          textColor: textColor,
                         ),
-                      ),
+                        const SizedBox(height: 16),
+                        SlideTransition(
+                          position: _subSlide,
+                          child: FadeTransition(
+                            opacity: _subFade,
+                            child: Column(
+                              children: [
+                                Container(
+                                  width: 28,
+                                  height: 1,
+                                  color: textColor.withOpacity(0.25),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  'a haven for your words',
+                                  style: GoogleFonts.crimsonPro(
+                                    fontSize: 13,
+                                    fontStyle: FontStyle.italic,
+                                    color: textColor.withOpacity(0.42),
+                                    letterSpacing: 1.4,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
           );
@@ -203,29 +242,25 @@ class _SplashScreenState extends State<SplashScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// LIQUID FLOW TEXT
-// Two layers:
-//   1. Ghost "Flow" at 10% opacity — gives the sense of waiting to be filled
-//   2. ClipPath rising wave reveals teal "Flow" beneath
-// Both Text widgets use the same style so they overlay perfectly.
+// LIQUID "PenHaven" TEXT
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _LiquidFlowText extends StatelessWidget {
+class _LiquidHavenText extends StatelessWidget {
   final double fillProgress;
   final double wavePhase;
   final Color textColor;
 
-  const _LiquidFlowText({
+  const _LiquidHavenText({
     required this.fillProgress,
     required this.wavePhase,
     required this.textColor,
   });
 
   TextStyle _style(Color color) => GoogleFonts.crimsonPro(
-        fontSize: 56,
+        fontSize: 52,
         fontWeight: FontWeight.w300,
         color: color,
-        letterSpacing: 6,
+        letterSpacing: 5,
       );
 
   @override
@@ -233,76 +268,50 @@ class _LiquidFlowText extends StatelessWidget {
     return Stack(
       alignment: Alignment.center,
       children: [
-        // Layer 1: Ghost text — always visible at low opacity
         Opacity(
           opacity: 0.10,
           child: Text('PenHaven', style: _style(textColor)),
         ),
-
-        // Layer 2: Teal water fill, clipped by rising wave
         ClipPath(
           clipper: _WaveRiseClipper(
-            fillProgress: fillProgress,
-            wavePhase: wavePhase,
-          ),
-          // Solid aqua fill — full opacity version of the app's accent blue
+              fillProgress: fillProgress, wavePhase: wavePhase),
           child: Text('PenHaven', style: _style(const Color(0xFF207BD5))),
         ),
-
-        // Layer 3: Faint water shimmer line at the wave surface
         if (fillProgress > 0.02 && fillProgress < 0.99)
-          _WaveSurface(
-            fillProgress: fillProgress,
-            wavePhase: wavePhase,
-          ),
+          _WaveSurface(fillProgress: fillProgress, wavePhase: wavePhase),
       ],
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WAVE RISE CLIPPER
-// Returns a path covering the region BELOW the animated wave.
-// ClipPath shows only what's inside = only the bottom [fillProgress] of text.
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _WaveRiseClipper extends CustomClipper<Path> {
   final double fillProgress;
   final double wavePhase;
 
-  const _WaveRiseClipper({
-    required this.fillProgress,
-    required this.wavePhase,
-  });
+  const _WaveRiseClipper(
+      {required this.fillProgress, required this.wavePhase});
 
   @override
   Path getClip(Size size) {
-    // Edge cases
     if (fillProgress <= 0) return Path();
     if (fillProgress >= 1) {
       return Path()..addRect(Rect.fromLTWH(0, 0, size.width, size.height));
     }
 
-    // Y coordinate of wave surface (0=top, size.height=bottom)
     final surfaceY = size.height * (1.0 - fillProgress);
-    const waveAmp = 14.0; // amplitude in logical pixels
-    const waveCycles = 2.0; // number of complete waves across width
+    const waveAmp = 13.0;
+    const waveCycles = 2.0;
 
-    final path = Path();
-    // Start at bottom-left
-    path.moveTo(0, size.height);
-    // Go up to wave level on left edge
-    path.lineTo(0, surfaceY);
+    final path = Path()
+      ..moveTo(0, size.height)
+      ..lineTo(0, surfaceY);
 
-    // Trace the wave surface left → right
     for (double x = 0; x <= size.width + 1; x += 1.5) {
       final t = x / size.width;
       final y = surfaceY +
           waveAmp * math.sin(t * math.pi * 2 * waveCycles + wavePhase);
       path.lineTo(x, y);
     }
-
-    // Close the shape at bottom-right → bottom-left
     path.lineTo(size.width, size.height);
     path.close();
     return path;
@@ -313,28 +322,16 @@ class _WaveRiseClipper extends CustomClipper<Path> {
       old.fillProgress != fillProgress || old.wavePhase != wavePhase;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WAVE SURFACE
-// A bright thin line drawn at the wave surface for a light-reflection effect.
-// Uses CustomPaint sized to match the parent Stack (intrinsic text size).
-// ─────────────────────────────────────────────────────────────────────────────
-
 class _WaveSurface extends StatelessWidget {
   final double fillProgress;
   final double wavePhase;
-
-  const _WaveSurface({
-    required this.fillProgress,
-    required this.wavePhase,
-  });
+  const _WaveSurface({required this.fillProgress, required this.wavePhase});
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
       painter: _WaveSurfacePainter(
-        fillProgress: fillProgress,
-        wavePhase: wavePhase,
-      ),
+          fillProgress: fillProgress, wavePhase: wavePhase),
     );
   }
 }
@@ -342,21 +339,16 @@ class _WaveSurface extends StatelessWidget {
 class _WaveSurfacePainter extends CustomPainter {
   final double fillProgress;
   final double wavePhase;
-
-  const _WaveSurfacePainter({
-    required this.fillProgress,
-    required this.wavePhase,
-  });
+  const _WaveSurfacePainter(
+      {required this.fillProgress, required this.wavePhase});
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
-
     final surfaceY = size.height * (1.0 - fillProgress);
-    const waveAmp = 14.0;
+    const waveAmp = 13.0;
     const waveCycles = 2.0;
 
-    // Bright highlight line along the wave surface
     final paint = Paint()
       ..color = const Color(0xFF207BD5).withOpacity(0.88)
       ..strokeWidth = 2.0
@@ -383,4 +375,83 @@ class _WaveSurfacePainter extends CustomPainter {
   @override
   bool shouldRepaint(_WaveSurfacePainter old) =>
       old.fillProgress != fillProgress || old.wavePhase != wavePhase;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AMBIENT GLOW — breathing warm/cool radial light behind the wordmark
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _HavenGlowPainter extends CustomPainter {
+  final double pulse; // 0..1, breathes via reverse repeat
+  final bool isDark;
+  const _HavenGlowPainter({required this.pulse, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height * 0.42);
+    final radius = size.shortestSide * (0.55 + pulse * 0.08);
+    final opacity = isDark ? 0.10 + pulse * 0.05 : 0.07 + pulse * 0.04;
+
+    final color =
+        isDark ? const Color(0xFF207BD5) : const Color(0xFFFFDD99);
+
+    canvas.drawCircle(
+      center,
+      radius,
+      Paint()
+        ..shader = RadialGradient(
+          colors: [color.withOpacity(opacity), Colors.transparent],
+        ).createShader(Rect.fromCircle(center: center, radius: radius)),
+    );
+  }
+
+  @override
+  bool shouldRepaint(_HavenGlowPainter old) =>
+      old.pulse != pulse || old.isDark != isDark;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PARTICLE FIELD — slow drifting motes, warmth settling into the room
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _Particle {
+  final double x, y, size, speed, phase;
+  const _Particle(
+      {required this.x,
+      required this.y,
+      required this.size,
+      required this.speed,
+      required this.phase});
+
+  factory _Particle.random(math.Random r) => _Particle(
+        x: r.nextDouble(),
+        y: r.nextDouble(),
+        size: 1.0 + r.nextDouble() * 2.2,
+        speed: 0.5 + r.nextDouble() * 0.8,
+        phase: r.nextDouble() * math.pi * 2,
+      );
+}
+
+class _ParticleFieldPainter extends CustomPainter {
+  final List<_Particle> particles;
+  final double time;
+  final bool isDark;
+  const _ParticleFieldPainter(
+      {required this.particles, required this.time, required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final color = isDark ? const Color(0xFFB8D4FF) : const Color(0xFFFFE9B8);
+    for (final p in particles) {
+      final dy = math.sin(time * math.pi * 2 * p.speed + p.phase) * 10;
+      final dx = math.cos(time * math.pi * 2 * p.speed * 0.6 + p.phase) * 6;
+      final pos = Offset(p.x * size.width + dx, p.y * size.height + dy);
+      final opacity =
+          (0.10 + 0.16 * (math.sin(time * math.pi * 2 + p.phase) + 1) / 2);
+      canvas.drawCircle(pos, p.size, Paint()..color = color.withOpacity(opacity));
+    }
+  }
+
+  @override
+  bool shouldRepaint(_ParticleFieldPainter old) => old.time != time;
 }

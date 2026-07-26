@@ -30,7 +30,7 @@ class NotificationService {
     _channelId,
     _channelName,
     description: _channelDesc,
-    importance: Importance.defaultImportance,
+    importance: Importance.high,
   );
 
   // ── IDs ──────────────────────────────────────────────────────────────────
@@ -95,11 +95,15 @@ class NotificationService {
           _channelId,
           _channelName,
           channelDescription: _channelDesc,
-          importance: Importance.defaultImportance,
-          priority: Priority.defaultPriority,
+          importance: Importance.high,
+          priority: Priority.high,
           icon: '@mipmap/ic_launcher',
         ),
-        iOS: const DarwinNotificationDetails(),
+        iOS: const DarwinNotificationDetails(
+          presentAlert: true,
+          presentBadge: true,
+          presentSound: true,
+        ),
       );
 
   // ── Immediate notifications ───────────────────────────────────────────────

@@ -75,6 +75,12 @@ class _LibraryPanelState extends State<LibraryPanel>
         final divColor =
             dark ? AppColors.dividerDark : AppColors.dividerLight;
 
+        if (!appState.isSanctuaryEnabled && _mainTab.index != 0) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) _mainTab.animateTo(0);
+          });
+        }
+
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -140,25 +146,27 @@ class _LibraryPanelState extends State<LibraryPanel>
 
                 const SizedBox(height: 16),
 
-                // ── Main tabs: Stories | Write Backs ───────────────
-                TabBar(
-                  controller: _mainTab,
-                  tabs: const [
-                    Tab(text: 'Stories'),
-                    Tab(text: 'Reflections'),
-                  ],
-                  labelColor: accent,
-                  unselectedLabelColor: mutedColor,
-                  indicatorColor: accent,
-                  indicatorSize: TabBarIndicatorSize.label,
-                  dividerColor: Colors.transparent,
-                  labelStyle: GoogleFonts.inter(
-                      fontSize: 14, fontWeight: FontWeight.w600),
-                  unselectedLabelStyle: GoogleFonts.inter(
-                      fontSize: 14, fontWeight: FontWeight.w400),
-                ),
-
-                Divider(color: divColor, thickness: 0.5, height: 8),
+                // ── Main tabs: Stories | Reflections (hidden if Sanctuary off) ──
+                if (appState.isSanctuaryEnabled) ...[
+                  TabBar(
+                    controller: _mainTab,
+                    tabs: const [
+                      Tab(text: 'Stories'),
+                      Tab(text: 'Reflections'),
+                    ],
+                    labelColor: accent,
+                    unselectedLabelColor: mutedColor,
+                    indicatorColor: accent,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    dividerColor: Colors.transparent,
+                    labelStyle: GoogleFonts.inter(
+                        fontSize: 14, fontWeight: FontWeight.w600),
+                    unselectedLabelStyle: GoogleFonts.inter(
+                        fontSize: 14, fontWeight: FontWeight.w400),
+                  ),
+                  Divider(color: divColor, thickness: 0.5, height: 8),
+                ] else
+                  const SizedBox(height: 8),
 
                 // ── Tab content ────────────────────────────────────
                 Expanded(
