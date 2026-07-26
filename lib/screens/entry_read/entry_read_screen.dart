@@ -201,6 +201,7 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
   bool _hasClapped = false;
   int _clapCount = 0;
   int _commentCount = 0;
+  Map<String, dynamic>? _writeBackData;
 
   @override
   void initState() {
@@ -226,6 +227,20 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
         }
       });
     }
+    if (pub != null) {
+      final wb = await SupabaseService.instance.getWriteBackById(pub.id);
+      if (mounted) setState(() => _writeBackData = wb);
+    }
+  }
+
+  void _showReplies(BuildContext ctx) {
+    if (_pub == null) return;
+    showModalBottomSheet<void>(
+      context: ctx,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _InlineRepliesSheet(reflectionId: _pub!.id),
+    );
   }
 
   void _handleClap(BuildContext ctx) {
@@ -340,6 +355,8 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                       offset: const Offset(0, 6)),
                 ],
               ),
+              child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -416,6 +433,34 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                       ),
                     ),
                   ),
+                  if (_writeBackData != null) ...[
+                    // Divider
+                    Container(
+                        width: 0.5,
+                        height: 22,
+                        color: Colors.white.withOpacity(0.3)),
+                    // ── Respond ──────────────────────────────────────────
+                    GestureDetector(
+                      onTap: () => _showReplies(context),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 14, vertical: 10),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.chat_bubble_outline_rounded,
+                                size: 16, color: Colors.white.withOpacity(0.9)),
+                            const SizedBox(width: 6),
+                            Text('Respond',
+                                style: GoogleFonts.inter(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.white.withOpacity(0.9))),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                   // Divider
                   Container(
                       width: 0.5,
@@ -433,8 +478,277 @@ class _PublishedStatsPillState extends State<_PublishedStatsPill> {
                   ),
                 ],
               ),
+              ),
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// INLINE REPLIES SHEET
+// For write-back/reflection replies (reflection_replies table) — distinct
+// from regular community_comments used by _InlineCommentsSheet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InlineRepliesSheet extends StatefulWidget {
+  final String reflectionId;
+  const _InlineRepliesSheet({required this.reflectionId});
+
+  @override
+  State<_InlineRepliesSheet> createState() => _InlineRepliesSheetState();
+}
+
+class _InlineRepliesSheetState extends State<_InlineRepliesSheet> {
+  List<CommunityComment> _replies = [];
+  bool _loading = true;
+  final _ctrl = TextEditingController();
+  bool _isAnon = false;
+  bool _submitting = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final replies =
+        await SupabaseService.instance.getReflectionReplies(widget.reflectionId);
+    if (mounted) setState(() {
+      _replies = replies;
+      _loading = false;
+    });
+  }
+
+  Future<void> _submit() async {
+    final body = _ctrl.text.trim();
+    if (body.isEmpty || _submitting) return;
+    if (!SupabaseService.instance.isAuthenticated) {
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Sign in to respond.')));
+      return;
+    }
+    setState(() => _submitting = true);
+    final email = SupabaseService.instance.userEmail;
+    final displayName = _isAnon
+        ? null
+        : (context.read<CommunityState>().profileDisplayName ??
+            email?.split('@').first);
+    final ok = await SupabaseService.instance.addReflectionReply(
+      reflectionId: widget.reflectionId,
+      body: body,
+      isAnonymous: _isAnon,
+      displayName: displayName,
+    );
+    if (ok && mounted) {
+      _ctrl.clear();
+      await _load();
+    }
+    if (mounted) setState(() => _submitting = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = context.watch<AppState>().isDarkMode;
+    final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
+    final textColor = dark ? AppColors.textDark : AppColors.textLight;
+    final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
+
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      minChildSize: 0.35,
+      maxChildSize: 0.92,
+      expand: false,
+      builder: (ctx, sc) => Container(
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Center(
+                child: Container(
+                    width: 36,
+                    height: 4,
+                    decoration: BoxDecoration(
+                        color: mutedColor.withOpacity(0.3),
+                        borderRadius: BorderRadius.circular(2)))),
+            const SizedBox(height: 14),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Text('Responses',
+                  style: GoogleFonts.crimsonPro(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: textColor)),
+            ),
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: dark
+                      ? Colors.white.withOpacity(0.05)
+                      : Colors.black.withOpacity(0.03),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: _ctrl,
+                      maxLines: 3,
+                      minLines: 1,
+                      style: GoogleFonts.inter(
+                          fontSize: 14, color: textColor, height: 1.5),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                        hintText: 'Your response...',
+                        hintStyle: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: mutedColor,
+                            fontStyle: FontStyle.italic),
+                      ),
+                    ),
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => setState(() => _isAnon = !_isAnon),
+                          child: Row(mainAxisSize: MainAxisSize.min, children: [
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 120),
+                              width: 14,
+                              height: 14,
+                              decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(3),
+                                  color: _isAnon
+                                      ? AppColors.aqua
+                                      : Colors.transparent,
+                                  border: Border.all(
+                                      color: _isAnon
+                                          ? AppColors.aqua
+                                          : mutedColor.withOpacity(0.5),
+                                      width: 1.5)),
+                              child: _isAnon
+                                  ? const Icon(Icons.check,
+                                      size: 10, color: Colors.white)
+                                  : null,
+                            ),
+                            const SizedBox(width: 5),
+                            Text('Anonymous',
+                                style: GoogleFonts.inter(
+                                    fontSize: 11, color: mutedColor)),
+                          ]),
+                        ),
+                        const Spacer(),
+                        GestureDetector(
+                          onTap: _submitting ? null : _submit,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 7),
+                            decoration: BoxDecoration(
+                                color: AppColors.aqua.withOpacity(0.12),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(
+                                    color: AppColors.aqua.withOpacity(0.4))),
+                            child: _submitting
+                                ? const SizedBox(
+                                    width: 12,
+                                    height: 12,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 1.5,
+                                        color: AppColors.aqua))
+                                : Text('Reply',
+                                    style: GoogleFonts.inter(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.aqua)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: _loading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _replies.isEmpty
+                      ? Center(
+                          child: Text('No responses yet.',
+                              style: GoogleFonts.crimsonPro(
+                                  fontSize: 16,
+                                  fontStyle: FontStyle.italic,
+                                  color: mutedColor)))
+                      : ListView.separated(
+                          controller: sc,
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
+                          itemCount: _replies.length,
+                          separatorBuilder: (_, __) =>
+                              const SizedBox(height: 14),
+                          itemBuilder: (_, i) {
+                            final r = _replies[i];
+                            return Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.aqua.withOpacity(0.3),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                        r.authorLabel.isNotEmpty
+                                            ? r.authorLabel[0].toUpperCase()
+                                            : '?',
+                                        style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white)),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(r.authorLabel,
+                                          style: GoogleFonts.inter(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: textColor)),
+                                      const SizedBox(height: 3),
+                                      Text(r.body,
+                                          style: GoogleFonts.inter(
+                                              fontSize: 14,
+                                              color:
+                                                  textColor.withOpacity(0.85),
+                                              height: 1.5)),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        ),
+            ),
+          ],
         ),
       ),
     );

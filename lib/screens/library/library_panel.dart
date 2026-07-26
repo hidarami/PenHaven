@@ -10,6 +10,7 @@ import '../../models/reflection.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../providers/community_state.dart';
+import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import '../community/reflection_viewer.dart' show ReflectionViewer;
 import '../../theme/app_typography.dart';
@@ -508,7 +509,24 @@ class _ReceivedReflectionCard extends StatelessWidget {
               ],
               const SizedBox(height: 7),
               Row(children: [
-                _LibraryAvatarCircle(name: author, size: 18),
+                Builder(builder: (ctx) {
+                  final rawUserId = item['user_id'];
+                  final isSelf = rawUserId != null &&
+                      rawUserId.toString() == SupabaseService.instance.userId;
+                  final selfImg =
+                      ctx.watch<CommunityState>().profileImagePath;
+                  final hasSelfImg = isSelf &&
+                      selfImg != null &&
+                      selfImg.isNotEmpty &&
+                      File(selfImg).existsSync();
+                  if (hasSelfImg) {
+                    return ClipOval(
+                      child: Image.file(File(selfImg!),
+                          width: 18, height: 18, fit: BoxFit.cover),
+                    );
+                  }
+                  return _LibraryAvatarCircle(name: author, size: 18);
+                }),
                 const SizedBox(width: 6),
                 Flexible(
                   child: Text(

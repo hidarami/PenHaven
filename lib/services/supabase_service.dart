@@ -752,11 +752,12 @@ class SupabaseService {
           .eq('user_id', userId!);
       if (myEntries == null || (myEntries as List).isEmpty) return [];
       final ids = (myEntries as List).map((e) => e['id'] as String).toList();
+      // NOTE: intentionally NOT filtering by is_private — private write backs
+      // must still be visible to the author of the entry they were written on.
       final response = await _client
           ?.from('write_backs')
           .select()
           .inFilter('origin_entry_id', ids)
-          .eq('is_private', false)
           .order('created_at', ascending: false);
       if (response == null) return [];
       return List<Map<String, dynamic>>.from(response as List);

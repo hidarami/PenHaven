@@ -605,49 +605,6 @@ void _openWriteBack() {
                     // Status-bar spacer when there is no header image
                     SizedBox(height: topPad + 60),
 
-                  // ReflectionOn card — shown when this published entry is a write back
-                  if (_writeBackData != null) ...[
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
-                      child: ReflectionOnCard(
-                        originEntry: PublishedEntry(
-                          id: (_writeBackData!['origin_entry_id'] as String?) ?? '',
-                          userId: '',
-                          title: (_writeBackData!['origin_title'] as String?) ?? '',
-                          content: (_writeBackData!['origin_excerpt'] as String?) ?? '',
-                          displayName: _writeBackData!['origin_author'] as String?,
-                          headerImage: _writeBackData!['origin_header_image'] as String?,
-                        ),
-                        inspirationReflection: null,
-                        dark: dark,
-                        textColor: textColor,
-                        mutedColor: mutedColor,
-                        onTapOrigin: () async {
-                          final originId =
-                              _writeBackData!['origin_entry_id'] as String?;
-                          if (originId == null || originId.isEmpty) return;
-                          final orig = await SupabaseService.instance
-                              .getPublishedEntry(originId);
-                          if (!mounted) return;
-                          if (orig != null) {
-                            Navigator.of(context).push(MaterialPageRoute(
-                              builder: (_) => CommunityEntryViewer(entry: orig),
-                            ));
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'This entry may have been removed by its author.',
-                                ),
-                              ),
-                            );
-                          }
-                        },
-                      ),
-                    ),
-                  ],
-
                   // Title
                   Padding(
                     padding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
@@ -722,6 +679,50 @@ void _openWriteBack() {
                     ),
                     ),
                   ),
+
+                  // ReflectionOn card — shown when this published entry is a write back.
+                  // Positioned BELOW title/author, never between header image and title.
+                  if (_writeBackData != null) ...[
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: ReflectionOnCard(
+                        originEntry: PublishedEntry(
+                          id: (_writeBackData!['origin_entry_id'] as String?) ?? '',
+                          userId: '',
+                          title: (_writeBackData!['origin_title'] as String?) ?? '',
+                          content: (_writeBackData!['origin_excerpt'] as String?) ?? '',
+                          displayName: _writeBackData!['origin_author'] as String?,
+                          headerImage: _writeBackData!['origin_header_image'] as String?,
+                        ),
+                        inspirationReflection: null,
+                        dark: dark,
+                        textColor: textColor,
+                        mutedColor: mutedColor,
+                        onTapOrigin: () async {
+                          final originId =
+                              _writeBackData!['origin_entry_id'] as String?;
+                          if (originId == null || originId.isEmpty) return;
+                          final orig = await SupabaseService.instance
+                              .getPublishedEntry(originId);
+                          if (!mounted) return;
+                          if (orig != null) {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => CommunityEntryViewer(entry: orig),
+                            ));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'This entry may have been removed by its author.',
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    ),
+                  ],
 
                   // Thin divider
                   Padding(
@@ -857,8 +858,13 @@ void _openWriteBack() {
 
   Widget _buildBody(bool dark, String fontName) {
     if (_entry.blocksJson != null && _entry.blocksJson!.isNotEmpty) {
+      // ReflectionHeaderBlock is already rendered as ReflectionOnCard above —
+      // filter it out here to prevent a duplicate card in the body.
+      final blocks = deserializeBlocks(_entry.blocksJson!)
+          .where((b) => b is! ReflectionHeaderBlock)
+          .toList();
       return BlocksReadView(
-        blocks: deserializeBlocks(_entry.blocksJson!),
+        blocks: blocks,
         isDark: dark,
         textAlignment: 'left',
         fontName: fontName,
@@ -919,7 +925,9 @@ class _ActionPill extends StatelessWidget {
                   offset: const Offset(0, 6)),
             ],
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
             // ── Appreciate ─────────────────────────────────────────
             GestureDetector(
               onTap: onClap,
@@ -1020,6 +1028,7 @@ class _ActionPill extends StatelessWidget {
               ),
             ),
           ]),
+          ),
         ),
       ),
     );

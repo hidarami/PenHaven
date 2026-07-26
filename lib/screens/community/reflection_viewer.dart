@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -206,52 +207,19 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                 children: [
                   SizedBox(height: topPad + 24),
 
-                  // ── Reflection on card ──────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24),
-                    child: ReflectionOnCard(
-                      originEntry: widget.originEntry ??
-                          PublishedEntry(
-                            id: _reflection.originEntryId,
-                            userId: '',
-                            title: _reflection.originTitle ?? '',
-                            content: _reflection.originExcerpt ?? '',
-                            displayName: _reflection.originAuthor,
-                            headerImage: _reflection.originHeaderImage,
-                          ),
-                      inspirationReflection: null,
-                      dark: dark,
-                      textColor: textColor,
-                      mutedColor: mutedColor,
-                      onTapOrigin: () async {
-                      if (widget.originEntry != null) {
-                        Navigator.of(context).push(MaterialPageRoute(
-                          builder: (_) =>
-                              CommunityEntryViewer(entry: widget.originEntry!),
-                        ));
-                      } else {
-                        final orig = await SupabaseService.instance
-                            .getPublishedEntry(_reflection.originEntryId);
-                        if (!mounted) return;
-                        if (orig != null) {
-                          Navigator.of(context).push(MaterialPageRoute(
-                            builder: (_) => CommunityEntryViewer(entry: orig),
-                          ));
-                        } else {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'This entry may have been removed by its author.',
-                              ),
-                            ),
-                          );
-                        }
-                      }
-                    },
+                  // ── Header image — the reflection's own header, if any ──
+                  if (_reflection.headerImage != null &&
+                      _reflection.headerImage!.isNotEmpty &&
+                      File(_reflection.headerImage!).existsSync())
+                    Image.file(
+                      File(_reflection.headerImage!),
+                      width: double.infinity,
+                      height: 260,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => const SizedBox.shrink(),
                     ),
-                  ),
 
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 8),
 
                   // ── Title ──────────────────────────────────────────
                   Padding(
@@ -274,7 +242,14 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                     padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
                     child: Row(
                       children: [
-                        _AvatarCircle(name: _reflection.authorLabel, size: 36),
+                        _AvatarCircle(
+                          name: _reflection.authorLabel,
+                          size: 36,
+                          imagePath: (_reflection.userId ==
+                                  SupabaseService.instance.userId)
+                              ? context.watch<CommunityState>().profileImagePath
+                              : null,
+                        ),
                         const SizedBox(width: 10),
                         Expanded(
                           child: Column(
@@ -294,6 +269,53 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 20),
+
+                  // ── Reflection on card — below title/author, never above ──
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: ReflectionOnCard(
+                      originEntry: widget.originEntry ??
+                          PublishedEntry(
+                            id: _reflection.originEntryId,
+                            userId: '',
+                            title: _reflection.originTitle ?? '',
+                            content: _reflection.originExcerpt ?? '',
+                            displayName: _reflection.originAuthor,
+                            headerImage: _reflection.originHeaderImage,
+                          ),
+                      inspirationReflection: null,
+                      dark: dark,
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                      onTapOrigin: () async {
+                        if (widget.originEntry != null) {
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) =>
+                                CommunityEntryViewer(entry: widget.originEntry!),
+                          ));
+                        } else {
+                          final orig = await SupabaseService.instance
+                              .getPublishedEntry(_reflection.originEntryId);
+                          if (!mounted) return;
+                          if (orig != null) {
+                            Navigator.of(context).push(MaterialPageRoute(
+                              builder: (_) => CommunityEntryViewer(entry: orig),
+                            ));
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'This entry may have been removed by its author.',
+                                ),
+                              ),
+                            );
+                          }
+                        }
+                      },
                     ),
                   ),
 
@@ -468,7 +490,9 @@ class _ReflectionActionPill extends StatelessWidget {
             borderRadius: BorderRadius.circular(36),
             border: Border.all(color: Colors.white.withOpacity(0.25), width: 0.5),
           ),
-          child: Row(mainAxisSize: MainAxisSize.min, children: [
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(mainAxisSize: MainAxisSize.min, children: [
             // Appreciate
             GestureDetector(
               onTap: onClap,
@@ -547,6 +571,7 @@ class _ReflectionActionPill extends StatelessWidget {
             ),
             ], // end isPublic
           ]),
+          ),
         ),
       ),
     );
@@ -725,8 +750,9 @@ class _ReplyCard extends StatelessWidget {
 class _AvatarCircle extends StatelessWidget {
   final String name;
   final double size;
+  final String? imagePath;
 
-  const _AvatarCircle({required this.name, required this.size});
+  const _AvatarCircle({required this.name, required this.size, this.imagePath});
 
   Color _color(String n) {
     const colors = [
@@ -739,6 +765,14 @@ class _AvatarCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = name.isNotEmpty ? name[0].toUpperCase() : '?';
+    if (imagePath != null &&
+        imagePath!.isNotEmpty &&
+        File(imagePath!).existsSync()) {
+      return ClipOval(
+        child: Image.file(File(imagePath!),
+            width: size, height: size, fit: BoxFit.cover),
+      );
+    }
     return Container(
       width: size, height: size,
       decoration: BoxDecoration(color: _color(name), shape: BoxShape.circle),
