@@ -48,3 +48,6 @@ app.*.map.json
 /android/app/release.keystore
 /android/app/release.keystore.b64
 /android/key.properties
+
+# Environment variables (sensitive — do not commit)
+.env

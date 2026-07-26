@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/story.dart';
@@ -17,7 +18,7 @@ import '../models/community_comment.dart';
 //
 // Setup:
 //   1. Go to supabase.com → New project
-//   2. Copy Project URL + anon key into the constants below
+//   2. Copy Project URL + anon key into .env file (see .env.example)
 //   3. Run the SQL in Supabase SQL editor (see SCHEMA section at bottom)
 //   4. Enable email auth in Supabase Dashboard → Auth → Providers
 // ─────────────────────────────────────────────────────────────────────────────
@@ -26,17 +27,15 @@ class SupabaseService {
   SupabaseService._();
   static final SupabaseService instance = SupabaseService._();
 
-  // ── Replace these with your project credentials ───────────────────────────
-  static const String _supabaseUrl = 'https://vjmzileqdrhxiklxqftv.supabase.co';
-  static const String _supabaseAnonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqbXppbGVxZHJoeGlrbHhxZnR2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODQ3MjM2NTMsImV4cCI6MjEwMDI5OTY1M30.4DLkLbMfJ67JeJGwjoJ9lXlIGMWAE_N0hEQD4Lm1HQo';
+  // ── Load credentials from .env file ─────────────────────────────────────────
+  static String get _supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
+  static String get _supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
   // ─────────────────────────────────────────────────────────────────────────
 
   static Future<void> initialize() async {
     try {
       await Supabase.initialize(
         url: _supabaseUrl,
-        anonKey: _supabaseAnonKey,
         debug: kDebugMode,
       );
     } catch (e) {
@@ -516,7 +515,7 @@ class SupabaseService {
           .eq('id', entryId)
           .maybeSingle();
       if (response == null) return null;
-      final pub = PublishedEntry.fromMap(response as Map<String, dynamic>);
+      final pub = PublishedEntry.fromMap(response);
       // Tag if owned by current user
       pub.isOwner = pub.userId == userId;
       final clapped = await getClappedEntryIds([entryId]);
@@ -550,7 +549,7 @@ class SupabaseService {
           .order('created_at', ascending: false)
           .limit(1)
           .maybeSingle();
-      return response as Map<String, dynamic>?;
+      return response;
     } catch (e) {
       debugPrint('[Supabase] getActiveFeatured: $e');
       return null;
@@ -1027,7 +1026,7 @@ class SupabaseService {
           .select()
           .eq('id', id)
           .maybeSingle();
-      return response as Map<String, dynamic>?;
+      return response;
     } catch (e) {
       debugPrint('[Supabase] getWriteBackById: $e');
       return null;

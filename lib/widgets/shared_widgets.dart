@@ -229,7 +229,6 @@ class PenHavenMarkdownBody extends StatelessWidget {
 
     // Use user's preferred body font
     final bodyStyle = AppTypography.bodyTextFor(preferredFont, textColor);
-    final mutedBodyStyle = AppTypography.bodyTextFor(preferredFont, mutedColor);
 
     return MarkdownBody(
       data: _autoLinkify(data),

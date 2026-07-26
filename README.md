@@ -109,8 +109,8 @@ Read the full [vision](vision.md) and [product philosophy](product.md).
 ### Run locally
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
+git clone https://github.com/hidarami/PenHaven.git
+cd PenHaven
 flutter pub get
 flutter run
 ```
@@ -174,7 +174,7 @@ flutter build ipa --release
 
 ## Download
 
-📥 **[Download the latest release](https://github.com/YOUR_USERNAME/YOUR_REPO/releases/latest)**
+📥 **[Download the latest release](https://github.com/hidarami/PenHaven/releases/latest)**
 
 Or visit the [download website](docs/index.html) (deployable free via GitHub
 Pages — see below).
@@ -183,7 +183,7 @@ To host the download page for free:
 1. Push this repo to GitHub.
 2. Go to **Settings → Pages**.
 3. Set **Source** to your `main` branch, folder `/docs`.
-4. Your site will be live at `https://YOUR_USERNAME.github.io/YOUR_REPO/`.
+4. Your site will be live at `https://hidarami.github.io/PenHaven/`.
 
 ## Contributing
 

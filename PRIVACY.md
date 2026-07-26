@@ -1,6 +1,6 @@
 # Privacy Policy
 
-_Last updated: [DATE]_
+_Last updated: [26/07/2026]_
 
 PenHaven ("the app", "we", "our") is built on a simple principle: **your
 writing belongs to you.** This policy explains, in plain language, exactly
@@ -78,5 +78,5 @@ date above and, where feasible, notify users in-app.
 ## Contact
 
 Questions about this policy or your data? Open an issue on the
-[GitHub repository](https://github.com/YOUR_USERNAME/YOUR_REPO/issues) or
-email **[your-support-email@example.com]**.
+[GitHub repository](https://github.com/hidarami/PenHaven/issues) or
+email **[mickeynordancairo.com]**.

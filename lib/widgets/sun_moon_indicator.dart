@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 
 import '../providers/atmosphere_state.dart';
 import '../providers/app_state.dart';
-import '../theme/app_colors.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUN/MOON INDICATOR — Animated, weather-aware
@@ -487,9 +486,7 @@ Path _buildCloudPath(double cx, double cy, {double scale = 1.0}) {
   final body = Path()
     ..addRRect(RRect.fromRectAndRadius(
         Rect.fromCenter(
-            center: Offset(cx, cy + 2.5 * s),
-            width: 21.0 * s,
-            height: 8.0 * s),
+            center: Offset(cx, cy + 2.5 * s), width: 21.0 * s, height: 8.0 * s),
         Radius.circular(4.0 * s)));
   var cloud = Path.combine(PathOperation.union, leftBump, centerBump);
   cloud = Path.combine(PathOperation.union, cloud, rightBump);

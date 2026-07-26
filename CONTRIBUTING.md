@@ -12,8 +12,8 @@ Thanks for wanting to help make PenHaven better — here's how to get started.
 ## Setting up
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git
-cd YOUR_REPO
+git clone https://github.com/hidarami/PenHaven.git
+cd PenHaven
 flutter pub get
 flutter run
 ```
