@@ -158,6 +158,8 @@ class _ReadContent extends StatelessWidget {
             child: EntryHeaderImage(
               path: entry.headerImage!,
               ratio: entry.headerImageRatio,
+              backgroundColor:
+                  context.watch<AtmosphereState>().backgroundFor(isDark),
             ),
           ),
 

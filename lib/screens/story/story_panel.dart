@@ -199,9 +199,6 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
 
-    // Button always visible
-    final buttonVisible = true;
-
     return Stack(
       children: [
         // ── Main scrollable content ────────────────────────────────────
@@ -275,22 +272,7 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
           ],
         ),
 
-        // ── Floating "+ New Entry" button ──────────────────────────────
-        Positioned(
-          bottom: botPad + 20,
-          left: 32,
-          right: 32,
-          child: AnimatedOpacity(
-            opacity: buttonVisible ? 1.0 : 0.0,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
-            child: IgnorePointer(
-              ignoring: !buttonVisible,
-              child: _FloatingAddButton(onTap: () => _addEntry(context)),
-            ),
-          ),
-        ),
-      ],
+        ],
     );
   }
 }
@@ -386,57 +368,6 @@ class _HeroCard extends StatelessWidget {
                 ),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Floating Add Button ───────────────────────────────────────────────────────
-
-class _FloatingAddButton extends StatelessWidget {
-  final VoidCallback onTap;
-  const _FloatingAddButton({required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final accent = context.watch<AtmosphereState>().accentColor;
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(28),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(28),
-              border:
-                  Border.all(color: Colors.white.withOpacity(0.30), width: 0.5),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.14),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4))
-              ],
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.add, size: 18, color: accent),
-                const SizedBox(width: 8),
-                Text(
-                  'New Entry',
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withOpacity(0.95),
-                  ),
-                ),
-              ],
-            ),
           ),
         ),
       ),

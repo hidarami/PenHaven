@@ -12,6 +12,7 @@ import '../providers/atmosphere_state.dart';
 import '../providers/app_state.dart';
 import '../theme/app_colors.dart';
 import 'community/community_search_screen.dart';
+import 'community/profile_screen.dart';
 import 'editor/editor_screen.dart';
 import 'library/library_panel.dart';
 import 'search/search_screen.dart';
@@ -21,15 +22,13 @@ import 'menu/menu_panel.dart';
 import 'home_persistent_ui.dart';
 import 'lock_screen.dart';
 import '../widgets/tutorial_overlay.dart';
+import '../widgets/main_bottom_nav.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // HOME SCREEN
-// Root of the app after splash. Contains the 3-panel horizontal PageView.
-// Panel order: Library (0) | Story/Home (1) | Work Desk (2)
-// App opens to Panel 1 (Story Panel) per Master Specification §2.
-//
-// Persistent UI (Sun/Moon top-left, Glass menu top-right) is overlaid
-// via HomePersistentUI which sits above the PageView in a Stack.
+// Root of the app after splash. Panels (Home / Library / Sanctuary / Profile)
+// are switched via the bottom navigation bar — no swipe navigation.
+// The center "+" button in the bottom nav creates a new entry.
 // ─────────────────────────────────────────────────────────────────────────────
 
 class HomeScreen extends StatefulWidget {
@@ -40,18 +39,15 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  late final PageController _pageController;
   Timer? _lockTimer;
   bool _showTutorial = false;
+  int _tabIndex = 0;
 
   @override
   void initState() {
     super.initState();
-    // CRITICAL: initialPage: 1 — opens to Story Panel, NOT Library
-    _pageController = PageController(initialPage: 1);
     WidgetsBinding.instance.addObserver(this);
 
-    // Run mercy archive on app open
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<AppState>().runMercyArchive();
       _checkPendingLock();
@@ -65,12 +61,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _lockTimer?.cancel();
-    _pageController.dispose();
     super.dispose();
   }
 
   Future<void> _checkPendingLock() async {
-    // Check if app was backgrounded for more than 1 minute
     final prefs = await SharedPreferences.getInstance();
     final backgroundedAt = prefs.getInt('appBackgroundedAt');
     if (backgroundedAt != null) {
@@ -83,7 +77,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           appState.lockApp();
         }
       }
-      // Clear the timestamp
       await prefs.remove('appBackgroundedAt');
     }
   }
@@ -92,7 +85,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
     if (state == AppLifecycleState.paused) {
-      // App going to background - start timer and store timestamp
       _lockTimer?.cancel();
       _lockTimer = Timer(const Duration(minutes: 5), () async {
         final appState = context.read<AppState>();
@@ -100,13 +92,11 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           appState.lockApp();
         }
       });
-      // Store timestamp for handling app termination
       SharedPreferences.getInstance().then((prefs) {
         prefs.setInt(
             'appBackgroundedAt', DateTime.now().millisecondsSinceEpoch);
       });
     } else if (state == AppLifecycleState.resumed) {
-      // App returned - cancel timer and clear timestamp
       _lockTimer?.cancel();
       _lockTimer = null;
       SharedPreferences.getInstance().then((prefs) {
@@ -116,27 +106,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   }
 
   void _openMenu() async {
-    await MenuPanel.show(
-      context,
-      onNavigateToLibrary: () {
-        _pageController.animateToPage(
-          0,
-          duration: const Duration(milliseconds: 350),
-          curve: Curves.easeInOut,
-        );
-      },
-      onCreateEntry: _createNewEntry,
-    );
+    await MenuPanel.show(context);
   }
 
   Future<void> _createNewEntry() async {
     final appState = context.read<AppState>();
     if (!appState.hasStories || appState.activeStory == null) {
-      _pageController.animateToPage(
-        0,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
-      );
+      setState(() => _tabIndex = 1);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
             content: Text('Create a story first in your Library.')),
@@ -198,8 +174,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   style:
                       GoogleFonts.inter(fontSize: 13, color: mutedColor)),
               const SizedBox(height: 18),
-
-              // My Entries
               GestureDetector(
                 onTap: () {
                   Navigator.pop(context);
@@ -213,8 +187,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                         ? Colors.white.withOpacity(0.05)
                         : Colors.black.withOpacity(0.03),
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                        color: mutedColor.withOpacity(0.12)),
+                    border:
+                        Border.all(color: mutedColor.withOpacity(0.12)),
                   ),
                   child: Row(
                     children: [
@@ -252,8 +226,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
               ),
               if (context.read<AppState>().isSanctuaryEnabled) ...[
                 const SizedBox(height: 10),
-
-                // Community
                 GestureDetector(
                   onTap: () {
                     Navigator.pop(context);
@@ -267,8 +239,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                           ? Colors.white.withOpacity(0.05)
                           : Colors.black.withOpacity(0.03),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(
-                          color: mutedColor.withOpacity(0.12)),
+                      border:
+                          Border.all(color: mutedColor.withOpacity(0.12)),
                     ),
                     child: Row(
                       children: [
@@ -304,8 +276,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       ],
                     ),
                   ),
-                )],
+                ),
               ],
+            ],
           ),
         ),
       ),
@@ -317,47 +290,43 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     final appState = context.watch<AppState>();
     final dark = appState.isDarkMode;
     final atmo = context.watch<AtmosphereState>();
+    final sanctuaryOn = appState.isSanctuaryEnabled;
 
-    // Lock screen overlay — shown when user locks via menu
     if (appState.isLocked) {
       return const LockScreen();
     }
+
+    final maxIndex = sanctuaryOn ? 3 : 2;
+    final safeIndex = _tabIndex.clamp(0, maxIndex);
+
+    final panels = <Widget>[
+      const StoryPanel(),
+      const LibraryPanel(),
+      if (sanctuaryOn) const CommunityPanel(),
+      const ProfileScreen(),
+    ];
 
     return Scaffold(
       backgroundColor: atmo.backgroundFor(dark),
       body: AtmosphereBackground(
         child: Stack(
           children: [
-            // ── Panel PageView — 3 panels when Sanctuary is on, 2 when off ──
-            PageView(
-              controller: _pageController,
-              physics: const BouncingScrollPhysics(),
-              children: appState.isSanctuaryEnabled
-                  ? const [
-                      LibraryPanel(), // Panel 0 — leftmost
-                      StoryPanel(), // Panel 1 — HOME (default)
-                      CommunityPanel(), // Panel 2 — rightmost
-                    ]
-                  : const [
-                      LibraryPanel(), // Panel 0 — leftmost
-                      StoryPanel(), // Panel 1 — HOME (default)
-                    ],
-            ),
-
-            // ── Atmosphere visual overlay (glow painters) ──────────────────
+            IndexedStack(index: safeIndex, children: panels),
             const AtmosphereOverlay(),
-
-            // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
             const AtmosphereImageLayer(),
-
-            // ── 3PM dust mote easter egg ───────────────────────────────────
             const DustMoteOverlay(),
-
-            // ── Persistent UI: Sun/Moon + Search + Menu button ─────────────
-            HomePersistentUI(
-                onMenuTap: _openMenu, onSearchTap: _openSearch),
-
-            // ── First-time navigation tutorial ──────────────────────────────
+            HomePersistentUI(onMenuTap: _openMenu, onSearchTap: _openSearch),
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              child: MainBottomNav(
+                currentIndex: safeIndex,
+                showSanctuary: sanctuaryOn,
+                onTabSelected: (i) => setState(() => _tabIndex = i),
+                onAddPressed: _createNewEntry,
+              ),
+            ),
             if (_showTutorial)
               NavTutorialOverlay(
                 onDone: () {

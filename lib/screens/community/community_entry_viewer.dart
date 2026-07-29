@@ -521,37 +521,64 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                         return SizedBox(height: topPad + 64);
                       }
                       // ColorFiltered lets the brightness slider affect the image
-                      return ColorFiltered(
-                        colorFilter: ColorFilter.matrix([
-                          _imageBrightness,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          _imageBrightness,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          _imageBrightness,
-                          0,
-                          0,
-                          0,
-                          0,
-                          0,
-                          1,
-                          0,
-                        ]),
-                        child: Image.file(
-                          file,
-                          width: double.infinity,
-                          height: 260,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              SizedBox(height: topPad + 64),
-                        ),
+                      return Stack(
+                        children: [
+                          ColorFiltered(
+                            colorFilter: ColorFilter.matrix([
+                              _imageBrightness,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              _imageBrightness,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              _imageBrightness,
+                              0,
+                              0,
+                              0,
+                              0,
+                              0,
+                              1,
+                              0,
+                            ]),
+                            child: Image.file(
+                              file,
+                              width: double.infinity,
+                              height: 260,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, __, ___) =>
+                                  SizedBox(height: topPad + 64),
+                            ),
+                          ),
+                          // Soft seamless fade into the page background
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 120,
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      bg.withOpacity(0.0),
+                                      bg.withOpacity(0.55),
+                                      bg,
+                                    ],
+                                    stops: const [0.0, 0.65, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       );
                     })
                   else

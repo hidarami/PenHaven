@@ -17,8 +17,14 @@ import 'package:flutter/material.dart';
 class EntryHeaderImage extends StatelessWidget {
   final String path;
   final String? ratio;
+  final Color? backgroundColor;
 
-  const EntryHeaderImage({super.key, required this.path, this.ratio});
+  const EntryHeaderImage({
+    super.key,
+    required this.path,
+    this.ratio,
+    this.backgroundColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -44,21 +50,25 @@ class EntryHeaderImage extends StatelessWidget {
             },
           ),
 
-          // ── Gradient overlay (bottom fade) — sharp edges ──────────────────
+          // ── Gradient overlay — soft seamless fade into the page background ──
           Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            height: 80,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.18),
-                  ],
+            height: 120,
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      (backgroundColor ?? Colors.transparent).withOpacity(0.0),
+                      (backgroundColor ?? Colors.black).withOpacity(0.55),
+                      backgroundColor ?? Colors.black,
+                    ],
+                    stops: const [0.0, 0.65, 1.0],
+                  ),
                 ),
               ),
             ),

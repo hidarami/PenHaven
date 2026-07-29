@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -8,7 +7,6 @@ import '../../models/editor_block.dart';
 import '../../models/entry.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_colors.dart';
-import '../story_cover.dart';
 
 class EntryCard extends StatelessWidget {
   final Entry entry;
@@ -65,11 +63,6 @@ class EntryCard extends StatelessWidget {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // ── Thumbnail ─────────────────────────────────────────
-                _EntryThumbnail(entry: entry),
-
-                const SizedBox(width: 14),
-
                 // ── Content ───────────────────────────────────────────
                 Expanded(
                   child: Column(
@@ -180,45 +173,4 @@ class EntryCard extends StatelessWidget {
       ),
     );
   }
-}
-
-// ── Entry Thumbnail ───────────────────────────────────────────────────────────
-// Shows the entry's header image if present; otherwise uses an auto-generated
-// artistic gradient tied to the entry title. This is a LIST-ONLY presentation
-// widget — it never injects an image into the entry itself.
-
-class _EntryThumbnail extends StatelessWidget {
-  final Entry entry;
-  const _EntryThumbnail({required this.entry});
-
-  @override
-  Widget build(BuildContext context) {
-    const double s = 84;
-    const radius = BorderRadius.all(Radius.circular(10));
-
-    if (entry.hasHeaderImage && File(entry.headerImage!).existsSync()) {
-      return ClipRRect(
-        borderRadius: radius,
-        child: Image.file(
-          File(entry.headerImage!),
-          width: s,
-          height: s,
-          fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => _autoThumbnail(s),
-        ),
-      );
-    }
-    return _autoThumbnail(s);
-  }
-
-  Widget _autoThumbnail(double s) => ClipRRect(
-        borderRadius: const BorderRadius.all(Radius.circular(10)),
-        child: SizedBox(
-          width: s,
-          height: s,
-          child: AutoCoverPainterWidget(
-            title: entry.title.isNotEmpty ? entry.title : entry.id,
-          ),
-        ),
-      );
 }

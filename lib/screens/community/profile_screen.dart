@@ -110,6 +110,32 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
     }
   }
 
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+            'You can sign back in any time. Your local entries stay on this device.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sign Out',
+                style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await SupabaseService.instance.signOut();
+      if (mounted) setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final dark = context.watch<AppState>().isDarkMode;
@@ -146,9 +172,36 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
 
     return Scaffold(
       backgroundColor: bg,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
+      floatingActionButton: Padding(
+        padding: EdgeInsets.only(top: topPad + 8),
+        child: GestureDetector(
+          onTap: () => _confirmSignOut(context),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.28),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.white.withOpacity(0.22), width: 0.5),
+                ),
+                child: const Icon(Icons.logout_rounded,
+                    size: 16, color: Colors.white),
+              ),
+            ),
+          ),
+        ),
+      ),
       body: GestureDetector(
         onHorizontalDragEnd: (d) {
-          if ((d.primaryVelocity ?? 0) > 300) Navigator.of(context).pop();
+          if ((d.primaryVelocity ?? 0) > 300 && Navigator.canPop(context)) {
+            Navigator.of(context).pop();
+          }
         },
         child: CustomScrollView(
         physics: const ClampingScrollPhysics(),

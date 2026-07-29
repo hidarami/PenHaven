@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:wechat_assets_picker/wechat_assets_picker.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:image_cropper/image_cropper.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as p;
@@ -48,7 +48,7 @@ class ImageService {
   // MAIN ENTRY POINT
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Opens gallery → crop window → copies to app storage.
+  /// Opens the OS-native photo picker → crop window → copies to app storage.
   /// Returns permanent path, or null if cancelled.
   Future<String?> pickAndSave({
     required BuildContext context,
@@ -56,24 +56,18 @@ class ImageService {
     double? cropAspectRatioX,
     double? cropAspectRatioY,
   }) async {
-    // 1. Pick from gallery via AssetPicker (wechat_assets_picker), themed
-    // to match PenHaven's own accent color for a consistent, branded feel.
-    final List<AssetEntity>? picked = await AssetPicker.pickAssets(
-      context,
-      pickerConfig: AssetPickerConfig(
-        maxAssets: 1,
-        requestType: RequestType.image,
-        pickerTheme: AssetPicker.themeData(AppColors.aqua),
-      ),
+    // 1. Pick from gallery via the OS-native picker (Android Photo Picker /
+    // iOS PHPicker) — fast, familiar, browses all albums, and needs no
+    // storage permission on modern Android/iOS versions.
+    final XFile? picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 95,
     );
-    if (picked == null || picked.isEmpty) return null;
+    if (picked == null) return null;
     if (!context.mounted) return null;
 
-    final File? originFile = await picked.first.originFile;
-    if (originFile == null) return null;
-
     // 2. Crop (user can freely adjust or just confirm)
-    String sourcePath = originFile.path;
+    String sourcePath = picked.path;
     if (allowCrop) {
       final cropped = await _crop(
         context: context,

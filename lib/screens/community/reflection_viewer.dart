@@ -283,13 +283,39 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                         _reflection.headerImage!.isNotEmpty &&
                         File(_reflection.headerImage!).existsSync();
                     if (hasHeader) {
-                      return Image.file(
-                        File(_reflection.headerImage!),
-                        width: double.infinity,
-                        height: 260,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) =>
-                            SizedBox(height: topPad + 60),
+                      return Stack(
+                        children: [
+                          Image.file(
+                            File(_reflection.headerImage!),
+                            width: double.infinity,
+                            height: 260,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) =>
+                                SizedBox(height: topPad + 60),
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            height: 120,
+                            child: IgnorePointer(
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      bg.withOpacity(0.0),
+                                      bg.withOpacity(0.55),
+                                      bg,
+                                    ],
+                                    stops: const [0.0, 0.65, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       );
                     }
                     return SizedBox(height: topPad + 60);

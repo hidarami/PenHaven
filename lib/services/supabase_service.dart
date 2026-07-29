@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../models/story.dart';
@@ -30,6 +31,10 @@ class SupabaseService {
   // ── Load credentials from .env file ─────────────────────────────────────────
   static String get _supabaseUrl => dotenv.env['SUPABASE_URL'] ?? '';
   static String get _supabaseAnonKey => dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  // Web Client ID from Google Cloud Console — required so google_sign_in can
+  // request an ID token that Supabase's signInWithIdToken() will accept.
+  static String get _googleWebClientId =>
+      dotenv.env['GOOGLE_WEB_CLIENT_ID'] ?? '';
   // ─────────────────────────────────────────────────────────────────────────
 
   static Future<void> initialize() async {
@@ -97,16 +102,36 @@ class SupabaseService {
     try {
       await _client?.auth.signOut();
     } catch (_) {}
+    try {
+      await GoogleSignIn().signOut();
+    } catch (_) {}
   }
 
   // ── OAuth / Social Login ────────────────────────────────────────────────────
 
-  /// Sign in with Google
+  /// Sign in with Google — uses the native account chooser (google_sign_in)
+  /// instead of a browser OAuth redirect, so the user sees their actual
+  /// Google accounts to pick from.
   Future<String?> signInWithGoogle() async {
     try {
-      await _client?.auth.signInWithOAuth(
-        OAuthProvider.google,
-        redirectTo: 'penhaven://auth/callback',
+      final googleSignIn = GoogleSignIn(
+        serverClientId:
+            _googleWebClientId.isNotEmpty ? _googleWebClientId : null,
+      );
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) return 'Sign-in cancelled.';
+
+      final googleAuth = await googleUser.authentication;
+      final idToken = googleAuth.idToken;
+      final accessToken = googleAuth.accessToken;
+      if (idToken == null) {
+        return 'No ID token received from Google. Check GOOGLE_WEB_CLIENT_ID setup.';
+      }
+
+      await _client?.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
       );
       return null;
     } on AuthException catch (e) {

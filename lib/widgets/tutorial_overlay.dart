@@ -15,10 +15,10 @@ class _NavTutorialOverlayState extends State<NavTutorialOverlay> {
 
   static const List<({IconData icon, String title, String body})> _steps = [
     (
-      icon: Icons.swipe_left_alt_rounded,
-      title: 'Swipe to explore',
-      body: 'PenHaven has three spaces side by side. Swipe left for your '
-          'Library, swipe right for the Sanctuary. You always open on your Story.',
+      icon: Icons.grid_view_rounded,
+      title: 'Tap to explore',
+      body: 'Use the bar at the bottom to move between Home, Library, '
+          'Sanctuary, and your Profile. The center button starts a new entry.',
     ),
     (
       icon: Icons.touch_app_outlined,
