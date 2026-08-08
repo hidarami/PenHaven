@@ -7,7 +7,7 @@
 -keep class io.flutter.plugins.**  { *; }
 
 # Keep the native MainActivity
--keep class com.hidarami.flow.MainActivity { *; }
+-keep class com.penhaven.app.MainActivity { *; }
 
 # Keep Supabase/PostgREST models
 -keep class com.supabase.** { *; }

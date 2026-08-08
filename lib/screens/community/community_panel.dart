@@ -322,7 +322,7 @@ class _CommunityPanelState extends State<CommunityPanel>
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _AuthSheet(
+      builder: (_) => AuthSheet(
         onSuccess: () {
           Navigator.pop(context);
           context.read<CommunityState>().loadProfile();
@@ -576,16 +576,16 @@ class _ForYouTab extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 24, vertical: 12),
                         decoration: BoxDecoration(
-                          color: AppColors.aqua.withOpacity(0.12),
+                          color: accentColor.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(
-                              color: AppColors.aqua.withOpacity(0.4)),
+                          border:
+                              Border.all(color: accentColor.withOpacity(0.4)),
                         ),
                         child: Text('Share Something',
                             style: GoogleFonts.inter(
                                 fontSize: 14,
                                 fontWeight: FontWeight.w600,
-                                color: AppColors.aqua)),
+                                color: accentColor)),
                       ),
                     ),
                   ],
@@ -1462,6 +1462,7 @@ class _PublishSheetState extends State<_PublishSheet> {
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final divColor = dark ? AppColors.dividerDark : AppColors.dividerLight;
+    final accentColor = context.watch<AtmosphereState>().accentColor;
 
     return DraggableScrollableSheet(
       initialChildSize: 0.85,
@@ -1524,15 +1525,14 @@ class _PublishSheetState extends State<_PublishSheet> {
                             padding: const EdgeInsets.all(14),
                             decoration: BoxDecoration(
                               color: sel
-                                  ? AppColors.aqua.withOpacity(0.1)
+                                  ? accentColor.withOpacity(0.1)
                                   : (dark
                                       ? Colors.white.withOpacity(0.04)
                                       : Colors.black.withOpacity(0.03)),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                  color: sel
-                                      ? AppColors.aqua
-                                      : Colors.transparent),
+                                  color:
+                                      sel ? accentColor : Colors.transparent),
                             ),
                             child: Row(
                               children: [
@@ -1549,7 +1549,7 @@ class _PublishSheetState extends State<_PublishSheet> {
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
                                               color: sel
-                                                  ? AppColors.aqua
+                                                  ? accentColor
                                                   : textColor),
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis),
@@ -1562,8 +1562,8 @@ class _PublishSheetState extends State<_PublishSheet> {
                                   ),
                                 ),
                                 if (sel)
-                                  const Icon(Icons.check_circle_rounded,
-                                      color: AppColors.aqua, size: 20),
+                                  Icon(Icons.check_circle_rounded,
+                                      color: accentColor, size: 20),
                               ],
                             ),
                           ),
@@ -1709,22 +1709,22 @@ class _PublishSheetState extends State<_PublishSheet> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         decoration: BoxDecoration(
                           color: _selected != null
-                              ? AppColors.aqua.withOpacity(0.12)
+                              ? accentColor.withOpacity(0.12)
                               : Colors.grey.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: _selected != null
-                                ? AppColors.aqua.withOpacity(0.5)
+                                ? accentColor.withOpacity(0.5)
                                 : Colors.grey.withOpacity(0.2),
                           ),
                         ),
                         child: Center(
                           child: _loading
-                              ? const SizedBox(
+                              ? SizedBox(
                                   width: 18,
                                   height: 18,
                                   child: CircularProgressIndicator(
-                                      strokeWidth: 1.5, color: AppColors.aqua))
+                                      strokeWidth: 1.5, color: accentColor))
                               : Text(
                                   _selected == null
                                       ? 'Select an entry first'
@@ -1733,7 +1733,7 @@ class _PublishSheetState extends State<_PublishSheet> {
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
                                     color: _selected != null
-                                        ? AppColors.aqua
+                                        ? accentColor
                                         : mutedColor,
                                   ),
                                 ),
@@ -1755,15 +1755,15 @@ class _PublishSheetState extends State<_PublishSheet> {
 // AUTH SHEET
 // ─────────────────────────────────────────────────────────────────────────────
 
-class _AuthSheet extends StatefulWidget {
+class AuthSheet extends StatefulWidget {
   final VoidCallback onSuccess;
-  const _AuthSheet({required this.onSuccess});
+  const AuthSheet({required this.onSuccess});
 
   @override
-  State<_AuthSheet> createState() => _AuthSheetState();
+  State<AuthSheet> createState() => AuthSheetState();
 }
 
-class _AuthSheetState extends State<_AuthSheet>
+class AuthSheetState extends State<AuthSheet>
     with SingleTickerProviderStateMixin {
   late TabController _tab;
   final _emailCtrl = TextEditingController();
@@ -1846,7 +1846,8 @@ class _AuthSheetState extends State<_AuthSheet>
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<AppState>().isDarkMode;
+    final appState = context.watch<AppState>();
+    final dark = appState.isDarkMode;
     final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;

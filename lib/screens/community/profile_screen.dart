@@ -28,9 +28,12 @@ class _BannerClipper extends CustomClipper<Path> {
     path.lineTo(size.width, size.height);
     // Deep fluid scoop — cubic bezier, both control points pull center sharply upward
     path.cubicTo(
-      size.width * 0.80, size.height * 0.58,
-      size.width * 0.20, size.height * 0.58,
-      0, size.height,
+      size.width * 0.80,
+      size.height * 0.58,
+      size.width * 0.20,
+      size.height * 0.58,
+      0,
+      size.height,
     );
     path.close();
     return path;
@@ -83,8 +86,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-Future<void> _editBio(BuildContext ctx, CommunityState state,
-      Color textColor, Color mutedColor, bool dark, Color bg) async {
+  Future<void> _editBio(BuildContext ctx, CommunityState state, Color textColor,
+      Color mutedColor, bool dark, Color bg) async {
     await showDialog<void>(
       context: ctx,
       builder: (dctx) => _BioEditDialog(
@@ -107,32 +110,6 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
     );
     if (path != null && mounted) {
       await context.read<CommunityState>().saveProfile(bannerPath: path);
-    }
-  }
-
-  Future<void> _confirmSignOut(BuildContext context) async {
-    final ok = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Sign out?'),
-        content: const Text(
-            'You can sign back in any time. Your local entries stay on this device.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Sign Out',
-                style: TextStyle(color: AppColors.danger)),
-          ),
-        ],
-      ),
-    );
-    if (ok == true) {
-      await SupabaseService.instance.signOut();
-      if (mounted) setState(() {});
     }
   }
 
@@ -168,35 +145,10 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
     final appreciationsTotal =
         publications.fold<int>(0, (sum, p) => sum + p.clapCount);
     final totalReads = communityState.totalUniqueViews;
-    final bio = communityState.profileBio;  
+    final bio = communityState.profileBio;
 
     return Scaffold(
       backgroundColor: bg,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endTop,
-      floatingActionButton: Padding(
-        padding: EdgeInsets.only(top: topPad + 8),
-        child: GestureDetector(
-          onTap: () => _confirmSignOut(context),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.28),
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                      color: Colors.white.withOpacity(0.22), width: 0.5),
-                ),
-                child: const Icon(Icons.logout_rounded,
-                    size: 16, color: Colors.white),
-              ),
-            ),
-          ),
-        ),
-      ),
       body: GestureDetector(
         onHorizontalDragEnd: (d) {
           if ((d.primaryVelocity ?? 0) > 300 && Navigator.canPop(context)) {
@@ -204,389 +156,391 @@ Future<void> _editBio(BuildContext ctx, CommunityState state,
           }
         },
         child: CustomScrollView(
-        physics: const ClampingScrollPhysics(),
-        slivers: [
-          // ── Cover + Avatar (3:2 ratio, inward curve) ──────────────
-          SliverToBoxAdapter(
-            child: Builder(
-              builder: (ctx) {
-                final screenW = MediaQuery.of(ctx).size.width;
-                final bannerContentH = screenW * 9.0 / 16.0; // 16:9 — pulls content up
-                final bannerH = bannerContentH + topPad;
-                // Cubic bezier controls at 58% → scoop tip lands at ~68.5% of bannerH
-                final scoopTipY = bannerH * 0.685;
-                const avatarD = 96.0;
-                const avatarR = 48.0;
-                final avatarTopY = scoopTipY - avatarR; // avatar center sits at scoop tip
+          physics: const ClampingScrollPhysics(),
+          slivers: [
+            // ── Cover + Avatar (3:2 ratio, inward curve) ──────────────
+            SliverToBoxAdapter(
+              child: Builder(
+                builder: (ctx) {
+                  final screenW = MediaQuery.of(ctx).size.width;
+                  final bannerContentH =
+                      screenW * 9.0 / 16.0; // 16:9 — pulls content up
+                  final bannerH = bannerContentH + topPad;
+                  // Cubic bezier controls at 58% → scoop tip lands at ~68.5% of bannerH
+                  final scoopTipY = bannerH * 0.685;
+                  const avatarD = 96.0;
+                  const avatarR = 48.0;
+                  final avatarTopY =
+                      scoopTipY - avatarR; // avatar center sits at scoop tip
 
-                return SizedBox(
-                  height: avatarTopY + avatarD + 8,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Banner
-                      ClipPath(
-                        clipper: _BannerClipper(),
-                        child: GestureDetector(
-                          onTap: _pickBannerImage,
-                          child: SizedBox(
-                            height: bannerH,
-                            width: double.infinity,
-                            child: hasBanner
-                                ? Image.file(File(bannerPath!),
-                                    width: double.infinity,
-                                    height: bannerH,
-                                    fit: BoxFit.cover)
-                                : hasImage
-                                    ? Stack(fit: StackFit.expand, children: [
-                                        ImageFiltered(
-                                          imageFilter: ImageFilter.blur(
-                                              sigmaX: 44, sigmaY: 44),
-                                          child: Image.file(File(imagePath!),
-                                              fit: BoxFit.cover),
-                                        ),
-                                        Container(
-                                            color:
-                                                Colors.black.withOpacity(0.42)),
-                                      ])
-                                    : Container(
-                                        decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            begin: Alignment.topLeft,
-                                            end: Alignment.bottomRight,
-                                            colors: dark
-                                                ? [
-                                                    const Color(0xFF0D1A28),
-                                                    const Color(0xFF1A3045)
-                                                  ]
-                                                : [
-                                                    const Color(0xFFB8CDE0),
-                                                    const Color(0xFFD8E8F0)
-                                                  ],
-                                          ),
-                                        ),
-                                      ),
-                          ),
-                        ),
-                      ),
-
-                      // Avatar positioned at curve center peak
-                      // Top 25% (24px) is inside banner, 75% hangs below
-                      Positioned(
-                        top: avatarTopY,
-                        left: 0,
-                        right: 0,
-                        child: Center(
+                  return SizedBox(
+                    height: avatarTopY + avatarD + 8,
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        // Banner
+                        ClipPath(
+                          clipper: _BannerClipper(),
                           child: GestureDetector(
-                            // Tap: view your own public profile
-                            onTap: () {
-                              final uid = SupabaseService.instance.userId;
-                              if (uid != null) {
-                                PublicProfileModal.show(
-                                  context,
-                                  userId: uid,
-                                  displayName:
-                                      communityState.profileDisplayName ??
-                                          SupabaseService.instance.userEmail
-                                              ?.split('@')
-                                              .first ??
-                                          'You',
-                                );
-                              }
-                            },
-                            // Long press: change profile photo
-                            onLongPress: _pickProfileImage,
-                            child: Container(
-                              width: avatarD,
-                              height: avatarD,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                border: Border.all(
-                                  color: dark
-                                      ? AppColors.warmDark
-                                      : Colors.white,
-                                  width: 4,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withOpacity(0.15),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: ClipOval(
-                                child: hasImage
-                                    ? Image.file(File(imagePath!),
-                                        width: avatarD,
-                                        height: avatarD,
-                                        fit: BoxFit.cover)
-                                    : Container(
-                                        color: accentColor.withOpacity(0.18),
-                                        child: Center(
-                                          child: Text(
-                                            displayName.isNotEmpty
-                                                ? displayName[0].toUpperCase()
-                                                : '?',
-                                            style: GoogleFonts.crimsonPro(
-                                              fontSize: 38,
-                                              fontWeight: FontWeight.w700,
-                                              color: accentColor,
+                            onTap: _pickBannerImage,
+                            child: SizedBox(
+                              height: bannerH,
+                              width: double.infinity,
+                              child: hasBanner
+                                  ? Image.file(File(bannerPath!),
+                                      width: double.infinity,
+                                      height: bannerH,
+                                      fit: BoxFit.cover)
+                                  : hasImage
+                                      ? Stack(fit: StackFit.expand, children: [
+                                          ImageFiltered(
+                                            imageFilter: ImageFilter.blur(
+                                                sigmaX: 44, sigmaY: 44),
+                                            child: Image.file(File(imagePath!),
+                                                fit: BoxFit.cover),
+                                          ),
+                                          Container(
+                                              color: Colors.black
+                                                  .withOpacity(0.42)),
+                                        ])
+                                      : Container(
+                                          decoration: BoxDecoration(
+                                            gradient: LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: dark
+                                                  ? [
+                                                      const Color(0xFF0D1A28),
+                                                      const Color(0xFF1A3045)
+                                                    ]
+                                                  : [
+                                                      const Color(0xFFB8CDE0),
+                                                      const Color(0xFFD8E8F0)
+                                                    ],
                                             ),
                                           ),
                                         ),
-                                      ),
+                            ),
+                          ),
+                        ),
+
+                        // Avatar positioned at curve center peak
+                        // Top 25% (24px) is inside banner, 75% hangs below
+                        Positioned(
+                          top: avatarTopY,
+                          left: 0,
+                          right: 0,
+                          child: Center(
+                            child: GestureDetector(
+                              // Tap: view your own public profile
+                              onTap: () {
+                                final uid = SupabaseService.instance.userId;
+                                if (uid != null) {
+                                  PublicProfileModal.show(
+                                    context,
+                                    userId: uid,
+                                    displayName:
+                                        communityState.profileDisplayName ??
+                                            SupabaseService.instance.userEmail
+                                                ?.split('@')
+                                                .first ??
+                                            'You',
+                                  );
+                                }
+                              },
+                              // Long press: change profile photo
+                              onLongPress: _pickProfileImage,
+                              child: Container(
+                                width: avatarD,
+                                height: avatarD,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: dark
+                                        ? AppColors.warmDark
+                                        : Colors.white,
+                                    width: 4,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withOpacity(0.15),
+                                      blurRadius: 12,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipOval(
+                                  child: hasImage
+                                      ? Image.file(File(imagePath!),
+                                          width: avatarD,
+                                          height: avatarD,
+                                          fit: BoxFit.cover)
+                                      : Container(
+                                          color: accentColor.withOpacity(0.18),
+                                          child: Center(
+                                            child: Text(
+                                              displayName.isNotEmpty
+                                                  ? displayName[0].toUpperCase()
+                                                  : '?',
+                                              style: GoogleFonts.crimsonPro(
+                                                fontSize: 38,
+                                                fontWeight: FontWeight.w700,
+                                                color: accentColor,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                ),
                               ),
                             ),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                );
-              },
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
-          ),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 10)),
+            const SliverToBoxAdapter(child: SizedBox(height: 10)),
 
-          // ── Name, Handle, Bio, Stats ──────────────────────────────
-          SliverToBoxAdapter(
-            child: Column(
-              children: [
-                Text(
-                  displayName,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.crimsonPro(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w700,
-                    color: textColor,
+            // ── Name, Handle, Bio, Stats ──────────────────────────────
+            SliverToBoxAdapter(
+              child: Column(
+                children: [
+                  Text(
+                    displayName,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.crimsonPro(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: textColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  handle,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: accentColor,
+                  const SizedBox(height: 4),
+                  Text(
+                    handle,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: accentColor,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
+                  const SizedBox(height: 8),
 
-                // Bio — tap to edit
-                GestureDetector(
-                  onTap: () => _editBio(
-                      context, communityState, textColor, mutedColor, dark, bg),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 36),
-                    child: bio != null && bio.isNotEmpty
-                        ? Text(
-                            bio,
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.crimsonPro(
-                              fontSize: 15,
-                              fontStyle: FontStyle.italic,
-                              color: textColor.withOpacity(0.7),
-                              height: 1.5,
+                  // Bio — tap to edit
+                  GestureDetector(
+                    onTap: () => _editBio(context, communityState, textColor,
+                        mutedColor, dark, bg),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 36),
+                      child: bio != null && bio.isNotEmpty
+                          ? Text(
+                              bio,
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.crimsonPro(
+                                fontSize: 15,
+                                fontStyle: FontStyle.italic,
+                                color: textColor.withOpacity(0.7),
+                                height: 1.5,
+                              ),
+                            )
+                          : Text(
+                              'Tap to add a bio...',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: accentColor.withOpacity(0.6),
+                                fontStyle: FontStyle.italic,
+                              ),
                             ),
-                          )
-                        : Text(
-                            'Tap to add a bio...',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              color: accentColor.withOpacity(0.6),
-                              fontStyle: FontStyle.italic,
-                            ),
-                          ),
+                    ),
                   ),
-                ),
 
-                const SizedBox(height: 16),
+                  const SizedBox(height: 16),
 
-                // Stats row
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32),
+                  // Stats row
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 32),
+                    child: Row(
+                      children: [
+                        Expanded(
+                            child: _StatItem(
+                                count: pubCount,
+                                label: 'Publications',
+                                textColor: textColor,
+                                mutedColor: mutedColor)),
+                        Container(width: 0.5, height: 36, color: divColor),
+                        Expanded(
+                            child: _StatItem(
+                                count: appreciationsTotal,
+                                label: 'Appreciations',
+                                textColor: textColor,
+                                mutedColor: mutedColor)),
+                        Container(width: 0.5, height: 36, color: divColor),
+                        Expanded(
+                            child: _StatItem(
+                                count: totalReads,
+                                label: 'Reads',
+                                textColor: textColor,
+                                mutedColor: mutedColor)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Divider(color: divColor, thickness: 0.5),
+                  ),
+                ],
+              ),
+            ),
+
+            // ── Stories ──────────────────────────────────────────────
+            if (stories.isNotEmpty) ...[
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
                   child: Row(
                     children: [
-                      Expanded(
-                          child: _StatItem(
-                              count: pubCount,
-                              label: 'Publications',
-                              textColor: textColor,
-                              mutedColor: mutedColor)),
-                      Container(width: 0.5, height: 36, color: divColor),
-                      Expanded(
-                          child: _StatItem(
-                              count: appreciationsTotal,
-                              label: 'Appreciations',
-                              textColor: textColor,
-                              mutedColor: mutedColor)),
-                      Container(width: 0.5, height: 36, color: divColor),
-                      Expanded(
-                          child: _StatItem(
-                              count: totalReads,
-                              label: 'Reads',
-                              textColor: textColor,
-                              mutedColor: mutedColor)),
+                      Text('Stories',
+                          style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: textColor)),
+                      const Spacer(),
+                      Text('View all',
+                          style: GoogleFonts.inter(
+                              fontSize: 13,
+                              color: accentColor,
+                              fontWeight: FontWeight.w500)),
                     ],
                   ),
                 ),
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Divider(color: divColor, thickness: 0.5),
+              ),
+              SliverToBoxAdapter(
+                child: SizedBox(
+                  height: 160,
+                  child: ListView.builder(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: stories.length,
+                    itemBuilder: (ctx, i) => _ProfileStoryCard(
+                      story: stories[i],
+                      textColor: textColor,
+                      mutedColor: mutedColor,
+                    ),
+                  ),
                 ),
-              ],
-            ),
-          ),
+              ),
+            ],
 
-          // ── Stories ──────────────────────────────────────────────
-          if (stories.isNotEmpty) ...[
+            // ── Recent Publications ──────────────────────────────────
             SliverToBoxAdapter(
               child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
+                child: Text('Recent Publications',
+                    style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: textColor)),
+              ),
+            ),
+
+            if (!SupabaseService.instance.isAuthenticated)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Text('Sign in to view your publications.',
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          color: mutedColor)),
+                ),
+              )
+            else if (publications.isEmpty)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                  child: Text("You haven't published anything yet.",
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 16,
+                          fontStyle: FontStyle.italic,
+                          color: mutedColor)),
+                ),
+              )
+            else
+              SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => _PublicationTile(
+                    entry: publications[i],
+                    isDark: dark,
+                    textColor: textColor,
+                    mutedColor: mutedColor,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              CommunityEntryViewer(entry: publications[i])),
+                    ),
+                  ),
+                  childCount: publications.length,
+                ),
+              ),
+
+            // ── Bookmarked Entries ─────────────────────────────────────
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
                 child: Row(
                   children: [
-                    Text('Stories',
+                    Icon(Icons.bookmark_rounded, size: 16, color: accentColor),
+                    const SizedBox(width: 8),
+                    Text('Bookmarked',
                         style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: textColor)),
-                    const Spacer(),
-                    Text('View all',
-                        style: GoogleFonts.inter(
-                            fontSize: 13,
-                            color: accentColor,
-                            fontWeight: FontWeight.w500)),
                   ],
                 ),
               ),
             ),
-            SliverToBoxAdapter(
-              child: SizedBox(
-                height: 160,
-                child: ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  itemCount: stories.length,
-                  itemBuilder: (ctx, i) => _ProfileStoryCard(
-                    story: stories[i],
+
+            Builder(builder: (context) {
+              final bookmarked = communityState.bookmarkedEntries;
+              if (bookmarked.isEmpty) {
+                return SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+                    child: Text(
+                      'Nothing bookmarked yet. Tap the bookmark icon on any entry.',
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 15,
+                          fontStyle: FontStyle.italic,
+                          color: mutedColor),
+                    ),
+                  ),
+                );
+              }
+              return SliverList(
+                delegate: SliverChildBuilderDelegate(
+                  (ctx, i) => _PublicationTile(
+                    entry: bookmarked[i],
+                    isDark: dark,
                     textColor: textColor,
                     mutedColor: mutedColor,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                          builder: (_) =>
+                              CommunityEntryViewer(entry: bookmarked[i])),
+                    ),
                   ),
-                ),
-              ),
-            ),
-          ],
-
-          // ── Recent Publications ──────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
-              child: Text('Recent Publications',
-                  style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: textColor)),
-            ),
-          ),
-
-          if (!SupabaseService.instance.isAuthenticated)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Text('Sign in to view your publications.',
-                    style: GoogleFonts.crimsonPro(
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                        color: mutedColor)),
-              ),
-            )
-          else if (publications.isEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                child: Text("You haven't published anything yet.",
-                    style: GoogleFonts.crimsonPro(
-                        fontSize: 16,
-                        fontStyle: FontStyle.italic,
-                        color: mutedColor)),
-              ),
-            )
-          else
-            SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) => _PublicationTile(
-                  entry: publications[i],
-                  isDark: dark,
-                  textColor: textColor,
-                  mutedColor: mutedColor,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            CommunityEntryViewer(entry: publications[i])),
-                  ),
-                ),
-                childCount: publications.length,
-              ),
-            ),
-
-          // ── Bookmarked Entries ─────────────────────────────────────
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 28, 20, 14),
-              child: Row(
-                children: [
-                  Icon(Icons.bookmark_rounded, size: 16, color: accentColor),
-                  const SizedBox(width: 8),
-                  Text('Bookmarked',
-                      style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                          color: textColor)),
-                ],
-              ),
-            ),
-          ),
-
-          Builder(builder: (context) {
-            final bookmarked = communityState.bookmarkedEntries;
-            if (bookmarked.isEmpty) {
-              return SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                  child: Text(
-                    'Nothing bookmarked yet. Tap the bookmark icon on any entry.',
-                    style: GoogleFonts.crimsonPro(
-                        fontSize: 15,
-                        fontStyle: FontStyle.italic,
-                        color: mutedColor),
-                  ),
+                  childCount: bookmarked.length,
                 ),
               );
-            }
-            return SliverList(
-              delegate: SliverChildBuilderDelegate(
-                (ctx, i) => _PublicationTile(
-                  entry: bookmarked[i],
-                  isDark: dark,
-                  textColor: textColor,
-                  mutedColor: mutedColor,
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute(
-                        builder: (_) =>
-                            CommunityEntryViewer(entry: bookmarked[i])),
-                  ),
-                ),
-                childCount: bookmarked.length,
-              ),
-            );
-          }),
+            }),
 
-          const SliverToBoxAdapter(child: SizedBox(height: 80)),
-        ],
-      ),
+            const SliverToBoxAdapter(child: SizedBox(height: 80)),
+          ],
+        ),
       ),
     );
   }
@@ -647,8 +601,7 @@ class _BioEditDialogState extends State<_BioEditDialog> {
               fontSize: 14,
               color: widget.mutedColor,
               fontStyle: FontStyle.italic),
-          border:
-              OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         ),
       ),
       actions: [

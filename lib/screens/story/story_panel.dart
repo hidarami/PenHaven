@@ -271,8 +271,7 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
             SliverToBoxAdapter(child: SizedBox(height: botPad + 110)),
           ],
         ),
-
-        ],
+      ],
     );
   }
 }
@@ -292,86 +291,89 @@ class _HeroCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: SizedBox(
-          height: 224,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              // Background cover
-              StoryCoverWidget(
-                storyTitle: story.title,
-                imagePath: story.coverImage,
-                width: double.infinity,
-                height: 224,
-              ),
+    return LayoutBuilder(builder: (context, constraints) {
+      final height = constraints.maxWidth / 3; // 3:1 aspect ratio
+      return GestureDetector(
+        onTap: onTap,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: SizedBox(
+            height: height,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                // Background cover
+                StoryCoverWidget(
+                  storyTitle: story.title,
+                  imagePath: story.coverImage,
+                  width: double.infinity,
+                  height: height,
+                ),
 
-              // Bottom gradient overlay
-              const DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Colors.transparent,
-                      Color(0x4D000000),
-                      Color(0xCC000000),
-                    ],
-                    stops: [0.18, 0.52, 1.0],
+                // Bottom gradient overlay
+                const DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Color(0x4D000000),
+                        Color(0xCC000000),
+                      ],
+                      stops: [0.18, 0.52, 1.0],
+                    ),
                   ),
                 ),
-              ),
 
-              // Text content
-              Positioned(
-                left: 20,
-                right: 20,
-                bottom: 20,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      story.title,
-                      style: GoogleFonts.crimsonPro(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 1.1,
-                        shadows: [
-                          Shadow(
-                              color: Colors.black.withOpacity(0.35),
-                              blurRadius: 10)
-                        ],
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    if (story.description.isNotEmpty) ...[
-                      const SizedBox(height: 6),
+                // Text content
+                Positioned(
+                  left: 20,
+                  right: 20,
+                  bottom: 20,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
                       Text(
-                        story.description,
-                        style: GoogleFonts.inter(
-                          fontSize: 13,
-                          color: Colors.white.withOpacity(0.78),
-                          height: 1.4,
-                          fontStyle: FontStyle.italic,
+                        story.title,
+                        style: GoogleFonts.crimsonPro(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 1.1,
+                          shadows: [
+                            Shadow(
+                                color: Colors.black.withOpacity(0.35),
+                                blurRadius: 10)
+                          ],
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
+                      if (story.description.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          story.description,
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: Colors.white.withOpacity(0.78),
+                            height: 1.4,
+                            fontStyle: FontStyle.italic,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
-      ),
-    );
+      );
+    });
   }
 }
 

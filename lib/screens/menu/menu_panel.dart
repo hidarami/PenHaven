@@ -16,6 +16,7 @@ import '../settings/settings_screen.dart';
 import '../settings/themes_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../community/profile_screen.dart';
+import '../community/community_panel.dart';
 
 class MenuPanel extends StatelessWidget {
   final BuildContext outerContext;
@@ -69,8 +70,7 @@ class MenuPanel extends StatelessWidget {
     final bg = isDark ? AppColors.warmDark : AppColors.warmWhite;
     final textColor = AppColors.readableText(bg);
     final mutedColor = AppColors.readableMuted(bg);
-    final divColor =
-        isDark ? AppColors.dividerDark : AppColors.dividerLight;
+    final divColor = isDark ? AppColors.dividerDark : AppColors.dividerLight;
 
     final displayName = communityState.profileDisplayName ??
         (SupabaseService.instance.userEmail?.split('@').first ?? 'You');
@@ -202,13 +202,59 @@ class MenuPanel extends StatelessWidget {
                           mutedColor: mutedColor,
                           onTap: () async {
                             Navigator.of(context).pop();
-                            final uri = Uri.parse('https://ko-fi.com/mikecairoo');
+                            final uri =
+                                Uri.parse('https://ko-fi.com/mikecairoo');
                             if (await canLaunchUrl(uri)) {
                               await launchUrl(uri,
                                   mode: LaunchMode.externalApplication);
                             }
                           },
                         ),
+
+                        const SizedBox(height: 14),
+
+                        // ── Account section ───────────────────────────────
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(28, 0, 28, 8),
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text('Account',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: mutedColor,
+                                  letterSpacing: 0.4,
+                                  decoration: TextDecoration.none,
+                                )),
+                          ),
+                        ),
+
+                        if (SupabaseService.instance.isAuthenticated)
+                          _MenuItem(
+                            icon: Icons.logout_rounded,
+                            label: 'Sign Out',
+                            subtitle: 'Sign out from your account',
+                            isDark: isDark,
+                            textColor: textColor,
+                            mutedColor: mutedColor,
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              await _confirmSignOut();
+                            },
+                          )
+                        else
+                          _MenuItem(
+                            icon: Icons.login_rounded,
+                            label: 'Sign In',
+                            subtitle: 'Join the Sanctuary community',
+                            isDark: isDark,
+                            textColor: textColor,
+                            mutedColor: mutedColor,
+                            onTap: () async {
+                              Navigator.of(context).pop();
+                              _showAuthSheet();
+                            },
+                          ),
 
                         const SizedBox(height: 14),
 
@@ -227,7 +273,8 @@ class MenuPanel extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Icon(Icons.auto_stories_outlined,
-                                    size: 15, color: mutedColor.withOpacity(0.7)),
+                                    size: 15,
+                                    color: mutedColor.withOpacity(0.7)),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
@@ -324,6 +371,49 @@ class MenuPanel extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _confirmSignOut() async {
+    final ok = await showDialog<bool>(
+      context: outerContext,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Sign out?'),
+        content: const Text(
+            'You can sign back in any time. Your local entries stay on this device.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sign Out',
+                style: TextStyle(color: AppColors.danger)),
+          ),
+        ],
+      ),
+    );
+    if (ok == true) {
+      await SupabaseService.instance.signOut();
+    }
+  }
+
+  void _showAuthSheet() {
+    showModalBottomSheet<void>(
+      context: outerContext,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) => AuthSheet(
+        onSuccess: () {
+          Navigator.pop(ctx);
+          // Refresh the community state after successful auth
+          if (outerContext.mounted) {
+            outerContext.read<CommunityState>().loadProfile();
+            outerContext.read<CommunityState>().loadMyPosts();
+          }
+        },
+      ),
+    );
+  }
 }
 
 // ── Menu item ─────────────────────────────────────────────────────────────
@@ -354,8 +444,7 @@ class _MenuItem extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 1),
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
           child: Row(
             children: [
               Container(

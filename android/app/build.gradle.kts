@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.hidarami.flow"
+    namespace = "com.penhaven.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -20,7 +20,7 @@ android {
 
 
     defaultConfig {
-        applicationId = "com.hidarami.flow"
+        applicationId = "com.penhaven.app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = 1

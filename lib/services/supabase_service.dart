@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -41,6 +42,7 @@ class SupabaseService {
     try {
       await Supabase.initialize(
         url: _supabaseUrl,
+        anonKey: _supabaseAnonKey,
         debug: kDebugMode,
       );
     } catch (e) {
@@ -136,6 +138,19 @@ class SupabaseService {
       return null;
     } on AuthException catch (e) {
       return e.message;
+    } on PlatformException catch (e) {
+      // Google Play Services error code 10 = DEVELOPER_ERROR. This almost
+      // always means the Android OAuth client in Google Cloud Console is
+      // missing or has the wrong SHA-1 fingerprint for this build's signing
+      // certificate. Show a clear message instead of the raw ApiException.
+      if (e.message?.contains('10') == true ||
+          e.message?.contains('DEVELOPER_ERROR') == true) {
+        return 'Google sign-in is not configured for this build yet. '
+            'Please make sure the Android OAuth client in Google Cloud '
+            'Console matches this app\'s package name and signing '
+            'certificate (SHA-1).';
+      }
+      return e.message ?? 'Google sign-in failed.';
     } catch (e) {
       return e.toString();
     }
