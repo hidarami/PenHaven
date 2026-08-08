@@ -380,6 +380,7 @@ class SupabaseService {
       'is_anonymous': isAnonymous,
       'display_name': isAnonymous ? null : displayName,
       'header_image': entry.headerImage,
+      'header_image_ratio': entry.headerImageRatio,
       'category': category,
       'profile_image_url': isAnonymous ? null : profileImageUrl,
     };
@@ -797,6 +798,7 @@ class SupabaseService {
           'is_anonymous': map['is_anonymous'] ?? false,
           'display_name': map['display_name'],
           'header_image': map['header_image'],
+          'header_image_ratio': map['header_image_ratio'],
           'category': map['category'],
           'clap_count': 0,
           'comment_count': 0,
@@ -825,6 +827,7 @@ class SupabaseService {
           'is_anonymous': map['is_anonymous'] ?? false,
           'display_name': map['display_name'],
           'header_image': map['header_image'],
+          'header_image_ratio': map['header_image_ratio'],
           'category': map['category'],
           'clap_count': 0,
           'comment_count': 0,

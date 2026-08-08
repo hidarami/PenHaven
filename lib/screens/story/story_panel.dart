@@ -292,7 +292,9 @@ class _HeroCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
-      final height = constraints.maxWidth / 3; // 3:1 aspect ratio
+      // Slightly taller than 3:1 (2.5:1) — not as tall as 16:9 but clearly
+      // more presence than a cinematic strip.
+      final height = constraints.maxWidth / 2.5; // 2.5:1 aspect ratio
       return GestureDetector(
         onTap: onTap,
         child: ClipRRect(
@@ -371,7 +373,7 @@ class _HeroCard extends StatelessWidget {
               ],
             ),
           ),
-        ),
+       ),
       );
     });
   }

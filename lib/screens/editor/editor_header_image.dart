@@ -7,6 +7,7 @@ import '../../providers/app_state.dart';
 import '../../services/image_service.dart';
 import '../../services/permission_service.dart';
 import '../../theme/app_colors.dart';
+import '../entry_read/entry_header_image.dart' show headerHeightForRatio;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // EDITOR HEADER IMAGE
@@ -18,12 +19,14 @@ import '../../theme/app_colors.dart';
 
 class EditorHeaderImage extends StatelessWidget {
   final String? currentPath;
+  final String? currentRatio;
   final ValueChanged<(String?, String?)>
       onImageChanged; // (path, ratio), null path = remove
 
   const EditorHeaderImage({
     super.key,
     required this.currentPath,
+    this.currentRatio,
     required this.onImageChanged,
   });
 
@@ -197,6 +200,7 @@ class EditorHeaderImage extends StatelessWidget {
     if (hasImage) {
       return _ExistingImage(
         path: currentPath!,
+        ratio: currentRatio,
         onRemove: _removeImage,
         onReplace: () => _pickImage(context),
       );
@@ -337,47 +341,52 @@ class _AddImageArea extends StatelessWidget {
 
 class _ExistingImage extends StatelessWidget {
   final String path;
+  final String? ratio;
   final VoidCallback onRemove;
   final VoidCallback onReplace;
 
   const _ExistingImage({
     required this.path,
+    this.ratio,
     required this.onRemove,
     required this.onReplace,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        GestureDetector(
-          onTap: onReplace,
-          child: Image.file(
-            File(path),
-            width: double.infinity,
-            height: 200,
-            fit: BoxFit.cover,
-            errorBuilder: (_, __, ___) => const SizedBox(height: 200),
-          ),
-        ),
-        // Remove button — top-right
-        Positioned(
-          top: 12,
-          right: 12,
-          child: GestureDetector(
-            onTap: onRemove,
-            child: Container(
-              width: 28,
-              height: 28,
-              decoration: BoxDecoration(
-                color: Colors.black.withOpacity(0.55),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.close, size: 16, color: Colors.white),
+    return LayoutBuilder(builder: (context, constraints) {
+      final height = headerHeightForRatio(constraints.maxWidth, ratio);
+      return Stack(
+        children: [
+          GestureDetector(
+            onTap: onReplace,
+            child: Image.file(
+              File(path),
+              width: double.infinity,
+              height: height,
+              fit: BoxFit.cover,
+              errorBuilder: (_, __, ___) => SizedBox(height: height),
             ),
           ),
-        ),
-      ],
-    );
+          // Remove button — top-right
+          Positioned(
+            top: 12,
+            right: 12,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.55),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, size: 16, color: Colors.white),
+              ),
+            ),
+          ),
+        ],
+      );
+    });
   }
 }

@@ -145,14 +145,11 @@ class _ReadContent extends StatelessWidget {
     final topPadding = MediaQuery.of(context).padding.top;
 
     return CustomScrollView(
-      physics: const BouncingScrollPhysics(),
+      // Clamping physics — no bouncing/overscroll; scroll stays locked at edges.
+      physics: const ClampingScrollPhysics(),
       slivers: [
-        // ── Status bar spacer ─────────────────────────────────────────────
-        SliverToBoxAdapter(
-          child: SizedBox(height: topPadding + 24),
-        ),
-
         // ── Header image FIRST (before title) — CRITICAL ─────────────────
+        // Rendered full-bleed at the very top when present (no spacer above).
         if (entry.hasHeaderImage)
           SliverToBoxAdapter(
             child: EntryHeaderImage(
@@ -161,6 +158,12 @@ class _ReadContent extends StatelessWidget {
               backgroundColor:
                   context.watch<AtmosphereState>().backgroundFor(isDark),
             ),
+          )
+        else
+          // Status-bar spacer only when there is no header image, so the
+          // title/content don't sit underneath the status bar.
+          SliverToBoxAdapter(
+            child: SizedBox(height: topPadding + 24),
           ),
 
         // ── Title + date + body ───────────────────────────────────────────

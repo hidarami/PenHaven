@@ -347,6 +347,7 @@ class _EditorScreenState extends State<EditorScreen> {
       'is_anonymous': false,
       'display_name': communityState.profileDisplayName,
       'header_image': _entry.headerImage,
+      'header_image_ratio': _entry.headerImageRatio,
       'category': null,
       'profile_image_url': communityState.profileImageUrl,
       'clap_count': 0,
@@ -400,6 +401,7 @@ class _EditorScreenState extends State<EditorScreen> {
       'is_anonymous': false,
       'display_name': displayName,
       'header_image': _entry.headerImage,
+      'header_image_ratio': _entry.headerImageRatio,
       'category': originCategory,
       'profile_image_url': communityState.profileImageUrl,
       'clap_count': 0,
@@ -476,6 +478,7 @@ class _EditorScreenState extends State<EditorScreen> {
                         // Header image
                         EditorHeaderImage(
                           currentPath: _entry.headerImage,
+                          currentRatio: _entry.headerImageRatio,
                           onImageChanged: _onHeaderImageChanged,
                         ),
 

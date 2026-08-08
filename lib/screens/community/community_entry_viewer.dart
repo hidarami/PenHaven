@@ -22,6 +22,7 @@ import '../../services/supabase_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../editor/editor_canvas.dart';
+import '../entry_read/entry_header_image.dart' show headerHeightForRatio;
 import '../../widgets/shared_widgets.dart';
 import '../../widgets/action_pill.dart';
 import 'public_profile_modal.dart';
@@ -485,7 +486,8 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
     final hasHeaderImage = _entry.headerImage != null &&
         _entry.headerImage!.isNotEmpty &&
         File(_entry.headerImage!).existsSync();
-    const imageH = 280.0;
+    final imageH = headerHeightForRatio(
+        MediaQuery.of(context).size.width, _entry.headerImageRatio);
 
     return GestureDetector(
       onHorizontalDragEnd: (d) {
@@ -549,33 +551,10 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                             child: Image.file(
                               file,
                               width: double.infinity,
-                              height: 260,
+                              height: imageH,
                               fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) =>
                                   SizedBox(height: topPad + 64),
-                            ),
-                          ),
-                          // Soft seamless fade into the page background
-                          Positioned(
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            height: 120,
-                            child: IgnorePointer(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.topCenter,
-                                    end: Alignment.bottomCenter,
-                                    colors: [
-                                      bg.withOpacity(0.0),
-                                      bg.withOpacity(0.55),
-                                      bg,
-                                    ],
-                                    stops: const [0.0, 0.65, 1.0],
-                                  ),
-                                ),
-                              ),
                             ),
                           ),
                         ],

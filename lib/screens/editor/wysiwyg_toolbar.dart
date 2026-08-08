@@ -295,11 +295,43 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
     );
     if (origBlock is! TextBlock) return;
 
-    final quoteBlock =
-        TextBlock(id: const Uuid().v4(), type: type, text: selected);
+    // Extract format ranges for each part
+    final beforeFormats = _extractFormatsInRange(ctrl.formats, 0, sel.start);
+    final selectedFormats =
+        _extractFormatsInRange(ctrl.formats, sel.start, sel.end);
+    final afterFormats =
+        _extractFormatsInRange(ctrl.formats, sel.end, text.length);
+
+    // Shift format ranges for selected text to start at 0
+    final shiftedSelectedFormats = selectedFormats
+        .map((f) => FormatRange(
+              start: f.start - sel.start,
+              end: f.end - sel.start,
+              attrs: f.attrs,
+            ))
+        .toList();
+
+    // Shift format ranges for after text to start at 0
+    final shiftedAfterFormats = afterFormats
+        .map((f) => FormatRange(
+              start: f.start - sel.end,
+              end: f.end - sel.end,
+              attrs: f.attrs,
+            ))
+        .toList();
+
+    final quoteBlock = TextBlock(
+      id: const Uuid().v4(),
+      type: type,
+      text: selected,
+      formats: shiftedSelectedFormats,
+    );
 
     if (before.isNotEmpty) {
-      widget.canvas.updateBlock(origBlock.copyWith(text: before));
+      widget.canvas.updateBlock(origBlock.copyWith(
+        text: before,
+        formats: beforeFormats,
+      ));
       widget.canvas.insertBlockAfter(blockId, quoteBlock);
     } else {
       widget.canvas.insertBlockAfter(blockId, quoteBlock);
@@ -311,7 +343,12 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
         if (mounted) {
           widget.canvas.insertBlockAfter(
             quoteBlock.id,
-            TextBlock(id: const Uuid().v4(), type: BlockType.text, text: after),
+            TextBlock(
+              id: const Uuid().v4(),
+              type: BlockType.text,
+              text: after,
+              formats: shiftedAfterFormats,
+            ),
           );
           setState(() {});
         }
@@ -319,6 +356,27 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
     }
 
     setState(() {});
+  }
+
+  /// Extract format ranges that overlap with the given text range
+  List<FormatRange> _extractFormatsInRange(
+      List<FormatRange> formats, int rangeStart, int rangeEnd) {
+    final result = <FormatRange>[];
+    for (final fmt in formats) {
+      // No overlap
+      if (fmt.end <= rangeStart || fmt.start >= rangeEnd) continue;
+
+      // Calculate overlap
+      final overlapStart = fmt.start > rangeStart ? fmt.start : rangeStart;
+      final overlapEnd = fmt.end < rangeEnd ? fmt.end : rangeEnd;
+
+      result.add(FormatRange(
+        start: overlapStart,
+        end: overlapEnd,
+        attrs: fmt.attrs,
+      ));
+    }
+    return result;
   }
 
   void _cycleAlignment() {

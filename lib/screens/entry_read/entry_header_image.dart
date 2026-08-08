@@ -1,6 +1,27 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 
+/// Returns the display height for a full-width header image given the
+/// stored crop ratio string. Shared by every viewer so the chosen crop
+/// ratio is honored consistently (local read, editor, community, reflection).
+double headerHeightForRatio(double width, String? ratio) {
+  switch (ratio) {
+    case '16:9':
+      return width / (16 / 9);
+    case '4:3':
+      return width / (4 / 3);
+    case '3:1':
+      return width / 3;
+    case '1:1':
+      return width;
+    case 'full':
+      // For full size, use a reasonable default height
+      return width / 2;
+    default:
+      return width / (16 / 9);
+  }
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // ENTRY HEADER IMAGE
 // Full-width, 240px height banner image. Edge-to-edge (no horizontal padding).
@@ -34,69 +55,24 @@ class EntryHeaderImage extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 0),
-      child: Stack(
-        children: [
-          // ── Image — aspect ratio based on stored ratio, sharp edges, no border radius ─────────
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final height = _getHeight(constraints.maxWidth);
-              return Image.file(
-                file,
-                width: double.infinity,
-                height: height,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => _placeholder(height),
-              );
-            },
-          ),
-
-          // ── Gradient overlay — soft seamless fade into the page background ──
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            height: 120,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      (backgroundColor ?? Colors.transparent).withOpacity(0.0),
-                      (backgroundColor ?? Colors.black).withOpacity(0.55),
-                      backgroundColor ?? Colors.black,
-                    ],
-                    stops: const [0.0, 0.65, 1.0],
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final height = _getHeight(constraints.maxWidth);
+          // Sharp bottom edge — no gradient fade overlay.
+          return Image.file(
+            file,
+            width: double.infinity,
+            height: height,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _placeholder(height),
+          );
+        },
       ),
     );
   }
 
   double _getHeight(double width) {
-    // Default to 3:1 if no ratio specified
-    final ratioStr = ratio ?? '3:1';
-
-    switch (ratioStr) {
-      case '16:9':
-        return width / (16 / 9);
-      case '4:3':
-        return width / (4 / 3);
-      case '3:1':
-        return width / 3;
-      case '1:1':
-        return width;
-      case 'full':
-        // For full size, use a reasonable default height
-        return width / 2;
-      default:
-        return width / 3;
-    }
+    return headerHeightForRatio(width, ratio);
   }
 
   Widget _placeholder(double height) {

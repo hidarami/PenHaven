@@ -585,7 +585,10 @@ class EditorCanvasState extends State<EditorCanvas> {
                     ))
                 .toList();
 
-            prevCtrl.setFormatsAndText(mergedText, shiftedFormats);
+            // Merge format ranges: keep previous block's formats, add shifted current block formats
+            final mergedFormats = [...prevCtrl.formats, ...shiftedFormats];
+
+            prevCtrl.setFormatsAndText(mergedText, mergedFormats);
 
             // Move cursor to merge point
             prevCtrl.selection = TextSelection.collapsed(offset: prevLen);
@@ -1610,10 +1613,10 @@ class BlocksReadView extends StatelessWidget {
       return _ReflectionHeaderWidget(
         block: block,
         isDark: isDark,
-        onTapInspiration: (block.inspirationId != null &&
-                onTapInspirationReflection != null)
-            ? () => onTapInspirationReflection!(block.inspirationId!)
-            : null,
+        onTapInspiration:
+            (block.inspirationId != null && onTapInspirationReflection != null)
+                ? () => onTapInspirationReflection!(block.inspirationId!)
+                : null,
       );
     }
     if (block is ChecklistBlock) {
@@ -1841,10 +1844,12 @@ class _ReflectionHeaderWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final textColor = isDark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
-    final cardBg =
-        isDark ? Colors.white.withOpacity(0.05) : Colors.black.withOpacity(0.03);
-    final borderColor =
-        isDark ? Colors.white.withOpacity(0.08) : Colors.black.withOpacity(0.07);
+    final cardBg = isDark
+        ? Colors.white.withOpacity(0.05)
+        : Colors.black.withOpacity(0.03);
+    final borderColor = isDark
+        ? Colors.white.withOpacity(0.08)
+        : Colors.black.withOpacity(0.07);
     final hasImage = block.originHeaderImage != null &&
         block.originHeaderImage!.isNotEmpty &&
         File(block.originHeaderImage!).existsSync();
@@ -1874,7 +1879,8 @@ class _ReflectionHeaderWidget extends StatelessWidget {
                 width: 60,
                 height: 60,
                 child: hasImage
-                    ? Image.file(File(block.originHeaderImage!), fit: BoxFit.cover)
+                    ? Image.file(File(block.originHeaderImage!),
+                        fit: BoxFit.cover)
                     : Container(
                         decoration: const BoxDecoration(
                           gradient: LinearGradient(
@@ -1887,39 +1893,45 @@ class _ReflectionHeaderWidget extends StatelessWidget {
             ),
             const SizedBox(width: 12),
             Expanded(
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Text(
-                  block.originTitle.isEmpty ? 'Untitled' : block.originTitle,
-                  style: GoogleFonts.crimsonPro(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: textColor,
-                      height: 1.2),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 3),
-                Text('by ${block.originAuthor}',
-                    style: GoogleFonts.inter(fontSize: 11, color: mutedColor)),
-                if (block.originExcerpt != null &&
-                    block.originExcerpt!.isNotEmpty) ...[
-                  const SizedBox(height: 5),
-                  Text(
-                    '"${block.originExcerpt}"',
-                    style: GoogleFonts.crimsonPro(
-                        fontSize: 12,
-                        fontStyle: FontStyle.italic,
-                        color: mutedColor,
-                        height: 1.45),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ]),
+              child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      block.originTitle.isEmpty
+                          ? 'Untitled'
+                          : block.originTitle,
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                          height: 1.2),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text('by ${block.originAuthor}',
+                        style:
+                            GoogleFonts.inter(fontSize: 11, color: mutedColor)),
+                    if (block.originExcerpt != null &&
+                        block.originExcerpt!.isNotEmpty) ...[
+                      const SizedBox(height: 5),
+                      Text(
+                        '"${block.originExcerpt}"',
+                        style: GoogleFonts.crimsonPro(
+                            fontSize: 12,
+                            fontStyle: FontStyle.italic,
+                            color: mutedColor,
+                            height: 1.45),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ]),
             ),
           ]),
         ),
-        if (block.inspirationTitle != null && block.inspirationTitle!.isNotEmpty) ...[
+        if (block.inspirationTitle != null &&
+            block.inspirationTitle!.isNotEmpty) ...[
           const SizedBox(height: 8),
           GestureDetector(
             onTap: onTapInspiration,
@@ -1929,8 +1941,9 @@ class _ReflectionHeaderWidget extends StatelessWidget {
                   fontSize: 12,
                   color: AppColors.aqua,
                   fontStyle: FontStyle.italic,
-                  decoration:
-                      onTapInspiration != null ? TextDecoration.underline : null,
+                  decoration: onTapInspiration != null
+                      ? TextDecoration.underline
+                      : null,
                   decorationColor: AppColors.aqua),
             ),
           ),

@@ -14,6 +14,7 @@ class Reflection {
   bool isAnonymous;
   String? displayName;
   String? headerImage;
+  String? headerImageRatio;
   String? category;
   int clapCount;
   int replyCount;
@@ -44,6 +45,7 @@ class Reflection {
     this.isAnonymous = false,
     this.displayName,
     this.headerImage,
+    this.headerImageRatio,
     this.category,
     this.clapCount = 0,
     this.replyCount = 0,
@@ -90,6 +92,7 @@ class Reflection {
         'is_anonymous': isAnonymous,
         'display_name': isAnonymous ? null : displayName,
         'header_image': headerImage,
+        'header_image_ratio': headerImageRatio,
         'category': category,
         'clap_count': clapCount,
         'reply_count': replyCount,
@@ -115,6 +118,7 @@ class Reflection {
         isAnonymous: map['is_anonymous'] as bool? ?? false,
         displayName: map['display_name'] as String?,
         headerImage: map['header_image'] as String?,
+        headerImageRatio: map['header_image_ratio'] as String?,
         category: map['category'] as String?,
         clapCount: (map['clap_count'] as int?) ?? 0,
         replyCount: (map['reply_count'] as int?) ?? 0,
