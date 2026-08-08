@@ -10,6 +10,7 @@ import 'package:share_plus/share_plus.dart';
 import '../../models/entry.dart';
 import '../../atmosphere/atmosphere_overlay.dart';
 import '../../atmosphere/atmosphere_image_layer.dart';
+import '../../atmosphere/painters/starfield_painter.dart';
 import '../../providers/app_state.dart';
 import '../../providers/atmosphere_state.dart';
 import '../../theme/app_colors.dart';
@@ -119,6 +120,8 @@ class _EntryReadScreenState extends State<EntryReadScreen> {
           const AtmosphereOverlay(),
           // ── Atmosphere image layer (PNG window/shadow overlays) ─────────
           const AtmosphereImageLayer(),
+          // ── Starfield (Midnight Ink, clear skies only) ───────────────────
+          const StarfieldOverlay(),
           // ── Glassmorphic community stats pill / share pill ────────────────
       _PublishedStatsPill(entryId: _entry.id, entry: _entry),
         ],

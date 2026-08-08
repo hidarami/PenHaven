@@ -356,17 +356,27 @@ class _ExistingImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(builder: (context, constraints) {
       final height = headerHeightForRatio(constraints.maxWidth, ratio);
-      return Stack(
-        children: [
-          GestureDetector(
-            onTap: onReplace,
-            child: Image.file(
+      final image = height == null
+          ? Image.file(
+              File(path),
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+              alignment: Alignment.topCenter,
+              errorBuilder: (_, __, ___) =>
+                  SizedBox(height: constraints.maxWidth / 2),
+            )
+          : Image.file(
               File(path),
               width: double.infinity,
               height: height,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) => SizedBox(height: height),
-            ),
+            );
+      return Stack(
+        children: [
+          GestureDetector(
+            onTap: onReplace,
+            child: image,
           ),
           // Remove button — top-right
           Positioned(

@@ -328,10 +328,61 @@ class RichEditorController extends TextEditingController {
           attrs: _typingFormat,
         ));
       }
+      // Auto-detect a bare URL around the edit and make it tappable
+      // instantly — no manual "Insert Link" step needed.
+      _autoLinkifyAround(changeStart, changeStart + insertedLen);
     }
 
     _cleanupFormats();
     _prevText = newText;
+  }
+
+  static final RegExp _urlPattern = RegExp(
+    r'(https?:\/\/[^\s]+)|(www\.[^\s]+\.[a-zA-Z]{2,}[^\s]*)',
+    caseSensitive: false,
+  );
+
+  bool _isWordBoundary(String ch) => ch == ' ' || ch == '\n' || ch == '\t';
+
+  /// Scans the word(s) around a recent edit for a bare URL and, if found,
+  /// auto-applies the link format so it renders as tappable in the read
+  /// view — instant recognition, no manual step required.
+  void _autoLinkifyAround(int editStart, int editEnd) {
+    final t = text;
+    if (t.isEmpty) return;
+
+    int start = editStart.clamp(0, t.length);
+    int end = editEnd.clamp(0, t.length);
+    while (start > 0 && !_isWordBoundary(t[start - 1])) {
+      start--;
+    }
+    while (end < t.length && !_isWordBoundary(t[end])) {
+      end++;
+    }
+    if (start >= end) return;
+
+    final segment = t.substring(start, end);
+    for (final match in _urlPattern.allMatches(segment)) {
+      var url = match.group(0)!;
+      while (url.isNotEmpty && '.,!?;:)"\''.contains(url[url.length - 1])) {
+        url = url.substring(0, url.length - 1);
+      }
+      if (url.isEmpty) continue;
+
+      final matchStart = start + match.start;
+      final matchEnd = matchStart + url.length;
+
+      final already = _formats.any((f) =>
+          f.start == matchStart && f.end == matchEnd && f.attrs.link != null);
+      if (already) continue;
+
+      final fullUrl = url.startsWith('http') ? url : 'https://$url';
+      _addFormat(FormatRange(
+        start: matchStart,
+        end: matchEnd,
+        attrs: FormatAttrs(link: fullUrl),
+      ));
+    }
   }
 
   void _deleteFormatsInRange(int start, int end) {

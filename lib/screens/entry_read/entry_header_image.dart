@@ -4,7 +4,10 @@ import 'package:flutter/material.dart';
 /// Returns the display height for a full-width header image given the
 /// stored crop ratio string. Shared by every viewer so the chosen crop
 /// ratio is honored consistently (local read, editor, community, reflection).
-double headerHeightForRatio(double width, String? ratio) {
+/// Returns the display height for a full-width header image given the
+/// stored crop ratio string. Returns null for 'full' — that ratio means
+/// "use the image's own aspect ratio, uncropped" rather than a locked box.
+double? headerHeightForRatio(double width, String? ratio) {
   switch (ratio) {
     case '16:9':
       return width / (16 / 9);
@@ -15,8 +18,7 @@ double headerHeightForRatio(double width, String? ratio) {
     case '1:1':
       return width;
     case 'full':
-      // For full size, use a reasonable default height
-      return width / 2;
+      return null;
     default:
       return width / (16 / 9);
   }
@@ -58,6 +60,18 @@ class EntryHeaderImage extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final height = _getHeight(constraints.maxWidth);
+          // 'full' ratio (height == null): show the image at its own
+          // aspect ratio, uncropped — no fixed box, no BoxFit.cover.
+          if (height == null) {
+            return Image.file(
+              file,
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+              alignment: Alignment.topCenter,
+              errorBuilder: (_, __, ___) =>
+                  _placeholder(constraints.maxWidth / 2),
+            );
+          }
           // Sharp bottom edge — no gradient fade overlay.
           return Image.file(
             file,
@@ -71,7 +85,7 @@ class EntryHeaderImage extends StatelessWidget {
     );
   }
 
-  double _getHeight(double width) {
+  double? _getHeight(double width) {
     return headerHeightForRatio(width, ratio);
   }
 

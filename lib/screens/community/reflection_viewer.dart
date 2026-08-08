@@ -287,6 +287,16 @@ class _ReflectionViewerState extends State<ReflectionViewer> {
                       final imageH = headerHeightForRatio(
                           MediaQuery.of(context).size.width,
                           _reflection.headerImageRatio);
+                      if (imageH == null) {
+                        return Image.file(
+                          File(_reflection.headerImage!),
+                          width: double.infinity,
+                          fit: BoxFit.fitWidth,
+                          alignment: Alignment.topCenter,
+                          errorBuilder: (_, __, ___) =>
+                              SizedBox(height: topPad + 60),
+                        );
+                      }
                       return Image.file(
                         File(_reflection.headerImage!),
                         width: double.infinity,

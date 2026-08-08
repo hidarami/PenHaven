@@ -669,8 +669,15 @@ class _LinkButton extends StatelessWidget {
           ),
           TextButton(
             onPressed: () {
-              final url = ctrl.text.trim();
-              if (url.isNotEmpty) onApply(url);
+              var url = ctrl.text.trim();
+              if (url.isNotEmpty) {
+                // Auto-prefix scheme so bare domains (e.g. "example.com")
+                // still resolve to a real, launchable link.
+                if (!RegExp(r'^[a-zA-Z][a-zA-Z0-9+.-]*:\/\/').hasMatch(url)) {
+                  url = 'https://$url';
+                }
+                onApply(url);
+              }
               Navigator.pop(ctx);
             },
             child: const Text('Apply'),

@@ -16,6 +16,7 @@ import '../../atmosphere/comfort_engine.dart';
 // MilestoneOverlay is in comfort_engine.dart
 import '../../atmosphere/atmosphere_overlay.dart';
 import '../../atmosphere/atmosphere_image_layer.dart';
+import '../../atmosphere/painters/starfield_painter.dart';
 import 'editor_header_image.dart';
 import 'editor_title_field.dart';
 import 'editor_canvas.dart';
@@ -538,6 +539,8 @@ class _EditorScreenState extends State<EditorScreen> {
             const AtmosphereOverlay(),
             // Atmosphere image layer (PNG overlays)
             const AtmosphereImageLayer(),
+            // Starfield (Midnight Ink, clear skies only)
+            const StarfieldOverlay(),
             // Comfort engine
             const ComfortWhisperOverlay(),
             const ComfortTintOverlay(),

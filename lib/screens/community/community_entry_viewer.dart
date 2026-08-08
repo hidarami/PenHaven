@@ -522,7 +522,9 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                       if (!file.existsSync()) {
                         return SizedBox(height: topPad + 64);
                       }
-                      // ColorFiltered lets the brightness slider affect the image
+                      // ColorFiltered lets the brightness slider affect the image.
+                      // 'full' ratio (imageH == null): show at natural aspect,
+                      // uncropped, instead of forcing a locked box.
                       return Stack(
                         children: [
                           ColorFiltered(
@@ -548,14 +550,23 @@ class _CommunityEntryViewerState extends State<CommunityEntryViewer> {
                               1,
                               0,
                             ]),
-                            child: Image.file(
-                              file,
-                              width: double.infinity,
-                              height: imageH,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  SizedBox(height: topPad + 64),
-                            ),
+                            child: imageH == null
+                                ? Image.file(
+                                    file,
+                                    width: double.infinity,
+                                    fit: BoxFit.fitWidth,
+                                    alignment: Alignment.topCenter,
+                                    errorBuilder: (_, __, ___) =>
+                                        SizedBox(height: topPad + 64),
+                                  )
+                                : Image.file(
+                                    file,
+                                    width: double.infinity,
+                                    height: imageH,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) =>
+                                        SizedBox(height: topPad + 64),
+                                  ),
                           ),
                         ],
                       );

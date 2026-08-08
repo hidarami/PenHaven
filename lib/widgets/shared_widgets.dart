@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../providers/app_state.dart';
+import '../providers/atmosphere_state.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import 'neumorphic_widgets.dart';
@@ -226,6 +227,7 @@ class PenHavenMarkdownBody extends StatelessWidget {
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final codeBg = dark ? AppColors.codeBgDark : AppColors.codeBgLight;
+    final accent = context.watch<AtmosphereState>().accentColor;
 
     // Use user's preferred body font
     final bodyStyle = AppTypography.bodyTextFor(preferredFont, textColor);
@@ -270,14 +272,15 @@ class PenHavenMarkdownBody extends StatelessWidget {
             .copyWith(fontWeight: FontWeight.w700),
         em: AppTypography.bodyTextFor(preferredFont, textColor)
             .copyWith(fontStyle: FontStyle.italic),
-        // Blockquote
+        // Blockquote — border follows the active theme's accent so it
+        // feels coherent with whichever manual theme is selected.
         blockquote: AppTypography.bodyTextFor(preferredFont, mutedColor)
             .copyWith(fontStyle: FontStyle.italic),
         blockquoteDecoration: BoxDecoration(
-          color: AppColors.blockquoteBg,
+          color: accent.withOpacity(0.08),
           border: Border(
             left: BorderSide(
-              color: AppColors.blockquoteBorder,
+              color: accent,
               width: 4,
             ),
           ),
@@ -297,12 +300,12 @@ class PenHavenMarkdownBody extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
         ),
         codeblockPadding: const EdgeInsets.all(16),
-        // Links
+        // Links — accent-colored so they match the active theme.
         a: GoogleFonts.crimsonPro(
           fontSize: 18,
-          color: AppColors.linkColor,
+          color: accent,
           decoration: TextDecoration.underline,
-          decorationColor: AppColors.linkColor,
+          decorationColor: accent,
         ),
         // Lists
         listBullet: GoogleFonts.crimsonPro(

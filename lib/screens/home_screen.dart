@@ -7,6 +7,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../atmosphere/atmosphere_overlay.dart';
 import '../atmosphere/atmosphere_image_layer.dart';
 import '../atmosphere/painters/dust_mote_painter.dart';
+import '../atmosphere/painters/starfield_painter.dart';
 import '../models/entry.dart';
 import '../providers/atmosphere_state.dart';
 import '../providers/app_state.dart';
@@ -315,6 +316,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             const AtmosphereOverlay(),
             const AtmosphereImageLayer(),
             const DustMoteOverlay(),
+            const StarfieldOverlay(),
             HomePersistentUI(onMenuTap: _openMenu, onSearchTap: _openSearch),
             Positioned(
               left: 0,

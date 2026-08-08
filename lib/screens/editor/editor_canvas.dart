@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:uuid/uuid.dart';
@@ -1649,7 +1650,7 @@ class BlocksReadView extends StatelessWidget {
   }
 }
 
-class _TextBlockReadView extends StatelessWidget {
+class _TextBlockReadView extends StatefulWidget {
   final TextBlock block;
   final bool isDark;
   final String textAlignment;
@@ -1663,13 +1664,41 @@ class _TextBlockReadView extends StatelessWidget {
   });
 
   @override
+  State<_TextBlockReadView> createState() => _TextBlockReadViewState();
+}
+
+class _TextBlockReadViewState extends State<_TextBlockReadView> {
+  final List<TapGestureRecognizer> _recognizers = [];
+
+  @override
+  void dispose() {
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    super.dispose();
+  }
+
+  Future<void> _openLink(String url) async {
+    final uri = Uri.tryParse(url);
+    if (uri == null) return;
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
-    final mutedColor = isDark ? AppColors.mutedDark : AppColors.mutedLight;
+    for (final r in _recognizers) {
+      r.dispose();
+    }
+    _recognizers.clear();
+
+    final textColor =
+        widget.isDark ? AppColors.textDark : AppColors.textLight;
 
     final span = _buildSpan(textColor);
     // Bullet list — prefix with bullet point
-    if (block.type == BlockType.bulletList) {
+    if (widget.block.type == BlockType.bulletList) {
       return Padding(
         padding: const EdgeInsets.only(bottom: 2, top: 2),
         child: Row(
@@ -1680,8 +1709,8 @@ class _TextBlockReadView extends StatelessWidget {
               child: Text('•', style: _styleForType(BlockType.text, textColor)),
             ),
             Expanded(
-              child:
-                  Text.rich(span, textAlign: _alignFromString(textAlignment)),
+              child: Text.rich(span,
+                  textAlign: _alignFromString(widget.textAlignment)),
             ),
           ],
         ),
@@ -1690,10 +1719,10 @@ class _TextBlockReadView extends StatelessWidget {
 
     Widget text = Text.rich(
       span,
-      textAlign: _alignFromString(textAlignment),
+      textAlign: _alignFromString(widget.textAlignment),
     );
 
-    if (block.type == BlockType.quote) {
+    if (widget.block.type == BlockType.quote) {
       text = Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
@@ -1716,17 +1745,19 @@ class _TextBlockReadView extends StatelessWidget {
   }
 
   bool get _isHeading =>
-      block.type == BlockType.heading1 ||
-      block.type == BlockType.heading2 ||
-      block.type == BlockType.heading3;
+      widget.block.type == BlockType.heading1 ||
+      widget.block.type == BlockType.heading2 ||
+      widget.block.type == BlockType.heading3;
 
   TextSpan _buildSpan(Color textColor) {
-    final baseStyle = _styleForType(block.type, textColor);
-    final t = block.text;
-    if (block.formats.isEmpty) return TextSpan(text: t, style: baseStyle);
+    final baseStyle = _styleForType(widget.block.type, textColor);
+    final t = widget.block.text;
+    if (widget.block.formats.isEmpty) {
+      return TextSpan(text: t, style: baseStyle);
+    }
 
     final breakpoints = <int>{0, t.length};
-    for (final fmt in block.formats) {
+    for (final fmt in widget.block.formats) {
       breakpoints.add(fmt.start.clamp(0, t.length));
       breakpoints.add(fmt.end.clamp(0, t.length));
     }
@@ -1742,7 +1773,7 @@ class _TextBlockReadView extends StatelessWidget {
       Color? highlight;
       String? link;
 
-      for (final fmt in block.formats) {
+      for (final fmt in widget.block.formats) {
         if (fmt.start <= start && start < fmt.end) {
           if (fmt.attrs.bold) bold = true;
           if (fmt.attrs.italic) italic = true;
@@ -1765,14 +1796,24 @@ class _TextBlockReadView extends StatelessWidget {
       if (highlight != null) {
         style = style.copyWith(backgroundColor: highlight.withOpacity(0.35));
       }
+
+      GestureRecognizer? recognizer;
       if (link != null) {
         style = style.copyWith(
             color: AppColors.aqua,
             decoration: TextDecoration.underline,
             decorationColor: AppColors.aqua);
+        final url = link;
+        final tap = TapGestureRecognizer()..onTap = () => _openLink(url);
+        _recognizers.add(tap);
+        recognizer = tap;
       }
 
-      spans.add(TextSpan(text: t.substring(start, end), style: style));
+      spans.add(TextSpan(
+        text: t.substring(start, end),
+        style: style,
+        recognizer: recognizer,
+      ));
     }
 
     return TextSpan(children: spans, style: baseStyle);
@@ -1805,7 +1846,7 @@ class _TextBlockReadView extends StatelessWidget {
             color: color,
             height: 1.8);
       default:
-        return AppTypography.bodyTextFor(fontName, color,
+        return AppTypography.bodyTextFor(widget.fontName, color,
             size: 18, height: 1.8);
     }
   }
