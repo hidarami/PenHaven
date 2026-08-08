@@ -28,9 +28,21 @@ class FontsScreen extends StatelessWidget {
     'merriweather',
     'libreBaskerville',
     'literata',
+    'ibmPlexSerif',
+    'ptSerif',
+    'domine',
+    'bitter',
   ];
 
-  static const _sansFonts = ['nunito', 'jost', 'dmSans'];
+  static const _sansFonts = [
+    'nunito',
+    'jost',
+    'dmSans',
+    'workSans',
+    'manrope',
+    'outfit',
+    'karla',
+  ];
 
   static const _sampleText = 'The light shifted at 3pm,\nand I began to write.';
 

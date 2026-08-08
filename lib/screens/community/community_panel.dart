@@ -688,58 +688,140 @@ class _CategoryChipsRow extends StatelessWidget {
     required this.mutedColor,
   });
 
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 46,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(24, 4, 24, 4),
-        itemCount: _kCategories.length,
-        separatorBuilder: (_, __) => const SizedBox(width: 8),
-        itemBuilder: (_, i) {
-          final cat = _kCategories[i];
-          final isSelected = cat == selectedCategory;
-          final icon = _kCategoryIcons[cat] ?? Icons.label_outline;
-          final color = cat == 'All' ? AppColors.aqua : _categoryColor(cat);
+  // Only the first few categories show inline as small tabs — the rest
+  // live behind the "⋯" button so the row stays quiet instead of a wall
+  // of giant pills.
+  static const int _visibleCount = 6;
 
-          return GestureDetector(
-            onTap: () => onCategoryChanged(cat),
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
-              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? color.withOpacity(0.14)
-                    : (isDark
-                        ? Colors.white.withOpacity(0.07)
-                        : Colors.black.withOpacity(0.05)),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                  color:
-                      isSelected ? color.withOpacity(0.5) : Colors.transparent,
-                  width: 1.5,
+  void _showAllCategories(BuildContext context) {
+    final textColor = isDark ? AppColors.textDark : AppColors.textLight;
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: isDark ? AppColors.warmDark : AppColors.warmWhite,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 8),
+              Center(
+                child: Container(
+                  width: 36,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: mutedColor.withOpacity(0.3),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
                 ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(icon, size: 13, color: isSelected ? color : mutedColor),
-                  const SizedBox(width: 5),
-                  Text(
-                    cat,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight:
-                          isSelected ? FontWeight.w600 : FontWeight.w400,
-                      color: isSelected ? color : mutedColor,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text('All Categories',
+                      style: GoogleFonts.crimsonPro(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: textColor)),
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  itemCount: _kCategories.length,
+                  itemBuilder: (_, i) {
+                    final cat = _kCategories[i];
+                    final isSelected = cat == selectedCategory;
+                    final color =
+                        cat == 'All' ? AppColors.aqua : _categoryColor(cat);
+                    final icon = _kCategoryIcons[cat] ?? Icons.label_outline;
+                    return ListTile(
+                      leading: Icon(icon,
+                          size: 18, color: isSelected ? color : mutedColor),
+                      title: Text(cat,
+                          style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: isSelected
+                                  ? FontWeight.w600
+                                  : FontWeight.w400,
+                              color: isSelected ? color : textColor)),
+                      trailing: isSelected
+                          ? Icon(Icons.check_rounded, size: 16, color: color)
+                          : null,
+                      onTap: () {
+                        Navigator.pop(ctx);
+                        onCategoryChanged(cat);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 8),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = _kCategories.take(_visibleCount).toList();
+    return SizedBox(
+      height: 34,
+      child: Row(
+        children: [
+          Expanded(
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.fromLTRB(24, 0, 8, 0),
+              itemCount: visible.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 16),
+              itemBuilder: (_, i) {
+                final cat = visible[i];
+                final isSelected = cat == selectedCategory;
+                final color = cat == 'All' ? AppColors.aqua : _categoryColor(cat);
+
+                return GestureDetector(
+                  onTap: () => onCategoryChanged(cat),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.only(bottom: 6),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: isSelected ? color : Colors.transparent,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                    child: Text(
+                      cat,
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        fontWeight:
+                            isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? color : mutedColor,
+                      ),
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
-          );
-        },
+          ),
+          GestureDetector(
+            onTap: () => _showAllCategories(context),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(6, 0, 24, 0),
+              child: Icon(Icons.more_horiz_rounded,
+                  size: 20, color: mutedColor.withOpacity(0.8)),
+            ),
+          ),
+        ],
       ),
     );
   }

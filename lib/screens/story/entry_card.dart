@@ -68,32 +68,16 @@ class EntryCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              entry.title.isEmpty ? 'Untitled' : entry.title,
-                              style: GoogleFonts.crimsonPro(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w700,
-                                color: textColor,
-                                height: 1.2,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          GestureDetector(
-                            onTap: () => _showContextMenu(context),
-                            child: Padding(
-                              padding: const EdgeInsets.only(left: 4),
-                              child: Icon(Icons.more_horiz,
-                                  size: 17,
-                                  color: mutedColor.withOpacity(0.5)),
-                            ),
-                          ),
-                        ],
+                      Text(
+                        entry.title.isEmpty ? 'Untitled' : entry.title,
+                        style: GoogleFonts.crimsonPro(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w700,
+                          color: textColor,
+                          height: 1.2,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
 
                       if (entry.preview().isNotEmpty) ...[

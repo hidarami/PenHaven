@@ -240,6 +240,24 @@ class AppTypography {
         return GoogleFonts.jost(fontSize: size, color: color, height: height);
       case 'dmSans':
         return GoogleFonts.dmSans(fontSize: size, color: color, height: height);
+      case 'ibmPlexSerif':
+        return GoogleFonts.ibmPlexSerif(
+            fontSize: size, color: color, height: height);
+      case 'ptSerif':
+        return GoogleFonts.ptSerif(fontSize: size, color: color, height: height);
+      case 'domine':
+        return GoogleFonts.domine(fontSize: size, color: color, height: height);
+      case 'bitter':
+        return GoogleFonts.bitter(fontSize: size, color: color, height: height);
+      case 'workSans':
+        return GoogleFonts.workSans(
+            fontSize: size, color: color, height: height);
+      case 'manrope':
+        return GoogleFonts.manrope(fontSize: size, color: color, height: height);
+      case 'outfit':
+        return GoogleFonts.outfit(fontSize: size, color: color, height: height);
+      case 'karla':
+        return GoogleFonts.karla(fontSize: size, color: color, height: height);
       case 'crimsonPro':
       default:
         return GoogleFonts.crimsonPro(
@@ -260,9 +278,17 @@ class AppTypography {
     'merriweather': 'Merriweather',
     'libreBaskerville': 'Libre Baskerville',
     'literata': 'Literata',
+    'ibmPlexSerif': 'IBM Plex Serif',
+    'ptSerif': 'PT Serif',
+    'domine': 'Domine',
+    'bitter': 'Bitter',
     'nunito': 'Nunito',
     'jost': 'Jost',
     'dmSans': 'DM Sans',
+    'workSans': 'Work Sans',
+    'manrope': 'Manrope',
+    'outfit': 'Outfit',
+    'karla': 'Karla',
   };
 
   // ── Base theme text theme (used in ThemeData) ─────────────────────────────

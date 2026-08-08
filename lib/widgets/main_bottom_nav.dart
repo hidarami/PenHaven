@@ -42,7 +42,7 @@ class MainBottomNav extends StatelessWidget {
         child: BackdropFilter(
           filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
           child: Container(
-            height: 64,
+            height: 56,
             decoration: BoxDecoration(
               color: (dark ? Colors.black : Colors.white).withOpacity(0.35),
               borderRadius: BorderRadius.circular(30),

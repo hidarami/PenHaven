@@ -337,6 +337,17 @@ class AppColors {
       bgDark: Color(0xFF150E06),
       accent: Color(0xFFB8742A),
     ),
+    ManualThemeData(
+      key: 'bmwMotorsport',
+      name: 'Motorsport',
+      feel: 'pure · dark · precise',
+      // Both variants stay dark on purpose — this theme is meant to always
+      // read as a pure-black cockpit look, regardless of light/dark toggle,
+      // so the white accent always has enough contrast to stay readable.
+      bgLight: Color(0xFF17181A),
+      bgDark: Color(0xFF000000),
+      accent: Color(0xFFF4F4F4),
+    ),
   ];
 
   /// Background for a manual theme key + dark flag. Null if key unknown.
