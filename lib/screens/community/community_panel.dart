@@ -542,11 +542,14 @@ class _ForYouTab extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       slivers: [
         SliverToBoxAdapter(
-          child: _CategoryChipsRow(
-            selectedCategory: selectedCategory,
-            onCategoryChanged: onCategoryChanged,
-            isDark: isDark,
-            mutedColor: mutedColor,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12.0),
+            child: _CategoryChipsRow(
+              selectedCategory: selectedCategory,
+              onCategoryChanged: onCategoryChanged,
+              isDark: isDark,
+              mutedColor: mutedColor,
+            ),
           ),
         ),
         if (feed.isEmpty)
