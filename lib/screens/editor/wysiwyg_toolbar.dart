@@ -36,7 +36,9 @@ class WysiwygToolbar extends StatefulWidget {
 class _WysiwygToolbarState extends State<WysiwygToolbar> {
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<AppState>().isDarkMode;
+    final appState = context.watch<AppState>();
+    final dark = appState.isDarkMode;
+    final isMinimal = appState.isMinimalistMode;
     final bg = dark ? AppColors.warmDark : AppColors.warmWhite;
     final divider = dark ? AppColors.dividerDark : AppColors.dividerLight;
     final muted = dark ? AppColors.mutedDark : AppColors.mutedLight;
@@ -61,6 +63,29 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  // ── Undo / Redo ──────────────────────────────────────────
+                  _ToolbarIconButton(
+                    icon: Icons.undo_rounded,
+                    color: widget.canvas.canUndo ? muted : muted.withOpacity(0.3),
+                    onTap: widget.canvas.canUndo
+                        ? () {
+                            widget.canvas.undo();
+                            setState(() {});
+                          }
+                        : null,
+                  ),
+                  _ToolbarIconButton(
+                    icon: Icons.redo_rounded,
+                    color: widget.canvas.canRedo ? muted : muted.withOpacity(0.3),
+                    onTap: widget.canvas.canRedo
+                        ? () {
+                            widget.canvas.redo();
+                            setState(() {});
+                          }
+                        : null,
+                  ),
+                  _ToolbarDivider(color: divider),
+
                   // ── Text formatting ──────────────────────────────────────
                   _FormatButton(
                     label: 'B',
@@ -82,164 +107,168 @@ class _WysiwygToolbarState extends State<WysiwygToolbar> {
                       setState(() {});
                     },
                   ),
-                  _FormatButton(
-                    label: 'U',
-                    underlineLabel: true,
-                    color: muted,
-                    isActive: ctrl?.selectionHas(underline: true) ?? false,
-                    onTap: () {
-                      widget.canvas.focusedController?.toggleUnderline();
-                      setState(() {});
-                    },
-                  ),
-                  _FormatButton(
-                    label: 'S',
-                    strikeLabel: true,
-                    color: muted,
-                    isActive: ctrl?.selectionHas(strikethrough: true) ?? false,
-                    onTap: () {
-                      widget.canvas.focusedController?.toggleStrikethrough();
-                      setState(() {});
-                    },
-                  ),
-                  _HighlightButton(
-                    muted: muted,
-                    dark: dark,
-                    onColor: (c) {
-                      widget.canvas.applyHighlight(c);
-                      setState(() {});
-                    },
-                    onClear: () {
-                      widget.canvas.clearHighlight();
-                      setState(() {});
-                    },
-                  ),
-                  _LinkButton(
-                    muted: muted,
-                    onApply: (url) {
-                      widget.canvas.applyLink(url);
-                      setState(() {});
-                    },
-                    onClear: () {
-                      widget.canvas.clearLink();
-                      setState(() {});
-                    },
-                  ),
 
-                  _ToolbarDivider(color: divider),
+                  if (!isMinimal) ...[
+                    _FormatButton(
+                      label: 'U',
+                      underlineLabel: true,
+                      color: muted,
+                      isActive: ctrl?.selectionHas(underline: true) ?? false,
+                      onTap: () {
+                        widget.canvas.focusedController?.toggleUnderline();
+                        setState(() {});
+                      },
+                    ),
+                    _FormatButton(
+                      label: 'S',
+                      strikeLabel: true,
+                      color: muted,
+                      isActive: ctrl?.selectionHas(strikethrough: true) ?? false,
+                      onTap: () {
+                        widget.canvas.focusedController?.toggleStrikethrough();
+                        setState(() {});
+                      },
+                    ),
+                    _HighlightButton(
+                      muted: muted,
+                      dark: dark,
+                      onColor: (c) {
+                        widget.canvas.applyHighlight(c);
+                        setState(() {});
+                      },
+                      onClear: () {
+                        widget.canvas.clearHighlight();
+                        setState(() {});
+                      },
+                    ),
+                    _LinkButton(
+                      muted: muted,
+                      onApply: (url) {
+                        widget.canvas.applyLink(url);
+                        setState(() {});
+                      },
+                      onClear: () {
+                        widget.canvas.clearLink();
+                        setState(() {});
+                      },
+                    ),
+                    _ToolbarDivider(color: divider),
+                  ],
 
-                  // ── Block type ───────────────────────────────────────────
-                  _BlockTypeButton(
-                    label: 'H1',
-                    color: muted,
-                    isActive: _isFocusedType(BlockType.heading1),
-                    onTap: () => _toggleBlockType(BlockType.heading1),
-                  ),
-                  _BlockTypeButton(
-                    label: 'H2',
-                    color: muted,
-                    isActive: _isFocusedType(BlockType.heading2),
-                    onTap: () => _toggleBlockType(BlockType.heading2),
-                  ),
-                  _BlockTypeButton(
-                    label: 'H3',
-                    color: muted,
-                    isActive: _isFocusedType(BlockType.heading3),
-                    onTap: () => _toggleBlockType(BlockType.heading3),
-                  ),
-                  _BlockTypeButton(
-                    icon: Icons.format_quote_rounded,
-                    color: muted,
-                    isActive: _isFocusedType(BlockType.quote),
-                    onTap: () => _toggleBlockType(BlockType.quote),
-                  ),
-                  // Bullet list block type
-                  _BlockTypeButton(
-                    icon: Icons.format_list_bulleted_rounded,
-                    color: muted,
-                    isActive: _isFocusedType(BlockType.bulletList),
-                    onTap: () => _toggleBlockType(BlockType.bulletList),
-                  ),
-                  // Checklist (task) block insertion
-                  _BlockTypeButton(
-                    icon: Icons.checklist_rounded,
-                    color: muted,
-                    isActive: false,
-                    onTap: () {
-                      final id = widget.canvas.focusedBlockId ??
-                          (widget.canvas.blocks.isNotEmpty
-                              ? widget.canvas.blocks.last.id
-                              : null);
-                      if (id != null) widget.canvas.insertChecklistBlock(id);
-                      setState(() {});
-                    },
-                  ),
+                  if (!isMinimal) ...[
+                    // ── Block type ───────────────────────────────────────────
+                    _BlockTypeButton(
+                      label: 'H1',
+                      color: muted,
+                      isActive: _isFocusedType(BlockType.heading1),
+                      onTap: () => _toggleBlockType(BlockType.heading1),
+                    ),
+                    _BlockTypeButton(
+                      label: 'H2',
+                      color: muted,
+                      isActive: _isFocusedType(BlockType.heading2),
+                      onTap: () => _toggleBlockType(BlockType.heading2),
+                    ),
+                    _BlockTypeButton(
+                      label: 'H3',
+                      color: muted,
+                      isActive: _isFocusedType(BlockType.heading3),
+                      onTap: () => _toggleBlockType(BlockType.heading3),
+                    ),
+                    _BlockTypeButton(
+                      icon: Icons.format_quote_rounded,
+                      color: muted,
+                      isActive: _isFocusedType(BlockType.quote),
+                      onTap: () => _toggleBlockType(BlockType.quote),
+                    ),
+                    _BlockTypeButton(
+                      icon: Icons.format_list_bulleted_rounded,
+                      color: muted,
+                      isActive: _isFocusedType(BlockType.bulletList),
+                      onTap: () => _toggleBlockType(BlockType.bulletList),
+                    ),
+                    _BlockTypeButton(
+                      icon: Icons.checklist_rounded,
+                      color: muted,
+                      isActive: false,
+                      onTap: () {
+                        final id = widget.canvas.focusedBlockId ??
+                            (widget.canvas.blocks.isNotEmpty
+                                ? widget.canvas.blocks.last.id
+                                : null);
+                        if (id != null) widget.canvas.insertChecklistBlock(id);
+                        setState(() {});
+                      },
+                    ),
+                    _ToolbarDivider(color: divider),
+                  ],
 
-                  _ToolbarDivider(color: divider),
-
-                  // ── Text alignment ───────────────────────────────────────
-                  _AlignmentButton(
-                    color: muted,
-                    alignment: widget.canvas.textAlignment,
-                    onTap: () => _cycleAlignment(),
-                  ),
-
-                  _ToolbarDivider(color: divider),
+                  if (!isMinimal) ...[
+                    // ── Text alignment ───────────────────────────────────────
+                    _AlignmentButton(
+                      color: muted,
+                      alignment: widget.canvas.textAlignment,
+                      onTap: () => _cycleAlignment(),
+                    ),
+                    _ToolbarDivider(color: divider),
+                  ],
 
                   // ── Block insertion ──────────────────────────────────────
+                  // Image stays available even in minimalist mode.
                   _ToolbarIconButton(
                     icon: Icons.image_outlined,
                     color: muted,
                     onTap: widget.onImageInsert,
                   ),
-                  _ToolbarIconButton(
-                    icon: Icons.grid_on_rounded,
-                    color: muted,
-                    onTap: widget.onImageGridInsert,
-                  ),
-                  _ToolbarIconButton(
-                    icon: Icons.play_circle_outline_rounded,
-                    color: muted,
-                    onTap: () => _showUrlDialog(
-                        context, 'YouTube URL', 'https://youtube.com/watch?v=',
-                        (url) {
-                      if (widget.canvas.focusedBlockId != null) {
-                        widget.canvas.insertYoutubeBlock(
-                            widget.canvas.focusedBlockId!, url);
-                      }
-                    }),
-                  ),
-                  _ToolbarIconButton(
-                    icon: Icons.link_rounded,
-                    color: muted,
-                    onTap: () => _showUrlDialog(
-                        context, 'X / Twitter URL', 'https://x.com/', (url) {
-                      if (widget.canvas.focusedBlockId != null) {
-                        widget.canvas.insertTweetBlock(
-                            widget.canvas.focusedBlockId!, url);
-                      }
-                    }),
-                  ),
-                  _ToolbarIconButton(
-                    icon: Icons.code_rounded,
-                    color: muted,
-                    onTap: () {
-                      if (widget.canvas.focusedBlockId != null) {
-                        widget.canvas
-                            .insertCodeBlock(widget.canvas.focusedBlockId!);
-                      }
-                    },
-                  ),
-                  _ToolbarIconButton(
-                    icon: Icons.remove_rounded,
-                    color: muted,
-                    onTap: () {
-                      if (widget.canvas.focusedBlockId != null) {
-                        widget.canvas
-                            .insertDivider(widget.canvas.focusedBlockId!);
-                      }
-                    },
-                  ),
+                  if (!isMinimal) ...[
+                    _ToolbarIconButton(
+                      icon: Icons.grid_on_rounded,
+                      color: muted,
+                      onTap: widget.onImageGridInsert,
+                    ),
+                    _ToolbarIconButton(
+                      icon: Icons.play_circle_outline_rounded,
+                      color: muted,
+                      onTap: () => _showUrlDialog(context, 'YouTube URL',
+                          'https://youtube.com/watch?v=', (url) {
+                        if (widget.canvas.focusedBlockId != null) {
+                          widget.canvas.insertYoutubeBlock(
+                              widget.canvas.focusedBlockId!, url);
+                        }
+                      }),
+                    ),
+                    _ToolbarIconButton(
+                      icon: Icons.link_rounded,
+                      color: muted,
+                      onTap: () => _showUrlDialog(
+                          context, 'X / Twitter URL', 'https://x.com/', (url) {
+                        if (widget.canvas.focusedBlockId != null) {
+                          widget.canvas.insertTweetBlock(
+                              widget.canvas.focusedBlockId!, url);
+                        }
+                      }),
+                    ),
+                    _ToolbarIconButton(
+                      icon: Icons.code_rounded,
+                      color: muted,
+                      onTap: () {
+                        if (widget.canvas.focusedBlockId != null) {
+                          widget.canvas
+                              .insertCodeBlock(widget.canvas.focusedBlockId!);
+                        }
+                      },
+                    ),
+                    _ToolbarIconButton(
+                      icon: Icons.remove_rounded,
+                      color: muted,
+                      onTap: () {
+                        if (widget.canvas.focusedBlockId != null) {
+                          widget.canvas
+                              .insertDivider(widget.canvas.focusedBlockId!);
+                        }
+                      },
+                    ),
+                  ],
                 ],
               ),
             ),

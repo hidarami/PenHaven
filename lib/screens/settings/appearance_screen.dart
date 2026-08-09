@@ -114,6 +114,34 @@ class AppearanceScreen extends StatelessWidget {
 
               const SliverToBoxAdapter(child: SizedBox(height: 20)),
 
+              // ── SIMPLICITY ───────────────────────────────────────────────
+              SliverToBoxAdapter(
+                child: SettingsSection(
+                  label: 'SIMPLICITY',
+                  isDark: isDark,
+                  bg: bg,
+                  children: [
+                    SettingsToggleTile(
+                      icon: Icons.crop_free_rounded,
+                      label: appState.isMinimalistMode
+                          ? 'Minimalist Mode · On'
+                          : 'Minimalist Mode',
+                      description: appState.isMinimalistMode
+                          ? 'A simpler toolbar, no cover art, Sanctuary hidden. '
+                              'Turn off anytime — nothing you added is deleted.'
+                          : 'Hide Sanctuary, cover art, and extra toolbar buttons '
+                              'for a calmer, distraction-free writing space.',
+                      value: appState.isMinimalistMode,
+                      isDark: isDark,
+                      bg: bg,
+                      onChanged: (v) => appState.setMinimalistMode(v),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SliverToBoxAdapter(child: SizedBox(height: 20)),
+
               // ── THEME ────────────────────────────────────────────────────
               SliverToBoxAdapter(
                 child: SettingsSection(

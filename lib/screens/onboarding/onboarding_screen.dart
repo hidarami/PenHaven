@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../providers/app_state.dart';
 import '../../theme/app_colors.dart';
 import '../home_screen.dart';
+import 'mode_choice_screen.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ONBOARDING SCREEN
@@ -89,7 +90,7 @@ class _OnboardingScreenState extends State<OnboardingScreen>
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        pageBuilder: (_, anim, __) => const HomeScreen(),
+        pageBuilder: (_, anim, __) => const ModeChoiceScreen(),
         transitionsBuilder: (_, anim, __, child) =>
             FadeTransition(opacity: anim, child: child),
         transitionDuration: const Duration(milliseconds: 500),

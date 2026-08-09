@@ -476,12 +476,15 @@ class _EditorScreenState extends State<EditorScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Header image
-                        EditorHeaderImage(
-                          currentPath: _entry.headerImage,
-                          currentRatio: _entry.headerImageRatio,
-                          onImageChanged: _onHeaderImageChanged,
-                        ),
+                        // Header image — in Minimalist Mode we stop
+                        // prompting for a NEW header, but an entry that
+                        // already has one keeps showing/editing it normally.
+                        if (!appState.isMinimalistMode || _entry.hasHeaderImage)
+                          EditorHeaderImage(
+                            currentPath: _entry.headerImage,
+                            currentRatio: _entry.headerImageRatio,
+                            onImageChanged: _onHeaderImageChanged,
+                          ),
 
                         // Title + date
                         Padding(

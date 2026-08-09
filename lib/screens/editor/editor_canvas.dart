@@ -58,6 +58,54 @@ class EditorCanvasState extends State<EditorCanvas> {
   // Tracks which checklist block IDs should auto-focus after insertion
   final Set<String> _pendingFocus = {};
 
+  // ── Undo / Redo ───────────────────────────────────────────────────────────
+  // Snapshots the whole block list on structural changes (insert/remove/type
+  // change) so writers can step back if a block insertion or deletion goes
+  // wrong. Per-keystroke text edits are not snapshotted individually.
+  final List<String> _undoStack = [];
+  final List<String> _redoStack = [];
+  static const int _maxHistory = 50;
+
+  bool get canUndo => _undoStack.isNotEmpty;
+  bool get canRedo => _redoStack.isNotEmpty;
+
+  void _pushHistory() {
+    _undoStack.add(serializeBlocks(_blocks));
+    if (_undoStack.length > _maxHistory) _undoStack.removeAt(0);
+    _redoStack.clear();
+  }
+
+  void _restoreFrom(List<EditorBlock> restored) {
+    for (final ctrl in _controllers.values) {
+      ctrl.dispose();
+    }
+    for (final node in _focusNodes.values) {
+      node.dispose();
+    }
+    _controllers.clear();
+    _focusNodes.clear();
+    setState(() {
+      _blocks = restored.isEmpty ? [TextBlock.empty()] : restored;
+      _focusedBlockId = null;
+      _initControllers();
+    });
+    widget.onBlocksChanged(_blocks);
+  }
+
+  void undo() {
+    if (_undoStack.isEmpty) return;
+    _redoStack.add(serializeBlocks(_blocks));
+    final prev = _undoStack.removeLast();
+    _restoreFrom(deserializeBlocks(prev));
+  }
+
+  void redo() {
+    if (_redoStack.isEmpty) return;
+    _undoStack.add(serializeBlocks(_blocks));
+    final next = _redoStack.removeLast();
+    _restoreFrom(deserializeBlocks(next));
+  }
+
   @override
   void initState() {
     super.initState();
@@ -304,6 +352,7 @@ class EditorCanvasState extends State<EditorCanvas> {
   // ── Block operations ───────────────────────────────────────────────────────
 
   void insertBlockAfter(String afterId, EditorBlock newBlock) {
+    _pushHistory();
     setState(() {
       final idx = _blocks.indexWhere((b) => b.id == afterId);
       final insertAt = idx == -1 ? _blocks.length : idx + 1;
@@ -320,6 +369,7 @@ class EditorCanvasState extends State<EditorCanvas> {
   }
 
   void removeBlock(String blockId) {
+    _pushHistory();
     setState(() {
       _blocks.removeWhere((b) => b.id == blockId);
       _controllers.remove(blockId)?.dispose();
@@ -400,6 +450,7 @@ class EditorCanvasState extends State<EditorCanvas> {
     if (idx == -1) return;
     final block = _blocks[idx];
     if (block is TextBlock) {
+      _pushHistory();
       final updated = block.copyWith(type: newType);
       setState(() => _blocks[idx] = updated);
       widget.onBlocksChanged(_blocks);
@@ -608,6 +659,11 @@ class EditorCanvasState extends State<EditorCanvas> {
                 _focusNodes[prevId]?.requestFocus();
               });
             }
+          } else if (block.text.isEmpty && block.type != BlockType.text) {
+            // Sole remaining block (e.g. a Quote) — can't delete the last
+            // block, but it shouldn't stay stuck as an empty bordered
+            // quote forever. Demote it back to a plain paragraph instead.
+            changeBlockType(block.id, BlockType.text);
           }
         },
       );

@@ -28,6 +28,7 @@ class AppState extends ChangeNotifier {
   bool _hasSeenNavTutorial = false;
   bool _isConfettiEnabled = true;
   bool _isSanctuaryEnabled = true;
+  bool _isMinimalistMode = false;
   String _preferredFont = 'crimsonPro';
 
   bool get isDarkMode => _storyThemeOverride == 'dark'
@@ -40,6 +41,7 @@ class AppState extends ChangeNotifier {
   bool get hasSeenNavTutorial => _hasSeenNavTutorial;
   bool get isConfettiEnabled => _isConfettiEnabled;
   bool get isSanctuaryEnabled => _isSanctuaryEnabled;
+  bool get isMinimalistMode => _isMinimalistMode;
   String get preferredFont => _preferredFont;
 
   // ── Stories ───────────────────────────────────────────────────────────────
@@ -126,6 +128,7 @@ class AppState extends ChangeNotifier {
     _hasSeenNavTutorial = prefs.getBool('hasSeenNavTutorial') ?? false;
     _isConfettiEnabled = prefs.getBool('isConfettiEnabled') ?? true;
     _isSanctuaryEnabled = prefs.getBool('isSanctuaryEnabled') ?? true;
+    _isMinimalistMode = prefs.getBool('isMinimalistMode') ?? false;
     _isLocked = prefs.getBool('isLocked') ?? false;
     _preferredFont = prefs.getString('preferredFont') ?? 'crimsonPro';
   }
@@ -180,6 +183,20 @@ class AppState extends ChangeNotifier {
     notifyListeners();
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isConfettiEnabled', value);
+  }
+
+  /// Turning minimalist mode ON simplifies the toolbar, hides story cover
+  /// art and hero cards, and stops prompting for header images — but never
+  /// deletes headers/covers/images already added. Turning it OFF just
+  /// un-hides everything again.
+  Future<void> setMinimalistMode(bool value) async {
+    _isMinimalistMode = value;
+    notifyListeners();
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isMinimalistMode', value);
+    if (value && _isSanctuaryEnabled) {
+      await setSanctuaryEnabled(false);
+    }
   }
 
   Future<void> setPreferredFont(String font) async {

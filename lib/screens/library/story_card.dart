@@ -32,7 +32,9 @@ class StoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dark = context.watch<AppState>().isDarkMode;
+    final appState = context.watch<AppState>();
+    final dark = appState.isDarkMode;
+    final isMinimal = appState.isMinimalistMode;
     final textColor = dark ? AppColors.textDark : AppColors.textLight;
     final mutedColor = dark ? AppColors.mutedDark : AppColors.mutedLight;
     final cardBg = dark ? AppColors.warmDark : AppColors.warmWhite;
@@ -64,17 +66,19 @@ class StoryCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── Thumbnail ────────────────────────────────────────────────
-            StoryCoverWidget(
-              storyTitle: story.title,
-              imagePath: story.coverImage,
-              width: 110,
-              height: 130,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                bottomLeft: Radius.circular(16),
+            // ── Thumbnail (hidden in Minimalist Mode; cover art itself
+            // is never deleted, just not displayed here) ─────────────────
+            if (!isMinimal)
+              StoryCoverWidget(
+                storyTitle: story.title,
+                imagePath: story.coverImage,
+                width: 110,
+                height: 130,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  bottomLeft: Radius.circular(16),
+                ),
               ),
-            ),
 
             // ── Content ──────────────────────────────────────────────────
             Expanded(

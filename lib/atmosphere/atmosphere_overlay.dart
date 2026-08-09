@@ -75,6 +75,8 @@ class AtmosphereOverlay extends StatelessWidget {
       case Atmosphere.stormy:
       case Atmosphere.cloudy:
         return RainyPainter(isDark: dark, condition: atmosphere);
+      case Atmosphere.summerHeat:
+        return SummerHeatPainter(isDark: dark);
       default:
         return null;
     }

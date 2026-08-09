@@ -209,17 +209,37 @@ class _StoryPanelContentState extends State<_StoryPanelContent> {
               child: SizedBox(height: topPad + 60),
             ),
 
-            // ── Hero Card ──────────────────────────────────────────
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _HeroCard(
-                  story: story,
-                  dark: dark,
-                  onTap: () => _showStoryOptions(context, story),
+            // ── Hero Card (Full mode) or plain title (Minimalist) ────
+            if (!widget.appState.isMinimalistMode)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  child: _HeroCard(
+                    story: story,
+                    dark: dark,
+                    onTap: () => _showStoryOptions(context, story),
+                  ),
+                ),
+              )
+            else
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 8),
+                  child: GestureDetector(
+                    onTap: () => _showStoryOptions(context, story),
+                    child: Text(
+                      story.title,
+                      style: GoogleFonts.crimsonPro(
+                        fontSize: 30,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
                 ),
               ),
-            ),
 
             // ── Section header ─────────────────────────────────────
             if (entries.isNotEmpty)

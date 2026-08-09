@@ -26,6 +26,7 @@ class Atmosphere {
   static const String snowy = 'Snowy';
   static const String cloudy = 'Cloudy';
   static const String stormy = 'Stormy';
+  static const String summerHeat = 'SummerHeat';
 }
 
 class WeatherData {
@@ -140,6 +141,10 @@ class AtmosphereState extends ChangeNotifier {
           return Atmosphere.cloudy;
         case 'stormy':
           return Atmosphere.stormy;
+      }
+      // Hot, clear day — overrides golden-hour/3PM logic.
+      if (_weather!.condition == 'clear' && _weather!.tempCelsius >= 30) {
+        return Atmosphere.summerHeat;
       }
     }
 

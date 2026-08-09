@@ -87,6 +87,8 @@ class AppColors {
   static const Color cloudyDark = Color(0xFF18181E);
   static const Color stormyLight = Color(0xFFD2D6E2);
   static const Color stormyDark = Color(0xFF090A14);
+  static const Color summerHeatLight = Color(0xFFFFF6DE);
+  static const Color summerHeatDark = Color(0xFF1E1608);
   static const Color normalDark = warmDark;
 
   // ── Sun/Moon Indicator Colors ──────────────────────────────────────────────
@@ -134,6 +136,8 @@ class AppColors {
         return dark ? cloudyDark : cloudyLight;
       case 'Stormy':
         return dark ? stormyDark : stormyLight;
+      case 'SummerHeat':
+        return dark ? summerHeatDark : summerHeatLight;
       case 'Comfort':
         return dark ? comfortDark : comfortLight;
       default:

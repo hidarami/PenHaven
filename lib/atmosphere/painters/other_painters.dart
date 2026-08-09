@@ -317,3 +317,56 @@ class RainyPainter extends CustomPainter {
   bool shouldRepaint(RainyPainter old) =>
       old.isDark != isDark || old.condition != condition;
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// SUMMER HEAT PAINTER
+// Active on clear days when the local temperature is high.
+// ─────────────────────────────────────────────────────────────────────────────
+
+class SummerHeatPainter extends CustomPainter {
+  final bool isDark;
+
+  const SummerHeatPainter({required this.isDark});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final rect = Rect.fromLTWH(0, 0, size.width, size.height);
+
+    if (isDark) {
+      final paint = Paint()
+        ..shader = RadialGradient(
+          center: Alignment.center,
+          radius: 1.3,
+          colors: [
+            const Color(0xFF3A2410).withOpacity(0.10),
+            Colors.transparent,
+          ],
+        ).createShader(rect);
+      canvas.drawRect(rect, paint);
+    } else {
+      final paint = Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(0.0, -0.6),
+          radius: 1.4,
+          colors: [
+            const Color(0xFFFFF4D6).withOpacity(0.22),
+            const Color(0xFFFFE9B0).withOpacity(0.10),
+            Colors.transparent,
+          ],
+          stops: const [0.0, 0.45, 1.0],
+        ).createShader(rect);
+      canvas.drawRect(rect, paint);
+
+      final shimmerPaint = Paint()
+        ..color = const Color(0xFFFFE9B0).withOpacity(0.05)
+        ..strokeWidth = 1.0;
+      for (int i = 0; i < 5; i++) {
+        final y = size.height * (0.82 + i * 0.035);
+        canvas.drawLine(Offset(0, y), Offset(size.width, y), shimmerPaint);
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(SummerHeatPainter old) => old.isDark != isDark;
+}

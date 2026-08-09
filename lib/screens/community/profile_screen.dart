@@ -99,6 +99,19 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _editName(BuildContext ctx, CommunityState state, Color textColor,
+      Color mutedColor, bool dark, Color bg) async {
+    await showDialog<void>(
+      context: ctx,
+      builder: (dctx) => _NameEditDialog(
+        state: state,
+        textColor: textColor,
+        mutedColor: mutedColor,
+        bg: bg,
+      ),
+    );
+  }
+
   Future<void> _pickBannerImage() async {
     final ok = await PermissionService.instance.ensurePhotos(context);
     if (!ok || !mounted) return;
@@ -308,13 +321,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
             SliverToBoxAdapter(
               child: Column(
                 children: [
-                  Text(
-                    displayName,
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.crimsonPro(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: textColor,
+                  GestureDetector(
+                    onTap: () => _editName(context, communityState, textColor,
+                        mutedColor, dark, bg),
+                    child: Text(
+                      displayName,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.crimsonPro(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        color: textColor,
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -611,6 +628,78 @@ class _BioEditDialogState extends State<_BioEditDialog> {
         TextButton(
           onPressed: () async {
             await widget.state.saveProfile(bio: _ctrl.text.trim());
+            if (mounted) Navigator.pop(context);
+          },
+          child: const Text('Save'),
+        ),
+      ],
+    );
+  }
+}
+
+class _NameEditDialog extends StatefulWidget {
+  final CommunityState state;
+  final Color textColor;
+  final Color mutedColor;
+  final Color bg;
+
+  const _NameEditDialog({
+    required this.state,
+    required this.textColor,
+    required this.mutedColor,
+    required this.bg,
+  });
+
+  @override
+  State<_NameEditDialog> createState() => _NameEditDialogState();
+}
+
+class _NameEditDialogState extends State<_NameEditDialog> {
+  late final TextEditingController _ctrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = TextEditingController(text: widget.state.profileDisplayName ?? '');
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: widget.bg,
+      title: Text('Your Name',
+          style: GoogleFonts.crimsonPro(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: widget.textColor)),
+      content: TextField(
+        controller: _ctrl,
+        maxLength: 40,
+        autofocus: true,
+        style: GoogleFonts.inter(fontSize: 14, color: widget.textColor),
+        decoration: InputDecoration(
+          hintText: 'Display name',
+          hintStyle: GoogleFonts.inter(
+              fontSize: 14, color: widget.mutedColor, fontStyle: FontStyle.italic),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+        ),
+      ),
+      actions: [
+        TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel')),
+        TextButton(
+          onPressed: () async {
+            final name = _ctrl.text.trim();
+            if (name.isNotEmpty) {
+              await widget.state.saveProfile(name: name);
+            }
             if (mounted) Navigator.pop(context);
           },
           child: const Text('Save'),
