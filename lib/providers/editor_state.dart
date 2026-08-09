@@ -172,13 +172,25 @@ class EditorState extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────────
 
   void _updateWordCount(String content) {
-    if (content.trim().isEmpty) {
+    if (content.isEmpty) {
       _wordCount = 0;
       return;
     }
-    // Split on whitespace; filter empty strings
-    _wordCount =
-        content.trim().split(RegExp(r'\s+')).where((w) => w.isNotEmpty).length;
+    // Single-pass scan instead of trim + split + filter — avoids allocating
+    // a trimmed copy and an intermediate list on every keystroke, which
+    // matters once entries get long (5,000+ words).
+    int count = 0;
+    bool inWord = false;
+    for (int i = 0; i < content.length; i++) {
+      final isSpace = content.codeUnitAt(i) <= 32;
+      if (isSpace) {
+        inWord = false;
+      } else if (!inWord) {
+        inWord = true;
+        count++;
+      }
+    }
+    _wordCount = count;
   }
 
 // ─────────────────────────────────────────────────────────────────────────

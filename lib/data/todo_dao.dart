@@ -100,21 +100,23 @@ class TodoDao {
   /// Called on app resume / Work Desk open.
   /// - With deadline: archive 24h after deadline
   /// - Without deadline: archive 48h after creation
-  Future<int> archiveExpired() async {
+  /// Returns the ids of todos that were archived, so the caller can cancel
+  /// any pending deadline notifications for them.
+  Future<List<String>> archiveExpired() async {
     final db = await DatabaseHelper.instance.database;
     final now = DateTime.now();
+    final archivedIds = <String>[];
 
     // Todos with a deadline — 24h grace
     final withDeadline = await db.rawQuery(
       '''SELECT id, deadline FROM todos
          WHERE isArchived = 0 AND isCompleted = 0 AND deadline IS NOT NULL''',
     );
-    int count = 0;
     for (final row in withDeadline) {
       final deadline = DateTime.parse(row['deadline'] as String);
       if (now.difference(deadline).inHours >= 24) {
         await archive(row['id'] as String);
-        count++;
+        archivedIds.add(row['id'] as String);
       }
     }
 
@@ -127,11 +129,11 @@ class TodoDao {
       final created = DateTime.parse(row['createdAt'] as String);
       if (now.difference(created).inHours >= 48) {
         await archive(row['id'] as String);
-        count++;
+        archivedIds.add(row['id'] as String);
       }
     }
 
-    return count; // Returns how many were archived (for logging)
+    return archivedIds;
   }
 
   Future<int> countActive() async {

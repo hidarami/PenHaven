@@ -418,8 +418,13 @@ class AppState extends ChangeNotifier {
   // ─────────────────────────────────────────────────────────────────────────
 
   Future<void> _loadTodos() async {
-    // Run mercy archival before loading
-    await TodoDao.instance.archiveExpired();
+    // Run mercy archival before loading — cancel any pending "due soon"
+    // notifications for todos the mercy rule just silently archived, so a
+    // reminder never fires for a task that already faded away.
+    final autoArchivedIds = await TodoDao.instance.archiveExpired();
+    for (final id in autoArchivedIds) {
+      await NotificationService.instance.cancelTask(id);
+    }
     _activeTodos = await TodoDao.instance.getActive();
     _archivedTodos = await TodoDao.instance.getArchived();
   }
@@ -446,6 +451,16 @@ class AppState extends ChangeNotifier {
     final updated = _activeTodos[idx].copyWith(title: newTitle);
     _activeTodos[idx] = updated;
     await TodoDao.instance.update(updated);
+    // Keep any scheduled deadline notification's title in sync — otherwise
+    // a renamed task still shows its old title when the reminder fires.
+    if (updated.deadline != null &&
+        updated.deadline!.isAfter(DateTime.now())) {
+      NotificationService.instance.scheduleTaskDeadline(
+        taskId: updated.id,
+        title: newTitle,
+        deadline: updated.deadline!,
+      );
+    }
     notifyListeners();
   }
 
@@ -460,6 +475,8 @@ class AppState extends ChangeNotifier {
         completedAt: DateTime.now(),
       );
     }
+    // Task is done — don't let a "due soon" reminder fire for it later.
+    await NotificationService.instance.cancelTask(id);
     notifyListeners();
   }
 
@@ -467,6 +484,8 @@ class AppState extends ChangeNotifier {
   Future<void> archiveTodo(String id) async {
     await TodoDao.instance.archive(id);
     _activeTodos.removeWhere((t) => t.id == id);
+    // Faded away — cancel any pending deadline reminder for it.
+    await NotificationService.instance.cancelTask(id);
     notifyListeners();
   }
 
@@ -481,6 +500,7 @@ class AppState extends ChangeNotifier {
   Future<void> permanentlyDeleteTodo(String id) async {
     await TodoDao.instance.hardDelete(id);
     _archivedTodos.removeWhere((t) => t.id == id);
+    await NotificationService.instance.cancelTask(id);
     notifyListeners();
   }
 

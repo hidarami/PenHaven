@@ -27,8 +27,10 @@ class PremiumService extends ChangeNotifier {
   static final PremiumService instance = PremiumService._();
 
   // ── During development, unlock everything ─────────────────────────────────
-  // Set to false when you're ready to ship the paywall.
-  static const bool _devUnlockAll = true;
+  // Auto-off in release builds so this can never accidentally ship as an
+  // unlocked paywall — debug/profile builds still unlock everything for
+  // easy testing. Remove this getter entirely once RevenueCat is wired up.
+  static bool get _devUnlockAll => !kReleaseMode;
 
   bool _isPremium = false;
   bool get isPremium => _devUnlockAll || _isPremium;
