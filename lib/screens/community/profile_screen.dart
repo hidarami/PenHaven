@@ -412,8 +412,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ),
 
-            // ── Stories ──────────────────────────────────────────────
-            if (stories.isNotEmpty) ...[
+            // ── Stories (cover-art strip — hidden in Minimalist Mode; the
+            // Library tab still lists every story as plain text there) ────
+            if (stories.isNotEmpty && !appState.isMinimalistMode) ...[
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 24, 20, 14),

@@ -258,6 +258,36 @@ class AppTypography {
         return GoogleFonts.outfit(fontSize: size, color: color, height: height);
       case 'karla':
         return GoogleFonts.karla(fontSize: size, color: color, height: height);
+      case 'caveat':
+        return GoogleFonts.caveat(
+            fontSize: size + 4, color: color, height: height);
+      case 'patrickHand':
+        return GoogleFonts.patrickHand(
+            fontSize: size, color: color, height: height);
+      case 'shadowsIntoLight':
+        return GoogleFonts.shadowsIntoLight(
+            fontSize: size + 2, color: color, height: height);
+      case 'architectsDaughter':
+        return GoogleFonts.architectsDaughter(
+            fontSize: size, color: color, height: height);
+      case 'dancingScript':
+        return GoogleFonts.dancingScript(
+            fontSize: size + 3, color: color, height: height);
+      case 'specialElite':
+        return GoogleFonts.specialElite(
+            fontSize: size - 1, color: color, height: height);
+      case 'courierPrime':
+        return GoogleFonts.courierPrime(
+            fontSize: size - 1, color: color, height: height);
+      case 'bebasNeue':
+        return GoogleFonts.bebasNeue(
+            fontSize: size + 2, color: color, height: height);
+      case 'abrilFatface':
+        return GoogleFonts.abrilFatface(
+            fontSize: size - 2, color: color, height: height);
+      case 'permanentMarker':
+        return GoogleFonts.permanentMarker(
+            fontSize: size - 1, color: color, height: height);
       case 'crimsonPro':
       default:
         return GoogleFonts.crimsonPro(
@@ -289,6 +319,16 @@ class AppTypography {
     'manrope': 'Manrope',
     'outfit': 'Outfit',
     'karla': 'Karla',
+    'caveat': 'Caveat (handwriting)',
+    'patrickHand': 'Patrick Hand (handwriting)',
+    'shadowsIntoLight': 'Shadows Into Light (script)',
+    'architectsDaughter': "Architect's Daughter (handwriting)",
+    'dancingScript': 'Dancing Script (elegant script)',
+    'specialElite': 'Special Elite (typewriter)',
+    'courierPrime': 'Courier Prime (monospace)',
+    'bebasNeue': 'Bebas Neue (bold display)',
+    'abrilFatface': 'Abril Fatface (display serif)',
+    'permanentMarker': 'Permanent Marker (marker)',
   };
 
   // ── Base theme text theme (used in ThemeData) ─────────────────────────────

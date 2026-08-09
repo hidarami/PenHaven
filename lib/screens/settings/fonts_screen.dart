@@ -44,6 +44,19 @@ class FontsScreen extends StatelessWidget {
     'karla',
   ];
 
+  static const _stylizedFonts = [
+    'caveat',
+    'patrickHand',
+    'shadowsIntoLight',
+    'architectsDaughter',
+    'dancingScript',
+    'specialElite',
+    'courierPrime',
+    'bebasNeue',
+    'abrilFatface',
+    'permanentMarker',
+  ];
+
   static const _sampleText = 'The light shifted at 3pm,\nand I began to write.';
 
   @override
@@ -119,6 +132,19 @@ class FontsScreen extends StatelessWidget {
                     const SizedBox(height: 8),
                     _SectionHeader(label: 'SANS-SERIF', mutedColor: mutedColor),
                     ..._sansFonts.map((key) => _FontCard(
+                          fontKey: key,
+                          displayName:
+                              AppTypography.fontDisplayNames[key] ?? key,
+                          sampleText: _sampleText,
+                          isSelected: appState.preferredFont == key,
+                          isDark: isDark,
+                          textColor: textColor,
+                          mutedColor: mutedColor,
+                          onTap: () => appState.setPreferredFont(key),
+                        )),
+                    const SizedBox(height: 8),
+                    _SectionHeader(label: 'STYLIZED', mutedColor: mutedColor),
+                    ..._stylizedFonts.map((key) => _FontCard(
                           fontKey: key,
                           displayName:
                               AppTypography.fontDisplayNames[key] ?? key,

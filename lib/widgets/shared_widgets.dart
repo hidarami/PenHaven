@@ -155,11 +155,12 @@ class _StoryCreateDialogState extends State<StoryCreateDialog> {
               onSubmitted: (_) => _submit(),
             ),
             const SizedBox(height: 16),
-            _CoverPickerRow(
-              path: _coverImagePath,
-              onPicked: (p) => setState(() => _coverImagePath = p),
-              onRemoved: () => setState(() => _coverImagePath = null),
-            ),
+            if (!context.watch<AppState>().isMinimalistMode)
+              _CoverPickerRow(
+                path: _coverImagePath,
+                onPicked: (p) => setState(() => _coverImagePath = p),
+                onRemoved: () => setState(() => _coverImagePath = null),
+              ),
             const SizedBox(height: 24),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,

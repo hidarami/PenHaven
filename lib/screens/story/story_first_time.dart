@@ -63,9 +63,11 @@ class _StoryFirstTimeState extends State<StoryFirstTime> {
       return;
     }
 
-    // Prompt for optional cover before creating
+    // Prompt for optional cover before creating — skipped entirely in
+    // Minimalist Mode, which never asks for cover/header art up front.
     String? coverPath;
-    if (mounted) coverPath = await _showCoverPrompt();
+    final isMinimal = context.read<AppState>().isMinimalistMode;
+    if (mounted && !isMinimal) coverPath = await _showCoverPrompt();
     if (!mounted) return;
 
     setState(() => _creating = true);

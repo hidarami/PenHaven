@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
@@ -76,6 +77,8 @@ class EditorCanvasState extends State<EditorCanvas> {
   }
 
   void _restoreFrom(List<EditorBlock> restored) {
+    _typingBurstTimer?.cancel();
+    _typingBurstActive = false;
     for (final ctrl in _controllers.values) {
       ctrl.dispose();
     }
@@ -149,10 +152,26 @@ class EditorCanvasState extends State<EditorCanvas> {
     }
   }
 
+  bool _typingBurstActive = false;
+  Timer? _typingBurstTimer;
+
   void _onControllerChanged(String blockId, RichEditorController ctrl) {
     final idx = _blocks.indexWhere((b) => b.id == blockId);
     if (idx == -1) return;
     final block = _blocks[idx] as TextBlock;
+
+    // Undo support for plain typing: snapshot once at the START of a
+    // "typing burst" (the pre-change state), then wait for a pause before
+    // allowing the next burst to snapshot again — so undo steps back
+    // through pauses in typing rather than one character at a time.
+    if (!_typingBurstActive) {
+      _pushHistory();
+      _typingBurstActive = true;
+    }
+    _typingBurstTimer?.cancel();
+    _typingBurstTimer = Timer(const Duration(milliseconds: 800), () {
+      _typingBurstActive = false;
+    });
 
     final addedLen = ctrl.text.length - block.text.length;
     if (addedLen > 50 &&
@@ -724,6 +743,7 @@ class EditorCanvasState extends State<EditorCanvas> {
 
   @override
   void dispose() {
+    _typingBurstTimer?.cancel();
     for (final ctrl in _controllers.values) {
       ctrl.dispose();
     }

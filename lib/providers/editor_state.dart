@@ -151,11 +151,19 @@ class EditorState extends ChangeNotifier {
   // Called by editor body TextField's onChanged.
   // ─────────────────────────────────────────────────────────────────────────
 
+  Timer? _sentimentDebounce;
+
   void onContentChanged(String content) {
     _updateWordCount(content);
     _scheduleAutoSave();
-    _checkSentiment(content);
     _checkWordMilestone(_wordCount);
+    // Sentiment scanning walks every trigger word against the full entry
+    // text — cheap for a short entry, wasteful to redo on every keystroke
+    // once it gets long. Debounce it instead of running it live.
+    _sentimentDebounce?.cancel();
+    _sentimentDebounce = Timer(const Duration(milliseconds: 400), () {
+      _checkSentiment(content);
+    });
     notifyListeners();
   }
 
@@ -309,6 +317,7 @@ class EditorState extends ChangeNotifier {
     _comfortTransitionTimer?.cancel();
     _whisperTimer?.cancel();
     _longSessionTimer?.cancel();
+    _sentimentDebounce?.cancel();
     _longSessionTriggered = false;
     _showMilestone = false;
     _lastMilestone = 0;
@@ -334,6 +343,7 @@ class EditorState extends ChangeNotifier {
     _comfortTransitionTimer?.cancel();
     _whisperTimer?.cancel();
     _longSessionTimer?.cancel();
+    _sentimentDebounce?.cancel();
     super.dispose();
   }
 }
